@@ -34,7 +34,7 @@ public class AuthEvent {
         if (Objects.requireNonNull(success.getAuthentication().getPrincipal()) instanceof UserPrincipal userPrincipal) {
             String accessTokenValue = this.jwtService.generateToken(userPrincipal);
             String refreshTokenValue = this.refreshTokenService.generateToken(userPrincipal);
-            CookieUtils.addAuthCookies(accessTokenValue, refreshTokenValue, servletResponse);
+            CookieUtils.addAuthCookies(accessTokenValue, 5, refreshTokenValue, 10800, servletResponse);
         }
     }
 }

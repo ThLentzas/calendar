@@ -70,6 +70,9 @@ import java.time.Instant;
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.getWriter().write(this.objectMapper.writeValueAsString(errorMessage));
         }
+        When an unauthenticated user makes the request that results in 401, that will tell the client to make /refresh
+        request but since the refresh token will be empty the /refresh will result in 401 telling the client to log in
+        the user
  */
 public final class CookieTokenAuthenticationEntrypoint implements AuthenticationEntryPoint {
 

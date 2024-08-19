@@ -26,7 +26,7 @@ class AuthIT extends AbstractIntegrationTest {
     @Test
     void shouldRegisterUser() {
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
-                .uri(AUTH_PATH + "/csrf")
+                .uri(AUTH_PATH + "/token/csrf")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectBody()
@@ -68,7 +68,7 @@ class AuthIT extends AbstractIntegrationTest {
     @Test
     void shouldRefreshToken() {
         EntityExchangeResult<byte[]> response = this.webTestClient.get()
-                .uri(AUTH_PATH + "/csrf")
+                .uri(AUTH_PATH + "/token/csrf")
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectBody()
@@ -109,7 +109,7 @@ class AuthIT extends AbstractIntegrationTest {
                 Case 3: Performing a POST request to "/refresh" with the old refresh token leads to 401
          */
         response = this.webTestClient.post()
-                .uri(AUTH_PATH + "/refresh")
+                .uri(AUTH_PATH + "/token/refresh")
                 .cookie("REFRESH_TOKEN", refreshTokenValue)
                 .cookie("XSRF-TOKEN", csrfTokenValue)
                 .header("X-XSRF-TOKEN", csrfTokenValue)
@@ -130,5 +130,11 @@ class AuthIT extends AbstractIntegrationTest {
                 .header("X-XSRF-TOKEN", csrfTokenValue)
                 .exchange()
                 .expectStatus().isUnauthorized();
+    }
+
+    // toDO: add a resource and test that it should lead to 401
+    @Test
+    void shouldRevokeAccessToken() {
+
     }
 }

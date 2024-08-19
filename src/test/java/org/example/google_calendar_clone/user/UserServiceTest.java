@@ -1,6 +1,5 @@
 package org.example.google_calendar_clone.user;
 
-import net.datafaker.Faker;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.exception.DuplicateResourceException;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
@@ -18,6 +17,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.Mockito.when;
+
+import net.datafaker.Faker;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -44,7 +45,7 @@ class UserServiceTest {
     @Test
     void shouldThrowIllegalArgumentExceptionWhenEmailExceedsMaxLength() {
         User user = createUser();
-        user.setEmail(RandomStringUtils.randomAlphanumeric(51, RandomUtils.nextInt(51, 120)));
+        user.setEmail(RandomStringUtils.randomAlphanumeric(51, RandomUtils.nextInt(52, 120)));
 
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user))
                 .withMessage("Invalid email. Email must not exceed 50 characters");

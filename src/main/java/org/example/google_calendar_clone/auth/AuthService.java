@@ -50,13 +50,14 @@ class AuthService {
         UserPrincipal userPrincipal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String accessTokenValue = this.jwtService.generateToken(userPrincipal);
         String refreshTokenValue = this.refreshTokenService.generateToken(userPrincipal);
-        CookieUtils.addAuthCookies(accessTokenValue, refreshTokenValue, servletResponse);
+        // Access token duration 5 minutes, refresh token 1 week
+        CookieUtils.addAuthCookies(accessTokenValue, 5, refreshTokenValue, 10800, servletResponse);
     }
 
     void refresh(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         Cookie cookie = CookieUtils.getCookie(servletRequest, "REFRESH_TOKEN");
         if (cookie == null) {
-            logger.info("Refresh token was not present");
+            logger.info("Refresh token was not found");
             throw new UnauthorizedException("Unauthorized");
         }
 
@@ -65,9 +66,13 @@ class AuthService {
         UserPrincipal userPrincipal = new UserPrincipal(user);
         String accessTokenValue = this.jwtService.generateToken(userPrincipal);
         String refreshTokenValue = this.refreshTokenService.generateToken(userPrincipal);
-        CookieUtils.addAuthCookies(accessTokenValue, refreshTokenValue, servletResponse);
+        CookieUtils.addAuthCookies(accessTokenValue, 5, refreshTokenValue, 10800, servletResponse);
         //Delete the original refresh token
         this.refreshTokenService.deleteToken(cookie.getValue());
+    }
+
+    void revoke(HttpServletResponse servletResponse) {
+        CookieUtils.addAuthCookies("", 0, "", 0, servletResponse);
     }
 
     private void setupSecurityContext(User user) {

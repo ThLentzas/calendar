@@ -29,7 +29,6 @@ import java.time.Instant;
     the same logic my AccessDeniedHandler.
 
     Look at the AuthenticationEntryPoint for why we add the ObjectMapper.
-
  */
 public final class CookieTokenAccessDeniedHandler implements AccessDeniedHandler {
 

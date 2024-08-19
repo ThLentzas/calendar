@@ -1,6 +1,5 @@
 package org.example.google_calendar_clone.config;
 
-import org.example.google_calendar_clone.security.CsrfCookieFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -9,11 +8,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.example.google_calendar_clone.security.CookieTokenAccessDeniedHandler;
-import org.example.google_calendar_clone.security.CookieTokenAuthenticationEntrypoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.example.google_calendar_clone.security.CookieTokenAccessDeniedHandler;
+import org.example.google_calendar_clone.security.CookieTokenAuthenticationEntrypoint;
+import org.example.google_calendar_clone.security.CsrfCookieFilter;
 
 @Configuration
 @EnableWebSecurity(debug = true)
