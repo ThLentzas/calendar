@@ -24,8 +24,8 @@ class JwtService {
      */
     String generateToken(UserPrincipal userPrincipal) {
         Instant now = Instant.now();
-        //5 minutes TTL
-        long expiry = 300L;
+        //5 minutes TTL 300
+        long expiry = 10800L;
 
         String authorities = userPrincipal.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)

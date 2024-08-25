@@ -6,19 +6,19 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-import lombok.ToString;
 import org.example.google_calendar_clone.role.RoleType;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.EqualsAndHashCode;
 
 @Entity
 @Table(name = "roles")
 @Getter
 @Setter
-@ToString
+@EqualsAndHashCode(of = "id")
 public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

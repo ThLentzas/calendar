@@ -6,13 +6,14 @@ import org.example.google_calendar_clone.entity.User;
 
 import java.util.Set;
 
+// failWithMessage() makes the test to fail
 class UserAssert extends AbstractAssert<UserAssert, User> {
 
     UserAssert(User actual) {
         super(actual, UserAssert.class);
     }
 
-    // This method is commonly used to initiate the assertion chain.
+    // This method is used to initiate the assertion chain.
     static UserAssert assertThat(User actual) {
         return new UserAssert(actual);
     }

@@ -61,6 +61,18 @@ class GlobalExceptionHandler {
         return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ContactRequestException.class)
+    private ResponseEntity<ErrorMessage> handleContactRequestException(HttpServletRequest servletRequest,
+                                                                              ContactRequestException cre) {
+        ErrorMessage errorMessage = new ErrorMessage(Instant.now(),
+                HttpStatus.CONFLICT.value(),
+                ErrorMessage.ErrorType.CONFLICT,
+                cre.getMessage(),
+                servletRequest.getRequestURI());
+
+        return new ResponseEntity<>(errorMessage, HttpStatus.CONFLICT);
+    }
+
 
     @ExceptionHandler(UnauthorizedException.class)
     private ResponseEntity<ErrorMessage> handleUnauthorizedException(HttpServletRequest servletRequest,

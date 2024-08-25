@@ -109,13 +109,13 @@ class UserRepositoryTest extends AbstractRepositoryTest {
     private User createUser() {
         Role role = new Role(RoleType.ROLE_VIEWER);
         this.roleRepository.save(role);
-        User expected = new User(FAKER.internet().username(),
+        User user = new User(FAKER.internet().username(),
                 FAKER.internet().password(12, 128, true, true, true),
                 FAKER.internet().emailAddress(),
                 Set.of(role));
-        this.underTest.save(expected);
+        this.underTest.save(user);
         this.testEntityManager.flush();
 
-        return expected;
+        return user;
     }
 }
