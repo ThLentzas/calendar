@@ -44,6 +44,7 @@ class UserIT extends AbstractIntegrationTest {
     @Test
     @Sql(scripts = "/scripts/INIT_USERS.sql")
     void shouldAddContact() {
+        // Get csrf token from response header
         HttpHeaders headers = this.webTestClient.get()
                 .uri(AUTH_PATH + "/token/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -56,6 +57,7 @@ class UserIT extends AbstractIntegrationTest {
         formData.add("username", userCredentials().get(0).getFirst());
         formData.add("password", userCredentials().get(0).getSecond());
 
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
         headers = this.webTestClient.post()
                 .uri("/login")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -67,6 +69,8 @@ class UserIT extends AbstractIntegrationTest {
                 .getResponseHeaders();
         cookiesMap = TestCookieUtils.parseCookies(headers);
 
+        // The id of the user to be added is known from the @SQL script. We could also perform a GET request to find a user
+        // by something unique(email, name) and extract the id from the response.
         String requestBody = """
                 {
                     "receiverId": 2
@@ -107,6 +111,7 @@ class UserIT extends AbstractIntegrationTest {
                 .getResponseHeaders();
         cookiesMap = TestCookieUtils.parseCookies(headers);
 
+        // Assert that the pending contact request matches the values from the @SQL script
         this.webTestClient.get()
                 .uri(USER_PATH + "/contact-requests")
                 .accept(MediaType.APPLICATION_JSON)
@@ -124,7 +129,7 @@ class UserIT extends AbstractIntegrationTest {
     @Test
     @Sql(scripts = {"/scripts/INIT_USERS.sql", "/scripts/INIT_CONTACT_REQUESTS.sql"})
     void shouldUpdatePendingContactRequest() {
-        // Login with the receiver and request their pending contact requests
+        // Get csrf token from response header
         HttpHeaders headers = this.webTestClient.get()
                 .uri(AUTH_PATH + "/token/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -137,6 +142,7 @@ class UserIT extends AbstractIntegrationTest {
         formData.add("username", userCredentials().get(2).getFirst());
         formData.add("password", userCredentials().get(2).getSecond());
 
+        // Login with the receiver and request their pending contact requests
         headers = this.webTestClient.post()
                 .uri("/login")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -148,6 +154,8 @@ class UserIT extends AbstractIntegrationTest {
                 .getResponseHeaders();
         cookiesMap = TestCookieUtils.parseCookies(headers);
 
+        // The id of the user to be accepted is known from the @SQL script. We could also perform a GET request to find a user
+        // by something unique(email, name) and extract the id from the response.
         String requestBody = """
                 {
                     "senderId": 1,

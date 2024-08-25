@@ -45,7 +45,7 @@ class AuthService {
 
         this.roleService.findByRoleType(RoleType.ROLE_VIEWER).ifPresent(role -> user.getRoles().add(role));
         this.userService.registerUser(user);
-        setupSecurityContext(user);
+        setSecurityContext(user);
 
         UserPrincipal userPrincipal = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String accessTokenValue = this.jwtService.generateToken(userPrincipal);
@@ -75,7 +75,7 @@ class AuthService {
         CookieUtils.addAuthCookies("", 0, "", 0, servletResponse);
     }
 
-    private void setupSecurityContext(User user) {
+    private void setSecurityContext(User user) {
         UserPrincipal userPrincipal = new UserPrincipal(user);
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userPrincipal,

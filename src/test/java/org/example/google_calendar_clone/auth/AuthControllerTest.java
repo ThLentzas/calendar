@@ -64,7 +64,7 @@ class AuthControllerTest {
         verify(this.authService, times(1)).registerUser(eq(registerRequest), any(HttpServletResponse.class));
     }
 
-    // registerUser() Similar for username and password. Redundant to repeat
+    // registerUser() @Valid Similar for username and password. Redundant to repeat
     @ParameterizedTest
     @NullAndEmptySource
     void should400WhenRegisterRequestEmailIsBlank(String email) throws Exception {
@@ -230,7 +230,7 @@ class AuthControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(post(AUTH_PATH + "/token/refresh").with(csrf().useInvalidToken())
+        this.mockMvc.perform(post(AUTH_PATH + "/token/refresh").with(csrf().useInvalidToken().asHeader())
                         .cookie(new Cookie("REFRESH_TOKEN", "value")))
                 .andExpectAll(
                         status().isForbidden(),
@@ -285,12 +285,11 @@ class AuthControllerTest {
                 }
                 """;
 
-        this.mockMvc.perform(post(AUTH_PATH + "/token/revoke").with(csrf().useInvalidToken()))
+        this.mockMvc.perform(post(AUTH_PATH + "/token/revoke").with(csrf().useInvalidToken().asHeader()))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
                 );
-
 
         verifyNoInteractions(this.authService);
     }

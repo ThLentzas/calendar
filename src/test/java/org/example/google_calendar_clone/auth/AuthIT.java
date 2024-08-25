@@ -17,6 +17,7 @@ import java.time.Duration;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 /*
     In all the tests below that we log in a user, since we are using the DaoAuthenticationProvider upon successful
@@ -44,6 +45,7 @@ class AuthIT extends AbstractIntegrationTest {
     // register()
     @Test
     void shouldRegisterUser() {
+        // Get csrf token from response header
         HttpHeaders headers = this.webTestClient.get()
                 .uri(AUTH_PATH + "/token/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -64,6 +66,7 @@ class AuthIT extends AbstractIntegrationTest {
                 }
                 """, username, email, password);
 
+        // Register user assert that the Refresh/Access tokens are present in the response as Cookies
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -86,6 +89,7 @@ class AuthIT extends AbstractIntegrationTest {
     // We could also combine the two tests(register - login), into one.
     @Test
     void shouldLoginUser() {
+        // Get csrf token from response header
         HttpHeaders headers = this.webTestClient.get()
                 .uri(AUTH_PATH + "/token/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -99,6 +103,7 @@ class AuthIT extends AbstractIntegrationTest {
         formData.add("username", userCredentials().get(0).getFirst());
         formData.add("password", userCredentials().get(0).getSecond());
 
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
         this.webTestClient.post()
                 .uri("/login")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -113,13 +118,14 @@ class AuthIT extends AbstractIntegrationTest {
     // refresh()
     @Test
     void shouldRefreshToken() {
+        // Get csrf token from response header
         HttpHeaders headers = this.webTestClient.get()
                 .uri(AUTH_PATH + "/token/csrf")
-                .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .returnResult(ResponseEntity.class)
                 .getResponseHeaders();
 
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
         Map<String, String> cookiesMap = TestCookieUtils.parseCookies(headers);
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", userCredentials().get(0).getFirst());
@@ -142,12 +148,15 @@ class AuthIT extends AbstractIntegrationTest {
          */
         String csrfTokenValue = cookiesMap.get("XSRF-TOKEN");
         String refreshTokenValue = cookiesMap.get("REFRESH_TOKEN");
+        String accessTokenValue = cookiesMap.get("ACCESS_TOKEN");
+
+        await().pollDelay(Duration.ofSeconds(1)).until(() -> true);
 
         /*
             We perform 3 assertions
                 Case 1: Access and refresh token are set on the response headers
                 Case 2: The value of the new refresh token does not match the value of the refresh token that was submitted
-                for the request
+                for the request. The old access token and the new one also do not match
                 Case 3: Performing a POST request to "/refresh" with the old refresh token leads to 401
          */
         headers = this.webTestClient.post()
@@ -163,13 +172,16 @@ class AuthIT extends AbstractIntegrationTest {
                 .returnResult(ResponseEntity.class)
                 .getResponseHeaders();
 
+
         // At this point we lose the csrf value, since the map from the /refresh endpoint contains only Refresh/Access token
         cookiesMap = TestCookieUtils.parseCookies(headers);
         String newRefreshTokenValue = cookiesMap.get("REFRESH_TOKEN");
+        String newAccessTokenValue = cookiesMap.get("ACCESS_TOKEN");
         assertThat(newRefreshTokenValue).isNotEqualTo(refreshTokenValue);
+        assertThat(newAccessTokenValue).isNotEqualTo(accessTokenValue);
 
         this.webTestClient.post()
-                .uri(AUTH_PATH + "/refresh")
+                .uri(AUTH_PATH + "/token/refresh")
                 .cookie("REFRESH_TOKEN", refreshTokenValue)
                 .cookie("XSRF-TOKEN", csrfTokenValue)
                 .header("X-XSRF-TOKEN", csrfTokenValue)
@@ -179,6 +191,7 @@ class AuthIT extends AbstractIntegrationTest {
 
     @Test
     void shouldRevokeAccessToken() {
+        // Get csrf token from response header
         HttpHeaders headers = this.webTestClient.get()
                 .uri(AUTH_PATH + "/token/csrf")
                 .accept(MediaType.APPLICATION_JSON)
@@ -191,6 +204,7 @@ class AuthIT extends AbstractIntegrationTest {
         formData.add("username", userCredentials().get(0).getFirst());
         formData.add("password", userCredentials().get(0).getSecond());
 
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
         headers = this.webTestClient.post()
                 .uri("/login")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -203,6 +217,7 @@ class AuthIT extends AbstractIntegrationTest {
 
         cookiesMap = TestCookieUtils.parseCookies(headers);
 
+        // Revoke the access token by asserting that the response will contain cookies with empty value "" and maxAge 0
         this.webTestClient.post()
                 .uri(AUTH_PATH + "/token/revoke")
                 .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
