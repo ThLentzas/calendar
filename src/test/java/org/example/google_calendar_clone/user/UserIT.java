@@ -1,17 +1,15 @@
 package org.example.google_calendar_clone.user;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.example.google_calendar_clone.AbstractIntegrationTest;
-import org.example.google_calendar_clone.util.TestCookieUtils;
 import org.junit.jupiter.api.Test;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+
+import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 
 import java.util.Map;
 
@@ -34,10 +32,7 @@ import java.util.Map;
     class UserIT extends AbstractIntegrationTest -> Won't work either without executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS
     because every method level @Sql script will overwrite it.
  */
-@AutoConfigureWebTestClient
 class UserIT extends AbstractIntegrationTest {
-    @Autowired
-    private WebTestClient webTestClient;
     private static final String AUTH_PATH = "/api/v1/auth";
     private static final String USER_PATH = "/api/v1/user";
 
@@ -45,29 +40,30 @@ class UserIT extends AbstractIntegrationTest {
     @Sql(scripts = "/scripts/INIT_USERS.sql")
     void shouldAddContact() {
         // Get csrf token from response header
-        HttpHeaders headers = this.webTestClient.get()
-                .uri(AUTH_PATH + "/token/csrf")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
-        Map<String, String> cookiesMap = TestCookieUtils.parseCookies(headers);
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("username", userCredentials().get(0).getFirst());
-        formData.add("password", userCredentials().get(0).getSecond());
+        Map<String, String> cookies = response.getCookies();
 
         // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
-        headers = this.webTestClient.post()
-                .uri("/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .bodyValue(formData)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
-        cookiesMap = TestCookieUtils.parseCookies(headers);
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(0).getFirst())
+                .formParam("password", userCredentials().get(0).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
+        // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
+        cookies = response.getCookies();
 
         // The id of the user to be added is known from the @SQL script. We could also perform a GET request to find a user
         // by something unique(email, name) and extract the id from the response.
@@ -77,84 +73,98 @@ class UserIT extends AbstractIntegrationTest {
                 }
                 """;
 
-        this.webTestClient.post()
-                .uri(USER_PATH + "/contacts")
-                .contentType(MediaType.APPLICATION_JSON)
-                .cookie("ACCESS_TOKEN", cookiesMap.get("ACCESS_TOKEN"))
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .bodyValue(requestBody)
-                .exchange()
-                .expectStatus().isOk();
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .when()
+                .post(USER_PATH + "/contacts")
+                .then()
+                .statusCode(200);
 
-        // Login with the receiver and request their pending contact requests
-        headers = this.webTestClient.get()
-                .uri(AUTH_PATH + "/token/csrf")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
-        cookiesMap = TestCookieUtils.parseCookies(headers);
+        response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
 
-        formData = new LinkedMultiValueMap<>();
-        formData.add("username", userCredentials().get(1).getFirst());
-        formData.add("password", userCredentials().get(1).getSecond());
+        cookies = response.getCookies();
 
-        headers = this.webTestClient.post()
-                .uri("/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .bodyValue(formData)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
-        cookiesMap = TestCookieUtils.parseCookies(headers);
+        // Login with the receiver and make a GET request for their pending contact requests
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(1).getFirst())
+                .formParam("password", userCredentials().get(1).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
 
-        // Assert that the pending contact request matches the values from the @SQL script
-        this.webTestClient.get()
-                .uri(USER_PATH + "/contact-requests")
-                .accept(MediaType.APPLICATION_JSON)
-                .cookie("ACCESS_TOKEN", cookiesMap.get("ACCESS_TOKEN"))
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.length()").isEqualTo(1)
-                // We can also assert the id, because we know it from the sql file. We could also make a GET request to find
-                // the user and assert based on those values.
-                .jsonPath("$[0].userProfile.name").isEqualTo("kris.hudson")
-                .jsonPath("$[0].status").isEqualTo("PENDING");
+        cookies = response.getCookies();
+
+        /*
+            We could also assert on the list after parsing the response.
+
+            List<PendingContactRequest> requests = given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .accept(ContentType.JSON)
+                .when()
+                .get(USER_PATH + "/contact-requests")
+                .then()
+                .extract()
+                .response().as(new TypeRef<>() {});
+         */
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .accept(ContentType.JSON)
+                .when()
+                .get(USER_PATH + "/contact-requests")
+                .then()
+                .statusCode(200)
+                // HamcrestMatches hasSize(), equalTo. "" refers to the root element in our case a List<PendingContactRequest>
+                .body("", hasSize(1))
+                // We can also assert the id, because we know it from the sql file.
+                .body("[0].userProfile.name", equalTo("kris.hudson"))
+                .body("[0].status", equalTo("PENDING"));
     }
 
     @Test
     @Sql(scripts = {"/scripts/INIT_USERS.sql", "/scripts/INIT_CONTACT_REQUESTS.sql"})
     void shouldUpdatePendingContactRequest() {
         // Get csrf token from response header
-        HttpHeaders headers = this.webTestClient.get()
-                .uri(AUTH_PATH + "/token/csrf")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
-        Map<String, String>cookiesMap = TestCookieUtils.parseCookies(headers);
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("username", userCredentials().get(2).getFirst());
-        formData.add("password", userCredentials().get(2).getSecond());
+        Map<String, String> cookies = response.getCookies();
 
-        // Login with the receiver and request their pending contact requests
-        headers = this.webTestClient.post()
-                .uri("/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .bodyValue(formData)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
-        cookiesMap = TestCookieUtils.parseCookies(headers);
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(2).getFirst())
+                .formParam("password", userCredentials().get(2).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
+        // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
+        cookies = response.getCookies();
 
-        // The id of the user to be accepted is known from the @SQL script. We could also perform a GET request to find a user
+        // The id of the user to be added is known from the @SQL script. We could also perform a GET request to find a user
         // by something unique(email, name) and extract the id from the response.
         String requestBody = """
                 {
@@ -163,28 +173,30 @@ class UserIT extends AbstractIntegrationTest {
                 }
                 """;
 
-        this.webTestClient.put()
-                .uri(USER_PATH + "/contact-requests")
-                .contentType(MediaType.APPLICATION_JSON)
-                .cookie("ACCESS_TOKEN", cookiesMap.get("ACCESS_TOKEN"))
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .bodyValue(requestBody)
-                .exchange()
-                .expectStatus()
-                .isNoContent();
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .when()
+                .put(USER_PATH + "/contact-requests")
+                .then()
+                .statusCode(204);
 
-        // After accepting/rejecting the request, we assert that the pending requests is now only 1 since from the initial
+        // After accepting/rejecting the request, we assert that the pending requests is now only 1. From the initial
         // sql script user with id 3 had 2 pending contact requests
-        this.webTestClient.get()
-                .uri(USER_PATH + "/contact-requests")
-                .accept(MediaType.APPLICATION_JSON)
-                .cookie("ACCESS_TOKEN", cookiesMap.get("ACCESS_TOKEN"))
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.length()").isEqualTo(1)
-                .jsonPath("$[0].userProfile.name").isEqualTo("clement.gulgowski")
-                .jsonPath("$[0].status").isEqualTo("PENDING");
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .accept(ContentType.JSON)
+                .when()
+                .get(USER_PATH + "/contact-requests")
+                .then()
+                .statusCode(200)
+                // HamcrestMatches hasSize(), equalTo. "" refers to the root element in our case a List<PendingContactRequest>
+                .body("", hasSize(1))
+                // We can also assert the id, because we know it from the sql file.
+                .body("[0].userProfile.name", equalTo("clement.gulgowski"))
+                .body("[0].status", equalTo("PENDING"));
     }
 }

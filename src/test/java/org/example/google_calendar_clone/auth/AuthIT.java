@@ -1,23 +1,19 @@
 package org.example.google_calendar_clone.auth;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.example.google_calendar_clone.AbstractIntegrationTest;
-import org.example.google_calendar_clone.util.TestCookieUtils;
 import org.junit.jupiter.api.Test;
+
+import io.restassured.http.ContentType;
+import io.restassured.response.Response;
+import io.restassured.http.Cookie;
+
+import static org.awaitility.Awaitility.await;
+import static org.assertj.core.api.Assertions.assertThat;
+import static io.restassured.RestAssured.given;
 
 import java.time.Duration;
 import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.awaitility.Awaitility.await;
 
 /*
     In all the tests below that we log in a user, since we are using the DaoAuthenticationProvider upon successful
@@ -26,34 +22,24 @@ import static org.awaitility.Awaitility.await;
     the log in response, to have access to the new valid csrf.
 
     @SQL https://docs.spring.io/spring-framework/reference/testing/testcontext-framework/executing-sql.html
-
-    MultiValueMap<String, String> formData = new LinkedMultiValueMap<>(); is used to represent form data in a key-value
-    format where each key can have multiple values. For example our favorite songs we can have:
-        formData.add("songs", "song1");
-        formData.add("songs", "song2");
-        formData.add("songs", "song3");
-
-    It can resemble forms where a form field can have multiple entries, such as checkboxes or multi-select dropdowns
  */
-@AutoConfigureWebTestClient
 @Sql("/scripts/INIT_USERS.sql")
 class AuthIT extends AbstractIntegrationTest {
-    @Autowired
-    private WebTestClient webTestClient;
     private static final String AUTH_PATH = "/api/v1/auth";
 
     // register()
     @Test
     void shouldRegisterUser() {
-        // Get csrf token from response header
-        HttpHeaders headers = this.webTestClient.get()
-                .uri(AUTH_PATH + "/token/csrf")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
 
-        Map<String, String> cookiesMap = TestCookieUtils.parseCookies(headers);
+        Map<String, String> cookies = response.getCookies();
+
         String username = FAKER.internet().username();
         String email = FAKER.internet().emailAddress();
         String password = FAKER.internet().password(12, 128, true, true, true);
@@ -66,89 +52,83 @@ class AuthIT extends AbstractIntegrationTest {
                 }
                 """, username, email, password);
 
-        // Register user assert that the Refresh/Access tokens are present in the response as Cookies
-        this.webTestClient.post()
-                .uri(AUTH_PATH + "/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .bodyValue(requestBody)
-                .exchange()
-                .expectStatus().isCreated()
-                // expectCookie() returns CookieAssertions and, we can assert on that. Look at DefaultWebTestClient and CookieAssertions
-                .expectCookie().exists("ACCESS_TOKEN")
-                .expectCookie().exists("REFRESH_TOKEN");
-        /*
-            An alternative:
-                cookiesMap = CookieTestUtils.parseCookieHeaders(headers);
-                assertThat(cookiesMap.keySet().stream().anyMatch(key -> key.equals("ACCESS_TOKEN"))).isTrue();
-                assertThat(cookiesMap.keySet().stream().anyMatch(key -> key.equals("REFRESH_TOKEN"))).isTrue();
-         */
+        given()
+                .contentType(ContentType.JSON)
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .body(requestBody)
+                .when()
+                .post(AUTH_PATH + "/register")
+                .then()
+                .cookie("ACCESS_TOKEN")
+                .cookie("REFRESH_TOKEN")
+                .statusCode(201);
     }
 
-    // We could also combine the two tests(register - login), into one.
+    // login()
     @Test
-    void shouldLoginUser() {
-        // Get csrf token from response header
-        HttpHeaders headers = this.webTestClient.get()
-                .uri(AUTH_PATH + "/token/csrf")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
+    void shouldLogin() {
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
 
-        Map<String, String> cookiesMap = TestCookieUtils.parseCookies(headers);
+        Map<String, String> cookies = response.getCookies();
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("username", userCredentials().get(0).getFirst());
-        formData.add("password", userCredentials().get(0).getSecond());
-
-        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
-        this.webTestClient.post()
-                .uri("/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .bodyValue(formData)
-                .exchange()
-                .expectCookie().exists("ACCESS_TOKEN")
-                .expectCookie().exists("REFRESH_TOKEN");
+        given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(0).getFirst())
+                .formParam("password", userCredentials().get(0).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .cookie("ACCESS_TOKEN")
+                .cookie("REFRESH_TOKEN")
+                .extract()
+                .response();
     }
 
     // refresh()
     @Test
     void shouldRefreshToken() {
         // Get csrf token from response header
-        HttpHeaders headers = this.webTestClient.get()
-                .uri(AUTH_PATH + "/token/csrf")
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
+
+        Map<String, String> cookies = response.getCookies();
 
         // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
-        Map<String, String> cookiesMap = TestCookieUtils.parseCookies(headers);
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("username", userCredentials().get(0).getFirst());
-        formData.add("password", userCredentials().get(0).getSecond());
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(0).getFirst())
+                .formParam("password", userCredentials().get(0).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
 
-        headers = this.webTestClient.post()
-                .uri("/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .bodyValue(formData)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
-
-        cookiesMap = TestCookieUtils.parseCookies(headers);
         /*
+            The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
             We need to hold the value the csrf token has for our next assertions because in the next request when we
             acquire the new Refresh/Access token, we lose the value of the csrf
          */
-        String csrfTokenValue = cookiesMap.get("XSRF-TOKEN");
-        String refreshTokenValue = cookiesMap.get("REFRESH_TOKEN");
-        String accessTokenValue = cookiesMap.get("ACCESS_TOKEN");
+        cookies = response.getCookies();
+        String csrfTokenValue = cookies.get("XSRF-TOKEN");
+        String oldAccessTokenValue = cookies.get("ACCESS_TOKEN");
+        String oldRefreshTokenValue = cookies.get("REFRESH_TOKEN");
 
         await().pollDelay(Duration.ofSeconds(1)).until(() -> true);
 
@@ -159,75 +139,83 @@ class AuthIT extends AbstractIntegrationTest {
                 for the request. The old access token and the new one also do not match
                 Case 3: Performing a POST request to "/refresh" with the old refresh token leads to 401
          */
-        headers = this.webTestClient.post()
-                .uri(AUTH_PATH + "/token/refresh")
-                .cookie("REFRESH_TOKEN", refreshTokenValue)
-                .cookie("XSRF-TOKEN", csrfTokenValue)
-                .header("X-XSRF-TOKEN", csrfTokenValue)
-                .exchange()
-                .expectStatus().isOk()
-                // expectCookie() returns CookieAssertions and, we can assert on that. Look at DefaultWebTestClient and CookieAssertions
-                .expectCookie().exists("ACCESS_TOKEN")
-                .expectCookie().exists("REFRESH_TOKEN")
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
-
+        response = given()
+                .cookie("REFRESH_TOKEN", oldRefreshTokenValue)
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post(AUTH_PATH + "/token/refresh")
+                .then()
+                .cookie("ACCESS_TOKEN")
+                .cookie("REFRESH_TOKEN")
+                .extract()
+                .response();
 
         // At this point we lose the csrf value, since the map from the /refresh endpoint contains only Refresh/Access token
-        cookiesMap = TestCookieUtils.parseCookies(headers);
-        String newRefreshTokenValue = cookiesMap.get("REFRESH_TOKEN");
-        String newAccessTokenValue = cookiesMap.get("ACCESS_TOKEN");
-        assertThat(newRefreshTokenValue).isNotEqualTo(refreshTokenValue);
-        assertThat(newAccessTokenValue).isNotEqualTo(accessTokenValue);
+        cookies = response.getCookies();
+        String newAccessTokenValue = cookies.get("ACCESS_TOKEN");
+        String newRefreshTokenValue = cookies.get("REFRESH_TOKEN");
 
-        this.webTestClient.post()
-                .uri(AUTH_PATH + "/token/refresh")
-                .cookie("REFRESH_TOKEN", refreshTokenValue)
+        assertThat(newAccessTokenValue).isNotEqualTo(oldAccessTokenValue);
+        assertThat(newRefreshTokenValue).isNotEqualTo(oldRefreshTokenValue);
+
+        given()
+                .cookie("REFRESH_TOKEN", oldRefreshTokenValue)
                 .cookie("XSRF-TOKEN", csrfTokenValue)
                 .header("X-XSRF-TOKEN", csrfTokenValue)
-                .exchange()
-                .expectStatus().isUnauthorized();
+                .when()
+                .post(AUTH_PATH + "/token/refresh")
+                .then()
+                .statusCode(401);
     }
 
     @Test
-    void shouldRevokeAccessToken() {
+    void shouldRevokeAccessAndRefreshToken() {
         // Get csrf token from response header
-        HttpHeaders headers = this.webTestClient.get()
-                .uri(AUTH_PATH + "/token/csrf")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .statusCode(200)
+                .extract()
+                .response();
 
-        Map<String, String> cookiesMap = TestCookieUtils.parseCookies(headers);
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("username", userCredentials().get(0).getFirst());
-        formData.add("password", userCredentials().get(0).getSecond());
+        Map<String, String> cookies = response.getCookies();
 
         // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
-        headers = this.webTestClient.post()
-                .uri("/login")
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .bodyValue(formData)
-                .exchange()
-                .returnResult(ResponseEntity.class)
-                .getResponseHeaders();
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(0).getFirst())
+                .formParam("password", userCredentials().get(0).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
 
-        cookiesMap = TestCookieUtils.parseCookies(headers);
+        // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
+        cookies = response.getCookies();
 
         // Revoke the access token by asserting that the response will contain cookies with empty value "" and maxAge 0
-        this.webTestClient.post()
-                .uri(AUTH_PATH + "/token/revoke")
-                .cookie("XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .header("X-XSRF-TOKEN", cookiesMap.get("XSRF-TOKEN"))
-                .exchange()
-                .expectStatus().isOk()
-                // expectCookie() returns CookieAssertions and, we can assert on that. Look at DefaultWebTestClient and CookieAssertions
-                .expectCookie().valueEquals("ACCESS_TOKEN", "")
-                .expectCookie().maxAge("ACCESS_TOKEN", Duration.ZERO)
-                .expectCookie().valueEquals("REFRESH_TOKEN", "")
-                .expectCookie().maxAge("REFRESH_TOKEN", Duration.ZERO);
+        response = given()
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post(AUTH_PATH + "/token/revoke")
+                .then()
+                .assertThat()
+                .cookie("ACCESS_TOKEN", "")
+                .cookie("REFRESH_TOKEN", "")
+                .extract()
+                .response();
+
+        // io.restassured.http.Cookie; not jakarta.servlet.http.Cookie
+        Cookie accessToken = response.getDetailedCookie("ACCESS_TOKEN");
+        Cookie refreshToken = response.getDetailedCookie("REFRESH_TOKEN");
+
+        assertThat(accessToken.getMaxAge()).isZero();
+        assertThat(refreshToken.getMaxAge()).isZero();
     }
 }
