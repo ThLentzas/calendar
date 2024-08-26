@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.user.converter;
+package org.example.google_calendar_clone.user.dto.converter;
 
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.user.dto.UserProfile;

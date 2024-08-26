@@ -112,7 +112,7 @@ class UserServiceTest {
         when(this.userRepository.getReferenceById(sender.getId())).thenReturn(sender);
         when(this.userRepository.findById(contactRequest.receiverId())).thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.addContact(
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.sendContactRequest(
                         contactRequest,
                         mockJwt))
                 .withMessage("User not found with id: " + contactRequest.receiverId());

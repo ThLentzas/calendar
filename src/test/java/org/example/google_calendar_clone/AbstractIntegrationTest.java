@@ -63,6 +63,7 @@ public abstract class AbstractIntegrationTest {
 
     @AfterEach
     void clear() {
+        // We have ON DELETE CASCADE and every user related entries will also be deleted
         this.userRepository.deleteAll();
     }
 

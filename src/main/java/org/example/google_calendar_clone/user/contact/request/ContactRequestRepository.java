@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.user.contact;
+package org.example.google_calendar_clone.user.contact.request;
 
 import org.example.google_calendar_clone.entity.ContactRequest;
 import org.example.google_calendar_clone.entity.key.ContactRequestId;

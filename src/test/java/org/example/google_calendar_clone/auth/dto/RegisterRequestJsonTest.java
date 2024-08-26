@@ -1,9 +1,9 @@
 package org.example.google_calendar_clone.auth.dto;
 
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.boot.test.json.JacksonTester;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 

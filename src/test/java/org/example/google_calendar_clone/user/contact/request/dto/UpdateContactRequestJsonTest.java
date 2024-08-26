@@ -1,11 +1,13 @@
-package org.example.google_calendar_clone.user.contact.dto;
+package org.example.google_calendar_clone.user.contact.request.dto;
 
-import net.datafaker.Faker;
-import org.example.google_calendar_clone.user.contact.ContactRequestAction;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.boot.test.json.JacksonTester;
+import org.example.google_calendar_clone.user.contact.dto.UpdateContactRequest;
+import org.example.google_calendar_clone.user.contact.request.ContactRequestAction;
+import org.junit.jupiter.api.Test;
+
+import net.datafaker.Faker;
 
 import java.io.IOException;
 

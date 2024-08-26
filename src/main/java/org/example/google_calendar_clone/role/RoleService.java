@@ -1,10 +1,11 @@
 package org.example.google_calendar_clone.role;
 
-import lombok.RequiredArgsConstructor;
 import org.example.google_calendar_clone.entity.Role;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor

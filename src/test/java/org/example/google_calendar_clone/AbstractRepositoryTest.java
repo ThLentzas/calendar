@@ -1,12 +1,12 @@
 package org.example.google_calendar_clone;
 
-import org.example.google_calendar_clone.config.JpaConfig;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Import;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+import org.example.google_calendar_clone.config.JpaConfig;
 
 /*
     We have to import the JpaAuditingConfig class for the database to auto-generated the created date.

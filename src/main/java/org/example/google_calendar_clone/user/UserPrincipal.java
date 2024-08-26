@@ -1,8 +1,8 @@
 package org.example.google_calendar_clone.user;
 
-import org.example.google_calendar_clone.entity.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.example.google_calendar_clone.entity.User;
 
 import java.util.Collection;
 

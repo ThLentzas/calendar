@@ -14,6 +14,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.example.google_calendar_clone.user.contact.dto.CreateContactRequest;
 import org.example.google_calendar_clone.user.contact.dto.PendingContactRequest;
 import org.example.google_calendar_clone.user.contact.dto.UpdateContactRequest;
+import org.example.google_calendar_clone.user.dto.UserProfile;
 
 import lombok.RequiredArgsConstructor;
 
@@ -33,10 +34,10 @@ class UserController {
 
     @PostMapping("/contacts")
     @PreAuthorize("hasRole('ROLE_VIEWER')")
-    ResponseEntity<Void> addContact(@Valid @RequestBody CreateContactRequest contactRequest,
-                                    // The principal of the JwtAuthenticationToken is a Jwt
-                                    @AuthenticationPrincipal Jwt jwt) {
-        this.userService.addContact(contactRequest, jwt);
+    ResponseEntity<Void> sendContactRequest(@Valid @RequestBody CreateContactRequest contactRequest,
+                                            // The principal of the JwtAuthenticationToken is a Jwt
+                                            @AuthenticationPrincipal Jwt jwt) {
+        this.userService.sendContactRequest(contactRequest, jwt);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -56,10 +57,17 @@ class UserController {
     @PreAuthorize("hasRole('ROLE_VIEWER')")
     ResponseEntity<Void> updateContactRequest(@Valid @RequestBody UpdateContactRequest contactRequest,
                                               @AuthenticationPrincipal Jwt jwt) {
-        this.userService.updateContact(contactRequest, jwt);
+        this.userService.updateContactRequest(contactRequest, jwt);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+    @GetMapping("/contacts")
+    @PreAuthorize("hasRole('ROLE_VIEWER')")
+    ResponseEntity<List<UserProfile>> findContacts(@AuthenticationPrincipal Jwt jwt) {
+        List<UserProfile> contacts = this.userService.findContacts(jwt);
+
+        return new ResponseEntity<>(contacts, HttpStatus.OK);
+    }
     // toDo: delete user and access token set to ""
 }

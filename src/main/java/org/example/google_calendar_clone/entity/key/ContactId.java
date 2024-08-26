@@ -12,14 +12,14 @@ import java.io.Serializable;
 @Getter
 @Setter
 @EqualsAndHashCode(of = {"userId1", "userId2"})
-public class UserContactId implements Serializable {
+public class ContactId implements Serializable {
     private Long userId1;
     private Long userId2;
 
-    public UserContactId() {
+    public ContactId() {
     }
 
-    public UserContactId(Long userId1, Long userId2) {
+    public ContactId(Long userId1, Long userId2) {
         this.userId1 = userId1;
         this.userId2 = userId2;
     }

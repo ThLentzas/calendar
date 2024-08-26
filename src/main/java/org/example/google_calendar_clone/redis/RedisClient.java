@@ -1,8 +1,8 @@
 package org.example.google_calendar_clone.redis;
 
-import org.example.google_calendar_clone.auth.dto.RefreshToken;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
+import org.example.google_calendar_clone.auth.dto.RefreshToken;
 
 import java.util.concurrent.TimeUnit;
 

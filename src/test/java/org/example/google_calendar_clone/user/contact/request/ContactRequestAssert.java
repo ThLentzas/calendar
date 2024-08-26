@@ -1,9 +1,9 @@
-package org.example.google_calendar_clone.user.contact;
+package org.example.google_calendar_clone.user.contact.request;
 
-import org.assertj.core.api.AbstractAssert;
 import org.example.google_calendar_clone.entity.ContactRequest;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.entity.key.ContactRequestId;
+import org.assertj.core.api.AbstractAssert;
 
 import java.time.Instant;
 

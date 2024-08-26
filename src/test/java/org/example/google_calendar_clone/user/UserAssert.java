@@ -1,8 +1,8 @@
 package org.example.google_calendar_clone.user;
 
-import org.assertj.core.api.AbstractAssert;
 import org.example.google_calendar_clone.entity.Role;
 import org.example.google_calendar_clone.entity.User;
+import org.assertj.core.api.AbstractAssert;
 
 import java.util.Set;
 

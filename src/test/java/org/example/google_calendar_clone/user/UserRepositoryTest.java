@@ -15,6 +15,10 @@ import net.datafaker.Faker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/*
+    IMPORTANT!!!!!! This class and the ContactRequestRepositoryTest class use methods for setting up data. The
+    ContactRepositoryTest uses sql scripts.
+ */
 class UserRepositoryTest extends AbstractRepositoryTest {
     @Autowired
     private UserRepository underTest;
@@ -107,8 +111,8 @@ class UserRepositoryTest extends AbstractRepositoryTest {
             }
      */
     private User createUser() {
-        Role role = new Role(RoleType.ROLE_VIEWER);
-        this.roleRepository.save(role);
+        // We don't have to create a role because there roles are present from the sql scripts that Flyway migrated
+        Role role = this.roleRepository.findByRoleType(RoleType.ROLE_VIEWER).orElseThrow();
         User user = new User(FAKER.internet().username(),
                 FAKER.internet().password(12, 128, true, true, true),
                 FAKER.internet().emailAddress(),

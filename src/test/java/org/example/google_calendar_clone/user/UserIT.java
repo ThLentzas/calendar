@@ -1,16 +1,21 @@
 package org.example.google_calendar_clone.user;
 
-import org.springframework.test.context.jdbc.Sql;
+import org.example.google_calendar_clone.user.dto.UserProfile;
 import org.example.google_calendar_clone.AbstractIntegrationTest;
+import org.springframework.test.context.jdbc.Sql;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import io.restassured.common.mapper.TypeRef;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 
 /*
@@ -38,13 +43,12 @@ class UserIT extends AbstractIntegrationTest {
 
     @Test
     @Sql(scripts = "/scripts/INIT_USERS.sql")
-    void shouldAddContact() {
+    void shouldSendContactRequest() {
         // Get csrf token from response header
         Response response = given()
                 .when()
                 .get(AUTH_PATH + "/token/csrf")
                 .then()
-                .statusCode(200)
                 .extract()
                 .response();
 
@@ -143,7 +147,6 @@ class UserIT extends AbstractIntegrationTest {
                 .when()
                 .get(AUTH_PATH + "/token/csrf")
                 .then()
-                .statusCode(200)
                 .extract()
                 .response();
 
@@ -198,5 +201,57 @@ class UserIT extends AbstractIntegrationTest {
                 // We can also assert the id, because we know it from the sql file.
                 .body("[0].userProfile.name", equalTo("clement.gulgowski"))
                 .body("[0].status", equalTo("PENDING"));
+    }
+
+    @Test
+    @Sql(scripts = {"/scripts/INIT_USERS.sql", "/scripts/INIT_CONTACT_REQUESTS.sql"})
+    void shouldFindContacts() {
+        // Get csrf token from response header
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/")
+                .then()
+                .extract()
+                .response();
+        Map<String, String> cookies = response.getCookies();
+
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(2).getFirst())
+                .formParam("password", userCredentials().get(2).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
+        cookies = response.getCookies();
+
+        /*
+            The current logged in user(id = 3) has 2 contacts in contacts table (1, 3) and (2, 3) based on the sql script
+            We could also assert in the response body because we know the exact values since our response is sorted by name
+         */
+        List<UserProfile> profiles = given()
+                .accept(ContentType.JSON)
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .when()
+                .get(USER_PATH + "/contacts")
+                .then()
+                .log().all()
+                .extract()
+                .response().as(new TypeRef<>() {
+                });
+
+        /*
+            Each anyMatch() will check if there is a profile in profiles that match the values, if at least one is find
+            returns true else returns false and our assertion fails. Our list is sorted name
+         */
+        assertThat(profiles)
+                .hasSize(2)
+                .anyMatch(userProfile -> userProfile.id().equals(2L) && userProfile.name().equals("clement.gulgowski"))
+                .anyMatch(userProfile -> userProfile.id().equals(1L) && userProfile.name().equals("kris.hudson"))
+                .isSortedAccordingTo(Comparator.comparing(UserProfile::name));
     }
 }

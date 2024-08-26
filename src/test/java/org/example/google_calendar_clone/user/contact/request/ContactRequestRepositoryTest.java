@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.user.contact;
+package org.example.google_calendar_clone.user.contact.request;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
 import org.example.google_calendar_clone.entity.ContactRequest;
@@ -22,6 +22,9 @@ import static org.assertj.core.api.Fail.fail;
 import net.datafaker.Faker;
 
 /*
+    IMPORTANT!!!!!! This class and the UserRepositoryTest class use methods for setting up data. The ContactRepositoryTest
+    uses sql scripts.
+
     The reason why we call this.testEntityManager.flush(); in both createUsers() and createContactRequests() is that both
     methods are called from a method annotated with @Test and those methods are @DataJpaTest methods which means that
     they are transactional. If we don't call this.testEntityManager.flush();, the reads that we try, our repo methods
@@ -138,8 +141,8 @@ class ContactRequestRepositoryTest extends AbstractRepositoryTest {
     }
 
     private List<User> createUsers() {
-        Role role = new Role(RoleType.ROLE_VIEWER);
-        this.roleRepository.save(role);
+        // We don't have to create a role because there roles are present from the sql scripts that Flyway migrated
+        Role role = this.roleRepository.findByRoleType(RoleType.ROLE_VIEWER).orElseThrow();
         User sender1 = new User(FAKER.internet().username(),
                 FAKER.internet().password(12, 128, true, true, true),
                 FAKER.internet().emailAddress(),
@@ -162,7 +165,6 @@ class ContactRequestRepositoryTest extends AbstractRepositoryTest {
     }
 
     /*
-
         ContactRequest rejectedContactRequest = new ContactRequest();
         rejectedContactRequest.setId(new ContactRequestId(sender.getId(), receiver.getId()));
         rejectedContactRequest.setSender(sender);
