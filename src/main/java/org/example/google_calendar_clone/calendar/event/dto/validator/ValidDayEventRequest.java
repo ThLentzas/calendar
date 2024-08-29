@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.dto.validator;
+package org.example.google_calendar_clone.calendar.event.dto.validator;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
@@ -13,8 +13,6 @@ import java.lang.annotation.Target;
 @Constraint(validatedBy = DayEventRequestValidator.class)
 public @interface ValidDayEventRequest {
     String message() default "Invalid CreateDayEventRequest configuration";
-
     Class<?>[] groups() default {};
-
     Class<? extends Payload>[] payload() default {};
 }

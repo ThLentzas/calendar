@@ -1,15 +1,10 @@
 package org.example.google_calendar_clone.calendar;
 
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 
-import org.example.google_calendar_clone.calendar.event.MonthlyRepetitionType;
-import org.example.google_calendar_clone.calendar.event.RepetitionDuration;
-import org.example.google_calendar_clone.calendar.event.RepetitionFrequency;
+import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
+import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
+import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.entity.User;
 
 import java.time.LocalDate;
@@ -29,9 +24,9 @@ public abstract class AbstractCalendarEvent {
     protected String name;
     protected String location;
     protected String description;
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.LAZY)
     protected Set<User> guests;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     protected User host;
     // How often is the Event repeated?
     protected RepetitionFrequency frequency;

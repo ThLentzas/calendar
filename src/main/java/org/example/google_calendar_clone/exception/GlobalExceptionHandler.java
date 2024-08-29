@@ -15,12 +15,15 @@ import jakarta.servlet.http.HttpServletRequest;
 @RestControllerAdvice
 class GlobalExceptionHandler {
 
-    // @Valid exception
+    // @Valid/@Validated exception
     @ExceptionHandler(MethodArgumentNotValidException.class)
     private ResponseEntity<ErrorMessage> handleMethodArgumentNotValidException(HttpServletRequest servletRequest,
                                                                                MethodArgumentNotValidException ma) {
+        // For field level errors we use .getFieldErrors()
+        // For errors at a class level like a custom class validator we use .getGlobalErrors()
+        // In our case we support both, so we use getAllErrors()
         String message = ma.getBindingResult()
-                .getFieldErrors()
+                .getAllErrors()
                 .stream()
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.joining(", "));
