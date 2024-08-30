@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar;
+package org.example.google_calendar_clone.calendar.event;
 
 import jakarta.persistence.*;
 
@@ -8,33 +8,37 @@ import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFre
 import org.example.google_calendar_clone.entity.User;
 
 import java.time.LocalDate;
-import java.util.Set;
 import java.util.UUID;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
+/*
+    We can not create a class Repetition and have all the related properties there because Hibernate will see it as an
+    object and, it will require some sort of relationship()
+ */
 @Getter
 @Setter
 @MappedSuperclass
-public abstract class AbstractCalendarEvent {
+public abstract class AbstractEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     protected UUID id;
-    protected String name;
-    protected String location;
-    protected String description;
-    @ManyToMany(fetch = FetchType.LAZY)
-    protected Set<User> guests;
     @ManyToOne(fetch = FetchType.LAZY)
-    protected User host;
-    // How often is the Event repeated?
-    protected RepetitionFrequency frequency;
+    @Column(updatable = false)
+    protected User user;
+    // How often is the Event repeated?(never, daily, weekly, monthly, annually)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
+    protected RepetitionFrequency repetitionFrequency;
     // For repeated events: what is the repetition step? (every two days/weeks)
     protected Integer repetitionStep;
     // For monthly repeated events: which day of the month does it fall on? (same_day, same_weekday)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     protected MonthlyRepetitionType monthlyRepetitionType;
     // For repeated events: for how long does the Event repeat? (forever, until_date, N_repetitions)
+    @JdbcType(PostgreSQLEnumJdbcType.class)
     protected RepetitionDuration repetitionDuration;
     // For events repeated until a certain date: what is the date?
     protected LocalDate repetitionEndDate;

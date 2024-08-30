@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.dto.validator;
+package org.example.google_calendar_clone.calendar.event.day.dto.validator;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;

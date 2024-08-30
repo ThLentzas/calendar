@@ -5,14 +5,17 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 
-import org.example.google_calendar_clone.calendar.event.dto.DayEventRequest;
-import org.example.google_calendar_clone.calendar.event.dto.validator.OnCreate;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.validator.OnCreate;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -38,6 +41,9 @@ class DayEventRequestValidatorTest {
         Since in the @ValidEventDayRequest we specify a group like @ValidDayEventRequest(groups = OnCreate.class)
         if we just validator.validate(request);  it will fail because it uses the Default.class group and is not supported
         by our annotation.
+
+        It is very important to have 1 violation per test, because the set of constraints will have more than 1
+        error message and, we can not be sure that iterator.next() will return the constraint we test
      */
     @BeforeEach
     public void setUp() {
@@ -147,15 +153,17 @@ class DayEventRequestValidatorTest {
                 " set to until a certain date");
     }
 
-    @Test
-    void shouldReturnFalseWhenRepetitionDurationIsNRepetitionsAndRepetitionCountIsNull() {
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(ints = {0})
+    void shouldReturnFalseWhenRepetitionDurationIsNRepetitionsAndRepetitionCountIsNullOrZero(Integer repetitionCount) {
         DayEventRequest request = createDayEventRequest(LocalDate.now(),
                 LocalDate.now().plusDays(3),
                 RepetitionFrequency.DAILY,
                 null,
                 RepetitionDuration.N_REPETITIONS,
                 null,
-                null
+                repetitionCount
         );
         Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
         ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
@@ -224,7 +232,7 @@ class DayEventRequestValidatorTest {
                                                   LocalDate repetitionEndDate,
                                                   Integer repetitionCount) {
         DayEventRequest request = new DayEventRequest();
-        request.setName("Meeting");
+        request.setName("Event Meeting");
         request.setLocation("Conference Room");
         request.setDescription("Weekly sync");
         request.setStartDate(startDate);
