@@ -2,6 +2,7 @@ package org.example.google_calendar_clone.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -64,6 +65,19 @@ class GlobalExceptionHandler {
         return new ResponseEntity<>(errorMessage, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ServerErrorException.class)
+    private ResponseEntity<ErrorMessage> handleServerErrorException(HttpServletRequest servletRequest,
+                                                                    ServerErrorException se) {
+        ErrorMessage errorMessage = new ErrorMessage(Instant.now(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                ErrorMessage.ErrorType.INTERNAL_SERVER_ERROR,
+                se.getMessage(),
+                servletRequest.getRequestURI()
+        );
+
+        return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ExceptionHandler(ContactRequestException.class)
     private ResponseEntity<ErrorMessage> handleContactRequestException(HttpServletRequest servletRequest,
                                                                               ContactRequestException cre) {
@@ -76,7 +90,6 @@ class GlobalExceptionHandler {
         return new ResponseEntity<>(errorMessage, HttpStatus.CONFLICT);
     }
 
-
     @ExceptionHandler(UnauthorizedException.class)
     private ResponseEntity<ErrorMessage> handleUnauthorizedException(HttpServletRequest servletRequest,
                                                                      UnauthorizedException ue) {
@@ -88,5 +101,19 @@ class GlobalExceptionHandler {
         );
 
         return new ResponseEntity<>(errorMessage, HttpStatus.UNAUTHORIZED);
+    }
+
+    // It is thrown when the authenticated user is not owner of the resource
+    @ExceptionHandler(AccessDeniedException.class)
+    private ResponseEntity<ErrorMessage> handleAccessDeniedException(HttpServletRequest servletRequest,
+                                                                     AccessDeniedException ade) {
+        ErrorMessage errorMessage = new ErrorMessage(Instant.now(),
+                HttpStatus.FORBIDDEN.value(),
+                ErrorMessage.ErrorType.FORBIDDEN,
+                ade.getMessage(),
+                servletRequest.getRequestURI()
+        );
+
+        return new ResponseEntity<>(errorMessage, HttpStatus.FORBIDDEN);
     }
 }

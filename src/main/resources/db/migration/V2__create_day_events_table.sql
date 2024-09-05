@@ -45,3 +45,10 @@ CREATE TABLE IF NOT EXISTS day_event_slots(
     CONSTRAINT pk_day_event_slots PRIMARY KEY (id),
     CONSTRAINT fk_day_event_slots_day_events_id FOREIGN KEY (day_event_id) REFERENCES day_events ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS day_event_slot_guest_emails (
+    day_event_slot_id uuid,
+    email TEXT NOT NULL,
+    CONSTRAINT pk_day_event_slot_guest_emails PRIMARY KEY (day_event_slot_id, email),
+    CONSTRAINT fk_day_event_slot_guest_emails_day_event_slots_id FOREIGN key (day_event_slot_id) REFERENCES day_event_slots(id) ON DELETE CASCADE
+);

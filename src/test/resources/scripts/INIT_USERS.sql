@@ -2,9 +2,6 @@ INSERT INTO users VALUES (1, 'joshua.wolf@hotmail.com', 'kris.hudson', '$2a$10$F
 INSERT INTO users VALUES (2, 'ericka.ankunding@hotmail.com', 'clement.gulgowski', '$2a$10$WYTJU2F0m8l5mxQUOSCqEOcZMpqvB/7ts19VJdssnhUPKXF.gS15e');
 INSERT INTO users VALUES (3, 'waltraud.roberts@gmail.com', 'ellyn.roberts', '$2a$10$r9VAScmwEbpWAjCWHP04NeIpcW6vcKNBqJIw4QkMlxAqzGeTMNMfW');
 
-INSERT INTO users_roles VALUES (1, 1);
-INSERT INTO users_roles VALUES (2, 1);
-INSERT INTO users_roles VALUES (3, 1);
 
 /*
     When we manually insert specific id values (like 1, 2, 3) into a table with an auto-incrementing primary key (SERIAL),

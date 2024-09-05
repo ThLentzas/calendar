@@ -1,10 +1,10 @@
 package org.example.google_calendar_clone.auth;
 
-import org.example.google_calendar_clone.user.UserPrincipal;
-import org.example.google_calendar_clone.utils.CookieUtils;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.stereotype.Component;
+import org.example.google_calendar_clone.user.UserPrincipal;
+import org.example.google_calendar_clone.utils.CookieUtils;
 
 import jakarta.servlet.http.HttpServletResponse;
 

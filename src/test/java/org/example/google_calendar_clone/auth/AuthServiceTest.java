@@ -1,16 +1,15 @@
 package org.example.google_calendar_clone.auth;
 
-import org.example.google_calendar_clone.exception.UnauthorizedException;
-import org.example.google_calendar_clone.role.RoleService;
-import org.example.google_calendar_clone.user.UserService;
-import org.example.google_calendar_clone.utils.CookieUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.example.google_calendar_clone.exception.UnauthorizedException;
+import org.example.google_calendar_clone.user.UserService;
+import org.example.google_calendar_clone.utils.CookieUtils;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,8 +25,6 @@ class AuthServiceTest {
     private JwtService jwtService;
     @Mock
     private UserService userService;
-    @Mock
-    private RoleService roleService;
     @InjectMocks
     private AuthService underTest;
 

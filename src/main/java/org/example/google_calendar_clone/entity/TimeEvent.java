@@ -1,9 +1,11 @@
 package org.example.google_calendar_clone.entity;
 
-import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.Setter;
+
 import org.example.google_calendar_clone.calendar.event.AbstractEvent;
+
+import jakarta.persistence.Entity;
 
 import java.time.LocalDateTime;
 

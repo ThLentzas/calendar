@@ -1,10 +1,8 @@
 package org.example.google_calendar_clone.user;
 
-import org.example.google_calendar_clone.entity.Role;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.exception.DuplicateResourceException;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
-import org.example.google_calendar_clone.role.RoleType;
 import org.example.google_calendar_clone.user.contact.dto.CreateContactRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,14 +15,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
-import java.util.Optional;
-import java.util.Set;
-
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import net.datafaker.Faker;
+
+import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -94,7 +91,7 @@ class UserServiceTest {
     void shouldThrowResourceNotFoundExceptionWhenUserIsNotFoundById() {
         Long userId = FAKER.number().numberBetween(1L, 150L);
 
-        when(this.userRepository.findByIdFetchingRoles(userId)).thenReturn(Optional.empty());
+        when(this.userRepository.findById(userId)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.findByIdFetchingRoles(userId))
                 .withMessage("User not found with id: " + userId);
@@ -119,14 +116,12 @@ class UserServiceTest {
     }
 
     private User createUser() {
-        Role role = new Role(RoleType.ROLE_VIEWER);
         // When the project was created datafaker did not support creating strings of given length, so we use RandomStringUtils
-        User user = new User("username",
-                FAKER.internet().password(12, 128, true, true, true),
-                FAKER.internet().emailAddress(),
-                Set.of(role));
-        user.setId(FAKER.number().numberBetween(1L, 150L));
-
-        return user;
+        return User.builder()
+                .id(FAKER.number().numberBetween(1L, 150L))
+                .username(FAKER.internet().username())
+                .password(FAKER.internet().password(12, 128, true, true, true))
+                .email(FAKER.internet().emailAddress())
+                .build();
     }
 }

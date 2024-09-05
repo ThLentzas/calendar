@@ -1,12 +1,10 @@
 package org.example.google_calendar_clone.user.contact.request;
 
 import org.example.google_calendar_clone.entity.ContactRequest;
-import org.example.google_calendar_clone.entity.Role;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.entity.key.ContactRequestId;
 import org.example.google_calendar_clone.exception.ContactRequestException;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
-import org.example.google_calendar_clone.role.RoleType;
 import org.example.google_calendar_clone.user.contact.ContactService;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -15,7 +13,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.Mockito.when;
@@ -112,15 +109,16 @@ class ContactRequestServiceTest {
     }
 
     private List<User> createUsers() {
-        Role role = new Role(RoleType.ROLE_VIEWER);
-        User sender = new User(FAKER.internet().username(),
-                FAKER.internet().password(12, 128, true, true, true),
-                FAKER.internet().emailAddress(),
-                Set.of(role));
-        User receiver = new User(FAKER.internet().username(),
-                FAKER.internet().password(12, 128, true, true, true),
-                FAKER.internet().emailAddress(),
-                Set.of(role));
+        User sender = User.builder()
+                .username(FAKER.internet().username())
+                .password(FAKER.internet().password(12, 128, true, true, true))
+                .email(FAKER.internet().emailAddress())
+                .build();
+        User receiver = User.builder()
+                .username(FAKER.internet().username())
+                .password(FAKER.internet().password(12, 128, true, true, true))
+                .email(FAKER.internet().emailAddress())
+                .build();
 
         return List.of(sender, receiver);
     }

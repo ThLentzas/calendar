@@ -1,14 +1,12 @@
 package org.example.google_calendar_clone.auth;
 
-import org.example.google_calendar_clone.user.UserPrincipal;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.stereotype.Service;
+import org.example.google_calendar_clone.user.UserPrincipal;
 
 import java.time.Instant;
-import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,15 +25,11 @@ class JwtService {
         //5 minutes TTL 300
         long expiry = 10800L;
 
-        String authorities = userPrincipal.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.joining(" "));
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(expiry))
                 .subject(userPrincipal.user().getId().toString())
-                .claim("authorities", authorities)
                 .build();
 
         return this.jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();

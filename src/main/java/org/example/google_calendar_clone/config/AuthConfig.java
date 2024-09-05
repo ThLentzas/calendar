@@ -23,7 +23,7 @@ class AuthConfig {
 
     @Bean
     UserDetailsService userDetailsService(UserRepository userRepository) {
-        return email -> userRepository.findByEmailFetchingRoles(email)
+        return email -> userRepository.findByEmail(email)
                 .map(UserPrincipal::new)
                 .orElseThrow(() -> new UsernameNotFoundException("Username or password is incorrect"));
     }

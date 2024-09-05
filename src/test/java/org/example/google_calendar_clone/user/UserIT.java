@@ -239,7 +239,6 @@ class UserIT extends AbstractIntegrationTest {
                 .when()
                 .get(USER_PATH + "/contacts")
                 .then()
-                .log().all()
                 .extract()
                 .response().as(new TypeRef<>() {
                 });
@@ -248,8 +247,7 @@ class UserIT extends AbstractIntegrationTest {
             Each anyMatch() will check if there is a profile in profiles that match the values, if at least one is find
             returns true else returns false and our assertion fails. Our list is sorted name
          */
-        assertThat(profiles)
-                .hasSize(2)
+        assertThat(profiles).hasSize(2)
                 .anyMatch(userProfile -> userProfile.id().equals(2L) && userProfile.name().equals("clement.gulgowski"))
                 .anyMatch(userProfile -> userProfile.id().equals(1L) && userProfile.name().equals("kris.hudson"))
                 .isSortedAccordingTo(Comparator.comparing(UserProfile::name));

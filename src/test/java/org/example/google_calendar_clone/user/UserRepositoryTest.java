@@ -1,15 +1,10 @@
 package org.example.google_calendar_clone.user;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
-import org.example.google_calendar_clone.entity.Role;
 import org.example.google_calendar_clone.entity.User;
-import org.example.google_calendar_clone.role.RoleRepository;
-import org.example.google_calendar_clone.role.RoleType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.junit.jupiter.api.Test;
-
-import java.util.Set;
 
 import net.datafaker.Faker;
 
@@ -22,8 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UserRepositoryTest extends AbstractRepositoryTest {
     @Autowired
     private UserRepository underTest;
-    @Autowired
-    private RoleRepository roleRepository;
     @Autowired
     private TestEntityManager testEntityManager;
     // https://www.datafaker.net/documentation/providers/
@@ -64,62 +57,19 @@ class UserRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void shouldReturnTrueWhenUserExistsWithEmailIgnoringCase() {
-        User actual = createUser();
-        assertThat(this.underTest.existsByEmailIgnoringCase(actual.getEmail())).isTrue();
+        User user = User.builder()
+                .username(FAKER.internet().username())
+                .password(FAKER.internet().password(12, 128, true, true, true))
+                .email(FAKER.internet().emailAddress())
+                .build();
+        this.underTest.save(user);
+        this.testEntityManager.flush();
+
+        assertThat(this.underTest.existsByEmailIgnoringCase(user.getEmail())).isTrue();
     }
 
     @Test
     void shouldReturnFalseWhenUserDoesNotExistsWithEmailIgnoringCase() {
         assertThat(this.underTest.existsByEmailIgnoringCase(FAKER.internet().emailAddress())).isFalse();
-    }
-
-    @Test
-    void shouldFindUserByIdFetchingRoles() {
-        User expected = createUser();
-        this.underTest.findByIdFetchingRoles(expected.getId()).ifPresent(actual ->
-                // We have Assertj assertThat() and it would cause conflict if we try to static import
-                UserAssert.assertThat(actual).hasUsername(expected.getUsername())
-                        .hasPassword(expected.getPassword())
-                        .hasEmailIgnoringCase(expected.getEmail())
-                        .hasRoles(expected.getRoles()));
-    }
-
-    /*
-        This method is getting called from @Test methods that are wrapped with @Transactional and will overwrite as
-        mentioned above their @Transactional. We use the this.testEntityManager.flush() to flush the changes and, then
-        we roll back the entire transaction when the method exits. To test that, we hard code the value of the setupUser()
-        to email.com. If the changes did not roll back, the print statement since it gets executed 2nd it should return
-        true but, it does not.
-
-            @Test
-            @Order(1)
-            void shouldReturnTrueWhenUserExistsWithEmailIgnoringCase() {
-                User actual = setupUser();
-                assertThat(this.underTest.existsByEmailIgnoringCase(actual.getEmail())).isTrue();
-            }
-
-            @Test
-            @Order(2)
-            void shouldFindUserByIdFetchingRoles() {
-                System.out.println(this.underTest.existsByEmailIgnoringCase("email.com"));
-                User expected = setupUser();
-                this.underTest.findByIdFetchingRoles(expected.getId()).ifPresent(actual ->
-                        UserAssert.assertThat(actual).hasUsername(expected.getUsername())
-                                .hasPassword(expected.getPassword())
-                                .hasEmailIgnoringCase(expected.getEmail())
-                                .hasRoles(expected.getRoles()));
-            }
-     */
-    private User createUser() {
-        // We don't have to create a role because there roles are present from the sql scripts that Flyway migrated
-        Role role = this.roleRepository.findByRoleType(RoleType.ROLE_VIEWER).orElseThrow();
-        User user = new User(FAKER.internet().username(),
-                FAKER.internet().password(12, 128, true, true, true),
-                FAKER.internet().emailAddress(),
-                Set.of(role));
-        this.underTest.save(user);
-        this.testEntityManager.flush();
-
-        return user;
     }
 }

@@ -1,19 +1,26 @@
 package org.example.google_calendar_clone.calendar.event;
 
-import jakarta.persistence.*;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MappedSuperclass;
 
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.entity.User;
-
-import java.time.LocalDate;
-import java.util.UUID;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcType;
-import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+import lombok.EqualsAndHashCode;
+
+import java.time.LocalDate;
+import java.util.UUID;
 
 /*
     We can not create a class Repetition and have all the related properties there because Hibernate will see it as an
@@ -22,12 +29,14 @@ import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 @Getter
 @Setter
 @MappedSuperclass
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public abstract class AbstractEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     protected UUID id;
     @ManyToOne(fetch = FetchType.LAZY)
-    @Column(updatable = false)
+    @JoinColumn(updatable = false) // Can't use @Column for associations
     protected User user;
     // How often is the Event repeated?(never, daily, weekly, monthly, annually)
     @JdbcType(PostgreSQLEnumJdbcType.class)
@@ -45,6 +54,6 @@ public abstract class AbstractEvent {
     // For events repeated for a certain number of reps: how many reps?
     protected Integer repetitionCount;
     // For events repeated for a certain number of reps: what is the current count?
-    protected Integer currentRepetition;
+    // protected Integer currentRepetition; !!!! We don't care about it, we are going to compute all repetitionCount events
 }
 

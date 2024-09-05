@@ -2,11 +2,8 @@ package org.example.google_calendar_clone.user.contact.request;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
 import org.example.google_calendar_clone.entity.ContactRequest;
-import org.example.google_calendar_clone.entity.Role;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.entity.key.ContactRequestId;
-import org.example.google_calendar_clone.role.RoleRepository;
-import org.example.google_calendar_clone.role.RoleType;
 import org.example.google_calendar_clone.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
@@ -14,7 +11,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.assertj.core.api.Fail.fail;
@@ -39,8 +35,6 @@ class ContactRequestRepositoryTest extends AbstractRepositoryTest {
     private ContactRequestRepository underTest;
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private RoleRepository roleRepository;
     @Autowired
     private TestEntityManager testEntityManager;
     private static final Faker FAKER = new Faker();
@@ -141,20 +135,22 @@ class ContactRequestRepositoryTest extends AbstractRepositoryTest {
     }
 
     private List<User> createUsers() {
-        // We don't have to create a role because there roles are present from the sql scripts that Flyway migrated
-        Role role = this.roleRepository.findByRoleType(RoleType.ROLE_VIEWER).orElseThrow();
-        User sender1 = new User(FAKER.internet().username(),
-                FAKER.internet().password(12, 128, true, true, true),
-                FAKER.internet().emailAddress(),
-                Set.of(role));
-        User sender2 = new User(FAKER.internet().username(),
-                FAKER.internet().password(12, 128, true, true, true),
-                FAKER.internet().emailAddress(),
-                Set.of(role));
-        User receiver = new User(FAKER.internet().username(),
-                FAKER.internet().password(12, 128, true, true, true),
-                FAKER.internet().emailAddress(),
-                Set.of(role));
+
+        User sender1 = User.builder()
+                .username(FAKER.internet().username())
+                .password(FAKER.internet().password(12, 128, true, true, true))
+                .email(FAKER.internet().emailAddress())
+                .build();
+        User sender2 = User.builder()
+                .username(FAKER.internet().username())
+                .password(FAKER.internet().password(12, 128, true, true, true))
+                .email(FAKER.internet().emailAddress())
+                .build();
+        User receiver = User.builder()
+                .username(FAKER.internet().username())
+                .password(FAKER.internet().password(12, 128, true, true, true))
+                .email(FAKER.internet().emailAddress())
+                .build();
 
         this.userRepository.save(sender1);
         this.userRepository.save(sender2);

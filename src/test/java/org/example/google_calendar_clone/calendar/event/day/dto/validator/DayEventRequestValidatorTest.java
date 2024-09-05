@@ -1,4 +1,10 @@
-package org.example.google_calendar_clone.calendar;
+package org.example.google_calendar_clone.calendar.event.day.dto.validator;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -6,16 +12,9 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.dto.validator.OnCreate;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -47,7 +46,7 @@ class DayEventRequestValidatorTest {
      */
     @BeforeEach
     public void setUp() {
-        try(ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
+        try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
     }
@@ -231,20 +230,19 @@ class DayEventRequestValidatorTest {
                                                   RepetitionDuration duration,
                                                   LocalDate repetitionEndDate,
                                                   Integer repetitionCount) {
-        DayEventRequest request = new DayEventRequest();
-        request.setName("Event Meeting");
-        request.setLocation("Conference Room");
-        request.setDescription("Weekly sync");
-        request.setStartDate(startDate);
-        request.setEndDate(endDate);
-        request.setGuestEmails(null);
-        request.setRepetitionFrequency(frequency);
-        request.setRepetitionStep(1);
-        request.setMonthlyRepetitionType(monthlyRepetitionType);
-        request.setRepetitionDuration(duration);
-        request.setRepetitionEndDate(repetitionEndDate);
-        request.setRepetitionCount(repetitionCount);
-
-        return request;
+        return DayEventRequest.builder()
+                .name("Event name")
+                .location("Location")
+                .description("Description")
+                .startDate(startDate)
+                .endDate(endDate)
+                .guestEmails(null)  // You can omit this if null is the default value
+                .repetitionFrequency(frequency)
+                .repetitionStep(1)
+                .monthlyRepetitionType(monthlyRepetitionType)
+                .repetitionDuration(duration)
+                .repetitionEndDate(repetitionEndDate)
+                .repetitionCount(repetitionCount)
+                .build();
     }
 }

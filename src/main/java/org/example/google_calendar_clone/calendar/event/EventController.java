@@ -1,23 +1,24 @@
 package org.example.google_calendar_clone.calendar.event;
 
-import lombok.RequiredArgsConstructor;
-import org.example.google_calendar_clone.calendar.event.day.DayEventService;
-import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.dto.validator.OnCreate;
-import org.example.google_calendar_clone.entity.DayEvent;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.example.google_calendar_clone.calendar.event.day.DayEventService;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.validator.OnCreate;
+import org.example.google_calendar_clone.entity.DayEvent;
+import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 
 import java.net.URI;
+import java.util.List;
+import java.util.UUID;
+
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/events")
@@ -40,5 +41,13 @@ class EventController {
         responseHeaders.setLocation(location);
 
         return new ResponseEntity<>(responseHeaders, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/day-events/{eventId}")
+    ResponseEntity<List<DayEventSlotDTO>> findDayEventSlotsByEventId(@AuthenticationPrincipal Jwt jwt,
+                                                                     @PathVariable("eventId") UUID eventId) {
+        List<DayEventSlotDTO> dayEventSlots = this.dayEventService.findEventSlotsByEventId(jwt, eventId);
+
+        return new ResponseEntity<>(dayEventSlots, HttpStatus.OK);
     }
 }

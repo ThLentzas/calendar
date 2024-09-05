@@ -7,6 +7,12 @@ import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFre
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
+/*
+    According to google calendar, if an event that has a duration of 3 days, like March 15 - March 18 can be repeated
+    every day/2 days. It might not make a lot of sense, since the event is still going but google calendar
+    allows it so, we follow the same logic and, we don't perform validation for those cases. Same logic applies for
+    events with a duration of 3 months can be repeated while the event is still going.
+ */
 public class DayEventRequestValidator implements ConstraintValidator<ValidDayEventRequest, DayEventRequest> {
 
     @Override
@@ -47,26 +53,6 @@ public class DayEventRequestValidator implements ConstraintValidator<ValidDayEve
             value.setRepetitionCount(null);
             return true;
         }
-
-           /*
-                It returns according to TemporalUnit.java: the amount of time between temporal1Inclusive and
-                temporal2Exclusive in terms of this unit; positive if temporal2Exclusive is later than
-                temporal1Inclusive, negative if earlier. In our case, temporal1Inclusive is startDate and temporal2Exclusive
-                is endDate.
-
-                            long days = ChronoUnit.DAYS.between(value.getStartDate(), value.getEndDate());
-                    if(days > 0) {
-                            if (value.getRepetitionFrequency().equals(RepetitionFrequency.DAILY)
-                        && value.getStartDate() != null
-                        && value.getEndDate() != null
-                        && value.getStartDate() != value.getEndDate()) {
-                    context.disableDefaultConstraintViolation();
-                    context.buildConstraintViolationWithTemplate("For daily repeating events, the start and end dates must" +
-                                    " be the same. Please adjust the dates.")
-                            .addConstraintViolation();
-                    return false;
-                }
-             */
 
         // https://stackoverflow.com/questions/19825563/custom-validator-message-throwing-exception-in-implementation-of-constraintvali/19833921#19833921
         if (value.getRepetitionFrequency().equals(RepetitionFrequency.MONTHLY)

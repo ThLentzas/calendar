@@ -2,7 +2,7 @@ package org.example.google_calendar_clone.user.dto.converter;
 
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.user.dto.UserProfile;
-import org.example.google_calendar_clone.user.dto.converter.UserProfileConverter;
+import org.example.google_calendar_clone.user.dto.UserProfileConverter;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;

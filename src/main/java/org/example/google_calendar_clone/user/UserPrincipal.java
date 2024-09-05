@@ -5,15 +5,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.example.google_calendar_clone.entity.User;
 
 import java.util.Collection;
+import java.util.Collections;
 
 public record UserPrincipal(User user) implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // role -> new UserAuthority(role)
-        return user.getRoles().stream().
-                map(UserAuthority::new)
-                .toList();
+        return Collections.emptyList();
     }
 
     @Override

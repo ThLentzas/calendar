@@ -10,7 +10,7 @@ import org.example.google_calendar_clone.user.contact.dto.CreateContactRequest;
 import org.example.google_calendar_clone.user.contact.dto.PendingContactRequest;
 import org.example.google_calendar_clone.user.contact.dto.UpdateContactRequest;
 import org.example.google_calendar_clone.user.dto.UserProfile;
-import org.example.google_calendar_clone.user.dto.converter.UserProfileConverter;
+import org.example.google_calendar_clone.user.dto.UserProfileConverter;
 import org.example.google_calendar_clone.utils.PasswordUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -64,7 +64,7 @@ public class UserService {
     }
 
     public User findByIdFetchingRoles(Long userId) {
-        return this.userRepository.findByIdFetchingRoles(userId).orElseThrow(() ->
+        return this.userRepository.findById(userId).orElseThrow(() ->
                 new ResourceNotFoundException("User not found with id: " + userId));
     }
 

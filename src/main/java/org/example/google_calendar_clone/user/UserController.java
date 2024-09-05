@@ -1,6 +1,5 @@
 package org.example.google_calendar_clone.user;
 
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -33,7 +32,6 @@ class UserController {
     private final UserService userService;
 
     @PostMapping("/contacts")
-    @PreAuthorize("hasRole('ROLE_VIEWER')")
     ResponseEntity<Void> sendContactRequest(@Valid @RequestBody CreateContactRequest contactRequest,
                                             // The principal of the JwtAuthenticationToken is a Jwt
                                             @AuthenticationPrincipal Jwt jwt) {
@@ -46,7 +44,6 @@ class UserController {
         Retrieves the pending contact requests for the current user
      */
     @GetMapping("/contact-requests")
-    @PreAuthorize("hasRole('ROLE_VIEWER')")
     ResponseEntity<List<PendingContactRequest>> findPendingContactsRequests(@AuthenticationPrincipal Jwt jwt) {
         List<PendingContactRequest> contactsRequests = this.userService.findPendingContactsRequests(jwt);
 
@@ -54,7 +51,6 @@ class UserController {
     }
 
     @PutMapping("/contact-requests")
-    @PreAuthorize("hasRole('ROLE_VIEWER')")
     ResponseEntity<Void> updateContactRequest(@Valid @RequestBody UpdateContactRequest contactRequest,
                                               @AuthenticationPrincipal Jwt jwt) {
         this.userService.updateContactRequest(contactRequest, jwt);
@@ -63,7 +59,6 @@ class UserController {
     }
 
     @GetMapping("/contacts")
-    @PreAuthorize("hasRole('ROLE_VIEWER')")
     ResponseEntity<List<UserProfile>> findContacts(@AuthenticationPrincipal Jwt jwt) {
         List<UserProfile> contacts = this.userService.findContacts(jwt);
 

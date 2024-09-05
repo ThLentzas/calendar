@@ -3,8 +3,6 @@ package org.example.google_calendar_clone.auth;
 import org.example.google_calendar_clone.auth.dto.RegisterRequest;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.exception.UnauthorizedException;
-import org.example.google_calendar_clone.role.RoleService;
-import org.example.google_calendar_clone.role.RoleType;
 import org.example.google_calendar_clone.auth.dto.RefreshToken;
 import org.example.google_calendar_clone.user.UserPrincipal;
 import org.example.google_calendar_clone.user.UserService;
@@ -30,7 +28,6 @@ import lombok.RequiredArgsConstructor;
 class AuthService {
     private final JwtService jwtService;
     private final UserService userService;
-    private final RoleService roleService;
     private final RefreshTokenService refreshTokenService;
     private final SecurityContextHolderStrategy securityContextHolderStrategy = SecurityContextHolder.getContextHolderStrategy();
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
@@ -43,7 +40,6 @@ class AuthService {
         user.setPassword(registerRequest.password());
         user.setUsername(registerRequest.username());
 
-        this.roleService.findByRoleType(RoleType.ROLE_VIEWER).ifPresent(role -> user.getRoles().add(role));
         this.userService.registerUser(user);
         setSecurityContext(user);
 
