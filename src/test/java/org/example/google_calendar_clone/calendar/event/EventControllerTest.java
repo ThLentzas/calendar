@@ -177,13 +177,16 @@ class EventControllerTest {
     @Test
     void should200WithListOfDayEventSlotDTO() throws Exception {
         UUID eventId = UUID.randomUUID();
-        DayEventSlotDTO dayEventSlotDTO = new DayEventSlotDTO(UUID.fromString("367be25c-fd30-4961-8d03-81b80a765c3e"),
-                "Event name", LocalDate.parse("2024-10-11"),
-                LocalDate.parse("2024-10-15"),
-                "Location",
-                "Description",
-                Set.of()
-        );
+        DayEventSlotDTO dayEventSlotDTO = DayEventSlotDTO.builder()
+                .id(UUID.fromString("367be25c-fd30-4961-8d03-81b80a765c3e"))
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-10-11"))
+                .endDate(LocalDate.parse("2024-10-15"))
+                .location("Location")
+                .description("Description")
+                .organizer("Organizer")
+                .guestEmails(Set.of())  // Assuming an empty set for guest emails
+                .build();
 
         when(this.dayEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenReturn(List.of(dayEventSlotDTO));
 
@@ -221,7 +224,7 @@ class EventControllerTest {
     }
 
     @Test
-    void should403WhenCurrentUserIsNotHostOfRequestDayEventForFindDayEventSlotsByEventId() throws Exception {
+    void should403WhenCurrentUserIsNotOrganizerOfRequestedDayEventForFindDayEventSlotsByEventId() throws Exception {
         UUID eventId = UUID.randomUUID();
         String responseBody = String.format("""
                 {

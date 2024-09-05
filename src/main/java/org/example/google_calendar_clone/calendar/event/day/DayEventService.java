@@ -68,7 +68,7 @@ public class DayEventService implements IEventService<DayEventRequest, DayEvent>
         DayEvent dayEvent = this.dayEventRepository.findByIdFetchingUser(id).orElseThrow(() ->
                 new ResourceNotFoundException("Day event not found with id: " + id));
         User user = this.userRepository.getReferenceById(Long.valueOf(jwt.getSubject()));
-        if (!isHostAtEvent(user, dayEvent)) {
+        if (!isOrganizerOfEvent(user, dayEvent)) {
             logger.info("User with id: {} is not host of event with id: {}", user.getId(), id);
             throw new AccessDeniedException("Access Denied");
         }
@@ -76,7 +76,7 @@ public class DayEventService implements IEventService<DayEventRequest, DayEvent>
         return this.dayEventSlotService.findEventSlotsByEventId(id);
     }
 
-    private boolean isHostAtEvent(User user, DayEvent dayEvent) {
+    private boolean isOrganizerOfEvent(User user, DayEvent dayEvent) {
         return user.equals(dayEvent.getUser());
     }
 }

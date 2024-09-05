@@ -91,7 +91,6 @@ class EventIT extends AbstractIntegrationTest {
                 .get(DAY_EVENT_PATH + "/{eventId}", dayEventId)
                 .then()
                 .statusCode(200)
-                .log().all()
                 .extract()
                 .response().as(new TypeRef<>() {
                 });
@@ -102,12 +101,14 @@ class EventIT extends AbstractIntegrationTest {
                         && slot.getEndDate().equals(LocalDate.parse("2024-10-15"))
                         && slot.getLocation().equals("Location")
                         && slot.getDescription().equals("Description")
+                        && slot.getOrganizer().equals("ellyn.roberts")
                         && slot.getGuestEmails().equals(Collections.emptySet()))
                 .anyMatch(slot -> slot.getName().equals("Event name")
                         && slot.getStartDate().equals(LocalDate.parse("2025-01-10"))
                         && slot.getEndDate().equals(LocalDate.parse("2025-01-14"))
                         && slot.getLocation().equals("Location")
                         && slot.getDescription().equals("Description")
+                        && slot.getOrganizer().equals("ellyn.roberts")
                         && slot.getGuestEmails().equals(Collections.emptySet()))
                 .isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate));
 

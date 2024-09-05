@@ -14,7 +14,8 @@ interface DayEventSlotRepository extends JpaRepository<DayEventSlot, UUID> {
     @Query("""
                 SELECT des
                 FROM DayEventSlot des
-                JOIN FETCH des.dayEvent
+                JOIN FETCH des.dayEvent de
+                JOIN FETCH de.user
                 LEFT JOIN FETCH des.guestEmails
                 WHERE des.dayEvent.id = :id
                 ORDER BY des.startDate

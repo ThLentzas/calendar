@@ -2,7 +2,7 @@ package org.example.google_calendar_clone.calendar.event.day.slot;
 
 import org.example.google_calendar_clone.calendar.event.IEventSlotService;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotConverter;
+import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTOConverter;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
@@ -17,6 +17,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -28,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DayEventSlotService implements IEventSlotService<DayEventRequest, DayEvent, DayEventSlotDTO> {
     private final DayEventSlotRepository dayEventSlotRepository;
-    private static final DayEventSlotConverter dayEventSlotConverter = new DayEventSlotConverter();
+    private static final DayEventSlotDTOConverter converter = new DayEventSlotDTOConverter();
     private static final Logger logger = LoggerFactory.getLogger(DayEventSlotService.class);
 
     /*
@@ -74,7 +75,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventId(eventId);
 
         return dayEventSlots.stream()
-                .map(dayEventSlotConverter::convert)
+                .map(converter::convert)
                 .toList();
     }
 
@@ -182,7 +183,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
 
     private void createDayEventSlot(DayEventRequest dayEventRequest, DayEvent dayEvent, LocalDate startDate) {
         LocalDate endDate = startDate.plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate()));
-        Set<String> guestEmails = null;
+        Set<String> guestEmails = new HashSet<>();
         if(dayEventRequest.getGuestEmails() != null) {
              guestEmails = dayEventRequest.getGuestEmails().stream()
                     .filter(guestEmail -> guestEmail.contains("@"))
