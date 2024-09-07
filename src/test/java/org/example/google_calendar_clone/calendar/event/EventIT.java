@@ -102,14 +102,16 @@ class EventIT extends AbstractIntegrationTest {
                         && slot.getLocation().equals("Location")
                         && slot.getDescription().equals("Description")
                         && slot.getOrganizer().equals("ellyn.roberts")
-                        && slot.getGuestEmails().equals(Collections.emptySet()))
+                        && slot.getGuestEmails().equals(Collections.emptySet())
+                        && slot.getDayEventId().equals(dayEventId))
                 .anyMatch(slot -> slot.getName().equals("Event name")
                         && slot.getStartDate().equals(LocalDate.parse("2025-01-10"))
                         && slot.getEndDate().equals(LocalDate.parse("2025-01-14"))
                         && slot.getLocation().equals("Location")
                         && slot.getDescription().equals("Description")
                         && slot.getOrganizer().equals("ellyn.roberts")
-                        && slot.getGuestEmails().equals(Collections.emptySet()))
+                        && slot.getGuestEmails().equals(Collections.emptySet())
+                        && slot.getDayEventId().equals(dayEventId))
                 .isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate));
 
     }

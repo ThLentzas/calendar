@@ -8,6 +8,13 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MappedSuperclass;
 
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
@@ -15,17 +22,16 @@ import org.example.google_calendar_clone.entity.User;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.EqualsAndHashCode;
-
 import java.time.LocalDate;
 import java.util.UUID;
 
 /*
     We can not create a class Repetition and have all the related properties there because Hibernate will see it as an
-    object and, it will require some sort of relationship()
+    object and, it will require some sort of relationship
  */
+@AllArgsConstructor
+@NoArgsConstructor
+@SuperBuilder
 @Getter
 @Setter
 @MappedSuperclass

@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-public abstract class AbstractEventSlotDTO {
+public class EventSlotDTO {
     protected UUID id;
     protected String name;
     protected String location;

@@ -8,12 +8,9 @@ import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepeti
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.entity.DayEventSlot;
-import org.example.google_calendar_clone.exception.ServerErrorException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.example.google_calendar_clone.utils.DateUtils;
 import org.springframework.stereotype.Service;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
@@ -30,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 public class DayEventSlotService implements IEventSlotService<DayEventRequest, DayEvent, DayEventSlotDTO> {
     private final DayEventSlotRepository dayEventSlotRepository;
     private static final DayEventSlotDTOConverter converter = new DayEventSlotDTOConverter();
-    private static final Logger logger = LoggerFactory.getLogger(DayEventSlotService.class);
 
     /*
         For every event we need to precompute the future day events as long as it repeats. In the DAILY case
@@ -43,8 +39,17 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
     */
     @Override
     public void create(DayEventRequest dayEventRequest, DayEvent dayEvent) {
+        // We want to send invitation emails only to emails that at least contain @
+        Set<String> guestEmails = new HashSet<>();
+        if (dayEventRequest.getGuestEmails() != null) {
+            guestEmails = dayEventRequest.getGuestEmails().stream()
+                    .filter(guestEmail -> guestEmail.contains("@"))
+                    .collect(Collectors.toSet());
+        }
+        dayEventRequest.setGuestEmails(guestEmails);
+
         switch (dayEventRequest.getRepetitionFrequency()) {
-            // Since the event is not to be repeated, we only create 1 DayEventSlot
+            // Since the event is not to be repeated, we only create 1 TimeEventSlot
             case NEVER -> createDayEventSlot(dayEventRequest, dayEvent, dayEventRequest.getStartDate());
             case DAILY -> {
                 createUntilDateEventSlots(dayEventRequest, dayEvent, ChronoUnit.DAYS);
@@ -121,10 +126,10 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
             return;
         }
 
-        int occurrences = findDayOfMonthOccurrence(dayEventRequest);
+        int occurrences = DateUtils.findDayOfMonthOccurrence(dayEventRequest.getStartDate());
         LocalDate startDate;
         for (LocalDate date = dayEventRequest.getStartDate(); !date.isAfter(dayEventRequest.getRepetitionEndDate()); date = date.plusMonths(dayEventRequest.getRepetitionStep())) {
-            startDate = findDateOfNthDayOfWeekInMonth(YearMonth.of(date.getYear(), date.getMonth()), dayEventRequest.getStartDate().getDayOfWeek(), occurrences);
+            startDate = DateUtils.findDateOfNthDayOfWeekInMonth(YearMonth.of(date.getYear(), date.getMonth()), dayEventRequest.getStartDate().getDayOfWeek(), occurrences);
             createDayEventSlot(dayEventRequest, dayEvent, startDate);
         }
     }
@@ -134,68 +139,24 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         if (dayEventRequest.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
-        int occurrences = findDayOfMonthOccurrence(dayEventRequest);
+        int occurrences = DateUtils.findDayOfMonthOccurrence(dayEventRequest.getStartDate());
         LocalDate startDate = dayEventRequest.getStartDate();
         for (int i = 0; i <= dayEventRequest.getRepetitionCount(); i++) {
             createDayEventSlot(dayEventRequest, dayEvent, startDate);
             startDate = startDate.plusMonths(dayEventRequest.getRepetitionStep());
-            startDate = findDateOfNthDayOfWeekInMonth(YearMonth.of(startDate.getYear(), startDate.getMonth()), dayEventRequest.getStartDate().getDayOfWeek(), occurrences);
+            startDate = DateUtils.findDateOfNthDayOfWeekInMonth(YearMonth.of(startDate.getYear(), startDate.getMonth()), dayEventRequest.getStartDate().getDayOfWeek(), occurrences);
         }
-    }
-
-    private int findDayOfMonthOccurrence(DayEventRequest dayEventRequest) {
-        // For the given year/month and index returns the day of the month
-        LocalDate firstDayOfMonth = LocalDate.of(dayEventRequest.getStartDate().getYear(), dayEventRequest.getStartDate().getMonth(), 1);
-        int occurrences = 0;
-        for (LocalDate date = firstDayOfMonth; !date.isAfter(dayEventRequest.getStartDate()); date = date.plusDays(1)) {
-            if (date.getDayOfWeek().equals(dayEventRequest.getStartDate().getDayOfWeek())) {
-                occurrences++;
-            }
-        }
-
-        return occurrences;
-    }
-
-    /*
-        The date corresponds to the nth occurrence of a given day of the week within a month.
-        2nd Tuesday of April 2024 -> returns the date 9/04/2024
-     */
-    private LocalDate findDateOfNthDayOfWeekInMonth(YearMonth yearMonth, DayOfWeek day, int occurrences) {
-        LocalDate firstDayOfMonth = LocalDate.of(yearMonth.getYear(), yearMonth.getMonth(), 1);
-        LocalDate lastDayOfMonth = yearMonth.atEndOfMonth();
-        LocalDate startDate = null;
-
-        for (LocalDate date = firstDayOfMonth; !date.isAfter(lastDayOfMonth); date = date.plusDays(1)) {
-            if (date.getDayOfWeek().equals(day)) {
-                occurrences--;
-            }
-            if (occurrences == 0) {
-                startDate = date;
-                break;
-            }
-        }
-        if (startDate == null) {
-            logger.info("The {} of {} in {} is null", occurrences, day, yearMonth);
-            throw new ServerErrorException("Internal Server Error");
-        }
-        return startDate;
     }
 
     private void createDayEventSlot(DayEventRequest dayEventRequest, DayEvent dayEvent, LocalDate startDate) {
         LocalDate endDate = startDate.plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate()));
-        Set<String> guestEmails = new HashSet<>();
-        if(dayEventRequest.getGuestEmails() != null) {
-             guestEmails = dayEventRequest.getGuestEmails().stream()
-                    .filter(guestEmail -> guestEmail.contains("@"))
-                    .collect(Collectors.toSet());
-        }
         DayEventSlot dayEventSlot = new DayEventSlot();
         dayEventSlot.setStartDate(startDate);
         dayEventSlot.setEndDate(endDate);
         dayEventSlot.setName(dayEventRequest.getName());
         dayEventSlot.setDescription(dayEventRequest.getDescription());
         dayEventSlot.setLocation(dayEventRequest.getLocation());
-        dayEventSlot.setGuestEmails(guestEmails);
+        dayEventSlot.setGuestEmails(dayEventRequest.getGuestEmails());
         dayEventSlot.setDayEvent(dayEvent);
         this.dayEventSlotRepository.save(dayEventSlot);
     }

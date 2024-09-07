@@ -13,6 +13,7 @@ import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.dto.validator.OnCreate;
 import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 
 import java.net.URI;
 import java.util.List;
@@ -26,7 +27,6 @@ import lombok.RequiredArgsConstructor;
 class EventController {
     private final DayEventService dayEventService;
 
-    // https://www.baeldung.com/spring-date-parameters, https://www.baeldung.com/spring-boot-formatting-json-dates
     // toDo: indexing
     @PostMapping("/day-events")
     ResponseEntity<Void> createDayEvent(@AuthenticationPrincipal Jwt jwt,
@@ -49,5 +49,17 @@ class EventController {
         List<DayEventSlotDTO> dayEventSlots = this.dayEventService.findEventSlotsByEventId(jwt, eventId);
 
         return new ResponseEntity<>(dayEventSlots, HttpStatus.OK);
+    }
+
+    /*
+        The offset refers to the difference in hours and minutes between a specific time zone and Coordinated Universal
+        Time (UTC), which is often referred to as GMT (Greenwich Mean Time). When we see something like
+        (GMT+03:00) Eastern European Time - Helsinki," it means that the time in that region is 3 hours ahead of (GMT)
+     */
+    @PostMapping("/time-events")
+    ResponseEntity<Void> createTimeEvent(@AuthenticationPrincipal Jwt jwt,
+                                         @Validated(OnCreate.class) @RequestBody TimeEventRequest timeEventRequest) {
+
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }

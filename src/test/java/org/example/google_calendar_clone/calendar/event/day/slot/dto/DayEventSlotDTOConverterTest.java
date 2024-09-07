@@ -19,6 +19,7 @@ class DayEventSlotDTOConverterTest {
         User user = new User();
         user.setUsername("Organizer");
         DayEvent dayEvent = new DayEvent();
+        dayEvent.setId(UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa"));
         dayEvent.setUser(user);
 
         DayEventSlot dayEventSlot = new DayEventSlot();
@@ -40,6 +41,7 @@ class DayEventSlotDTOConverterTest {
                 .description("Description")
                 .organizer("Organizer")
                 .guestEmails(Set.of())
+                .dayEventId(UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa"))
                 .build();
 
         DayEventSlotDTO actual = this.converter.convert(dayEventSlot);

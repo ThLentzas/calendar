@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-import org.example.google_calendar_clone.calendar.event.EventRequest;
+import org.example.google_calendar_clone.calendar.event.AbstractEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.dto.validator.OnCreate;
 import org.example.google_calendar_clone.calendar.event.day.dto.validator.ValidDayEventRequest;
 
@@ -35,8 +35,9 @@ import java.time.LocalDate;
     anything it will default to Default.class
  */
 @ValidDayEventRequest(groups = OnCreate.class)
+// Will include all fields
 @EqualsAndHashCode(callSuper = true)
-public class DayEventRequest extends EventRequest {
+public class DayEventRequest extends AbstractEventRequest {
     @NotNull(message = "The start date of the event is required. Please provide one", groups = OnCreate.class)
     // null will return true
     @FutureOrPresent(message = "The start date must be today or a future date", groups = OnCreate.class)

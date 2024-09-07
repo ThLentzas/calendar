@@ -8,6 +8,7 @@ import org.passay.PasswordValidator;
 import org.passay.RuleResult;
 
 public final class PasswordUtils {
+
     private PasswordUtils() {
         // prevent instantiation
         throw new UnsupportedOperationException("PasswordUtils is a utility class and cannot be instantiated");

@@ -58,15 +58,15 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotForNonRepeatingEvent() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-08-12"),
-                LocalDate.parse("2024-08-15"),
-                RepetitionFrequency.NEVER,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-08-12"))
+                .endDate(LocalDate.parse("2024-08-15"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.NEVER)
+                .build();
         DayEvent dayEvent = createDayEvent(request);
 
         this.underTest.create(request, dayEvent);
@@ -88,15 +88,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNDaysUntilACertainDate() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-08-12"),
-                LocalDate.parse("2024-08-15"),
-                RepetitionFrequency.DAILY,
-                10,
-                null,
-                RepetitionDuration.UNTIL_DATE,
-                LocalDate.parse("2024-09-12"),
-                null
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-08-12"))
+                .endDate(LocalDate.parse("2024-08-15"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.DAILY)
+                .repetitionStep(10)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2024-09-12"))
+                .build();
+
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-08-12", "2024-08-22", "2024-09-01", "2024-09-11"));
 
@@ -120,15 +124,18 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNDaysForNRepetitions() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-09-04"),
-                LocalDate.parse("2024-09-04"),
-                RepetitionFrequency.DAILY,
-                5,
-                null,
-                RepetitionDuration.N_REPETITIONS,
-                null,
-                3
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-09-04"))
+                .endDate(LocalDate.parse("2024-09-04"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.DAILY)
+                .repetitionStep(5)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(3)
+                .build();
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-09-09", "2024-09-14", "2024-09-19"));
 
@@ -153,15 +160,18 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNWeeksUntilACertainDate() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-08-12"),
-                LocalDate.parse("2024-08-15"),
-                RepetitionFrequency.WEEKLY,
-                2,
-                null,
-                RepetitionDuration.UNTIL_DATE,
-                LocalDate.parse("2024-09-10"),
-                null
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-08-12"))
+                .endDate(LocalDate.parse("2024-08-15"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.WEEKLY)
+                .repetitionStep(2)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2024-09-10"))
+                .build();
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-08-12", "2024-08-26", "2024-09-09"));
 
@@ -185,15 +195,18 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-09-04"),
-                LocalDate.parse("2024-09-04"),
-                RepetitionFrequency.WEEKLY,
-                1,
-                null,
-                RepetitionDuration.N_REPETITIONS,
-                null,
-                4
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-09-04"))
+                .endDate(LocalDate.parse("2024-09-04"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.WEEKLY)
+                .repetitionStep(1)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(4)
+                .build();
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-09-11", "2024-09-18", "2024-09-25", "2024-10-02"));
 
@@ -218,15 +231,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayUntilACertainDate() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-09-04"),
-                LocalDate.parse("2024-09-04"),
-                RepetitionFrequency.MONTHLY,
-                1,
-                MonthlyRepetitionType.SAME_DAY,
-                RepetitionDuration.UNTIL_DATE,
-                LocalDate.parse("2024-12-04"),
-                null
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-09-04"))
+                .endDate(LocalDate.parse("2024-09-04"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .repetitionStep(1)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2024-12-04"))
+                .build();
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-10-04", "2024-11-04", "2024-12-04"));
 
@@ -251,15 +268,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayForNRepetitions() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-09-04"),
-                LocalDate.parse("2024-09-04"),
-                RepetitionFrequency.MONTHLY,
-                2,
-                MonthlyRepetitionType.SAME_DAY,
-                RepetitionDuration.N_REPETITIONS,
-                null,
-                3
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-09-04"))
+                .endDate(LocalDate.parse("2024-09-04"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .repetitionStep(2)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(3)
+                .build();
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-11-04", "2025-01-04", "2025-03-04"));
 
@@ -285,15 +306,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
     // 1st Wednesday of September is "2024-09-04", of October is "2024-10-02" and of November is "2024-11-06"
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayUntilACertainDate() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-09-04"),
-                LocalDate.parse("2024-09-04"),
-                RepetitionFrequency.MONTHLY,
-                1,
-                MonthlyRepetitionType.SAME_WEEKDAY,
-                RepetitionDuration.UNTIL_DATE,
-                LocalDate.parse("2024-11-20"),
-                null
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-09-04"))
+                .endDate(LocalDate.parse("2024-09-04"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .repetitionStep(1)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2024-11-20"))
+                .build();
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-10-02", "2024-11-06"));
 
@@ -318,15 +343,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
     // 1st Wednesday of September is "2024-09-04", of November is "2024-11-06", of January is "2025-01-01"
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayForNRepetitions() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-09-04"),
-                LocalDate.parse("2024-09-04"),
-                RepetitionFrequency.MONTHLY,
-                2,
-                MonthlyRepetitionType.SAME_WEEKDAY,
-                RepetitionDuration.N_REPETITIONS,
-                null,
-                2
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-09-04"))
+                .endDate(LocalDate.parse("2024-09-04"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .repetitionStep(2)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(2)
+                .build();
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-11-06", "2025-01-01"));
 
@@ -351,15 +380,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNYearsAtUntilACertainDate() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-05-18"),
-                LocalDate.parse("2024-05-19"),
-                RepetitionFrequency.ANNUALLY,
-                1,
-                null,
-                RepetitionDuration.UNTIL_DATE,
-                LocalDate.parse("2026-12-04"),
-                null
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-05-18"))
+                .endDate(LocalDate.parse("2024-05-19"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.ANNUALLY)
+                .repetitionStep(1)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2026-12-04"))
+                .build();
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-05-18", "2025-05-18", "2026-05-18"));
 
@@ -383,15 +416,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNYearsForNRepetitions() {
-        DayEventRequest request = createDayEventRequest(LocalDate.parse("2024-05-18"),
-                LocalDate.parse("2024-05-19"),
-                RepetitionFrequency.ANNUALLY,
-                1,
-                null,
-                RepetitionDuration.N_REPETITIONS,
-                null,
-                2
-        );
+        DayEventRequest request = DayEventRequest.builder()
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-05-18"))
+                .endDate(LocalDate.parse("2024-05-19"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.ANNUALLY)
+                .repetitionStep(1)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(2)
+                .build();
         DayEvent dayEvent = createDayEvent(request);
         List<LocalDate> dates = createDates(List.of("2024-05-18", "2025-05-18", "2026-05-18"));
 
@@ -431,33 +468,6 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         this.testEntityManager.flush();
 
         return dayEvent;
-    }
-
-    private DayEventRequest createDayEventRequest(
-            LocalDate startDate,
-            LocalDate endDate,
-            RepetitionFrequency repetitionFrequency,
-            Integer repetitionStep,
-            MonthlyRepetitionType monthlyRepetitionType,
-            RepetitionDuration repetitionDuration,
-            LocalDate repetitionEndDate,
-            Integer repetitionCount
-    ) {
-        return DayEventRequest.builder()
-                .name("Event name")
-                .location("Location")
-                .description("Description")
-                .startDate(startDate)
-                .endDate(endDate)
-                .guestEmails(Set.of(FAKER.internet().emailAddress(), FAKER.internet().emailAddress()))
-                .repetitionFrequency(repetitionFrequency)
-                .repetitionStep(repetitionStep)
-                .monthlyRepetitionType(monthlyRepetitionType)
-                .repetitionDuration(repetitionDuration)
-                .repetitionEndDate(repetitionEndDate)
-                .repetitionCount(repetitionCount)
-                .build();
-
     }
 
     /*

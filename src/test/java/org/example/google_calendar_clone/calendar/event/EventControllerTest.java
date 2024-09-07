@@ -185,7 +185,8 @@ class EventControllerTest {
                 .location("Location")
                 .description("Description")
                 .organizer("Organizer")
-                .guestEmails(Set.of())  // Assuming an empty set for guest emails
+                .guestEmails(Set.of())
+                .dayEventId(eventId)
                 .build();
 
         when(this.dayEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenReturn(List.of(dayEventSlotDTO));

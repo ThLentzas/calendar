@@ -23,12 +23,11 @@ import jakarta.validation.constraints.NotBlank;
 @Setter
 @SuperBuilder
 @EqualsAndHashCode
-public abstract class EventRequest {
+public abstract class AbstractEventRequest {
     @NotBlank(message = "Event name is required and cannot be blank. Please provide one", groups = OnCreate.class)
     protected String name;
     protected String location;
     protected String description;
-    // use sql IN for email in emails
     protected Set<String> guestEmails;
     protected RepetitionFrequency repetitionFrequency;
     protected Integer repetitionStep;

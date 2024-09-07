@@ -30,6 +30,7 @@ class DayEventSlotDTOJsonTest {
                 .description("Description")
                 .organizer("ellyn.roberts")
                 .guestEmails(Set.of())
+                .dayEventId(UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa"))
                 .build();
 
         DayEventSlotDTO dayEventSlotDTO2 = DayEventSlotDTO.builder()
@@ -41,6 +42,7 @@ class DayEventSlotDTOJsonTest {
                 .description("Description")
                 .organizer("ellyn.roberts")
                 .guestEmails(Set.of())
+                .dayEventId(UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa"))
                 .build();
 
         List<DayEventSlotDTO> eventSlots = List.of(dayEventSlotDTO1, dayEventSlotDTO2);

@@ -16,6 +16,7 @@ public class DayEventSlotDTOConverter implements Converter<DayEventSlot, DayEven
                 .description(dayEventSlot.getDescription())
                 .organizer(dayEventSlot.getDayEvent().getUser().getUsername())
                 .guestEmails(dayEventSlot.getGuestEmails())
+                .dayEventId(dayEventSlot.getDayEvent().getId())
                 .build();
     }
 }
