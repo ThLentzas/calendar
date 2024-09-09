@@ -42,13 +42,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DayEventSlotServiceTest extends AbstractRepositoryTest {
     @Autowired
     private DayEventSlotRepository dayEventSlotRepository;
-    private DayEventSlotService underTest;
-    @Autowired
-    private UserRepository userRepository;
     @Autowired
     private DayEventRepository dayEventRepository;
     @Autowired
+    private UserRepository userRepository;
+    @Autowired
     private TestEntityManager testEntityManager;
+    private DayEventSlotService underTest;
     private static final Faker FAKER = new Faker();
 
     @BeforeEach
@@ -229,12 +229,28 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         }
     }
 
+    /*
+        This is the case where we handle events that repeat at the end of the month, where some months have 31 days
+        other 30 and 28 or 29 for February if it is a leap year or not. For an event that is repeating at the same day
+        and that is the last day of the month we have to adjust the upcoming events to fall on the last day of the month
+        they are occurring. Below is the following example. We have an event that is to be repeated every month on the
+        same day, at the 31st of January 2023 until the last day of June the 30th of the same year. The dates should be
+        as follows
+            "2023-01-31" => last day of January
+            "2023-02-28" => last day of February for a non-leap year
+            "2023-03-31" => last day of March
+            "2023-04-30" => last day of April
+            "2023-05-31" => last day of May
+            "2023-06-30" => last day of June
+
+        Our code handles this case gracefully.
+     */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayUntilACertainDate() {
         DayEventRequest request = DayEventRequest.builder()
                 .name("Event name")
-                .startDate(LocalDate.parse("2024-09-04"))
-                .endDate(LocalDate.parse("2024-09-04"))
+                .startDate(LocalDate.parse("2023-01-31"))
+                .endDate(LocalDate.parse("2023-01-31"))
                 .location("Location")
                 .description("Description")
                 .guestEmails(Set.of(FAKER.internet().emailAddress()))
@@ -242,18 +258,25 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionStep(1)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
-                .repetitionEndDate(LocalDate.parse("2024-12-04"))
+                .repetitionEndDate(LocalDate.parse("2023-06-30"))
                 .build();
         DayEvent dayEvent = createDayEvent(request);
-        List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-10-04", "2024-11-04", "2024-12-04"));
+        List<LocalDate> dates = createDates(List.of(
+                "2023-01-31",
+                "2023-02-28",
+                "2023-03-31",
+                "2023-04-30",
+                "2023-05-31",
+                "2023-06-30")
+        );
 
         this.underTest.create(request, dayEvent);
         this.testEntityManager.flush();
 
         List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventId(dayEvent.getId());
 
-        // Size is 4, the original event + 3 times that is to be repeated
-        assertThat(dayEventSlots).hasSize(4);
+        // Size is 6, the original event + 5 times that is to be repeated
+        assertThat(dayEventSlots).hasSize(6);
         for (int i = 0; i < dayEventSlots.size(); i++) {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
@@ -266,23 +289,30 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         }
     }
 
+    /*
+        This is the case where we handle events that repeat at the end of the month, where some months have 31 days
+        other 30 and 28 or 29 for February if it is a leap year or not. For an event that is repeating at the same day
+        every month from "2023-01-29" to "2023-03-29", we would have 3 slots. 1st one at "2023-01-29", the 2nd one since
+        it is the same day it must be "2023-02-29" BUT 2023 is not a leap year, so we move the event to the last day
+        of the month so the 2n slot will be at "2023-02-28" and then the last one "2023-03-29"
+     */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayForNRepetitions() {
         DayEventRequest request = DayEventRequest.builder()
                 .name("Event name")
-                .startDate(LocalDate.parse("2024-09-04"))
-                .endDate(LocalDate.parse("2024-09-04"))
+                .startDate(LocalDate.parse("2023-01-29"))
+                .endDate(LocalDate.parse("2023-01-29"))
                 .location("Location")
                 .description("Description")
                 .guestEmails(Set.of(FAKER.internet().emailAddress()))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
-                .repetitionStep(2)
+                .repetitionStep(1)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionCount(3)
+                .repetitionCount(2)
                 .build();
         DayEvent dayEvent = createDayEvent(request);
-        List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-11-04", "2025-01-04", "2025-03-04"));
+        List<LocalDate> dates = createDates(List.of("2023-01-29", "2023-02-28", "2023-03-29"));
 
         this.underTest.create(request, dayEvent);
         this.testEntityManager.flush();
@@ -290,7 +320,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventId(dayEvent.getId());
 
         // Size is 4, the original event + 3 times that is to be repeated
-        assertThat(dayEventSlots).hasSize(4);
+        assertThat(dayEventSlots).hasSize(3);
         for (int i = 0; i < dayEventSlots.size(); i++) {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
@@ -382,8 +412,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNYearsAtUntilACertainDate() {
         DayEventRequest request = DayEventRequest.builder()
                 .name("Event name")
-                .startDate(LocalDate.parse("2024-05-18"))
-                .endDate(LocalDate.parse("2024-05-19"))
+                .startDate(LocalDate.parse("2024-02-29"))
+                .endDate(LocalDate.parse("2024-02-29"))
                 .location("Location")
                 .description("Description")
                 .guestEmails(Set.of(FAKER.internet().emailAddress()))
@@ -391,17 +421,23 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionStep(1)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
-                .repetitionEndDate(LocalDate.parse("2026-12-04"))
+                .repetitionEndDate(LocalDate.parse("2028-12-04"))
                 .build();
         DayEvent dayEvent = createDayEvent(request);
-        List<LocalDate> dates = createDates(List.of("2024-05-18", "2025-05-18", "2026-05-18"));
+        List<LocalDate> dates = createDates(List.of(
+                "2024-02-29",
+                "2025-02-28",
+                "2026-02-28",
+                "2027-02-28",
+                "2028-02-29")
+        );
 
         this.underTest.create(request, dayEvent);
         this.testEntityManager.flush();
 
         List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventId(dayEvent.getId());
 
-        assertThat(dayEventSlots).hasSize(3);
+        assertThat(dayEventSlots).hasSize(5);
         for (int i = 0; i < dayEventSlots.size(); i++) {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))

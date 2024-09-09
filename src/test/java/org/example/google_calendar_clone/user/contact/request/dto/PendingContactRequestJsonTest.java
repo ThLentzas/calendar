@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JsonTest
 class PendingContactRequestJsonTest {
     @Autowired
-    private JacksonTester<List<PendingContactRequest>> jacksonTester;
+    private JacksonTester<List<PendingContactRequest>> listJacksonTester;
     private static final Faker FAKER = new Faker();
 
     @Test
@@ -53,7 +53,7 @@ class PendingContactRequestJsonTest {
                 ]
                 """, id1, name1, id2, name2);
 
-        JsonContent<List<PendingContactRequest>> actual = this.jacksonTester.write(requests);
+        JsonContent<List<PendingContactRequest>> actual = this.listJacksonTester.write(requests);
 
         assertThat(actual).isEqualToJson(json);
     }

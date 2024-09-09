@@ -25,14 +25,14 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class DayEventService implements IEventService<DayEventRequest, DayEvent> {
+public class DayEventService implements IEventService<DayEventRequest> {
     private final DayEventSlotService dayEventSlotService;
     private final DayEventRepository dayEventRepository;
     private final UserRepository userRepository;
     private static final Logger logger = LoggerFactory.getLogger(DayEventService.class);
 
     @Override
-    public DayEvent create(Jwt jwt, DayEventRequest dayEventRequest) {
+    public UUID create(Jwt jwt, DayEventRequest dayEventRequest) {
         // The current authenticated user is the host of the event
         User user = this.userRepository.getReferenceById(Long.valueOf(jwt.getSubject()));
         DayEvent dayEvent = DayEvent.builder()
@@ -61,7 +61,7 @@ public class DayEventService implements IEventService<DayEventRequest, DayEvent>
         this.dayEventRepository.save(dayEvent);
         this.dayEventSlotService.create(dayEventRequest, dayEvent);
 
-        return dayEvent;
+        return dayEvent.getId();
     }
 
     @Transactional

@@ -6,8 +6,10 @@ import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlo
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.calendar.event.time.TimeEventService;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.config.SecurityConfig;
-import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.example.google_calendar_clone.utils.AuthUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,12 +37,18 @@ import static org.mockito.Mockito.when;
 import static org.hamcrest.Matchers.containsString;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/*
+    We can not hardcode dates, because eventually there will be in the past and our validation requires the dates to
+    be in the future or present. We create them dynamically relative to now().
+ */
 @WebMvcTest(EventController.class)
 @Import(SecurityConfig.class)
 class EventControllerTest {
@@ -51,16 +59,19 @@ class EventControllerTest {
     @MockBean
     private JwtDecoder jwtDecoder;
     @MockBean
+    private TimeEventService timeEventService;
+    @MockBean
     private DayEventService dayEventService;
     private static final String DAY_EVENT_PATH = "/api/v1/events/day-events";
+    private static final String TIME_EVENT_PATH = "/api/v1/events/time-events";
 
     // createDayEvent()
     @Test
     void should201WhenDayEventIsCreatedSuccessfully() throws Exception {
-        DayEventRequest dayEventRequest = createDayEventRequest("2024-10-11", "2024-10-15");
-        DayEvent dayEvent = createDayEvent(dayEventRequest);
+        DayEventRequest dayEventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        UUID eventId = UUID.randomUUID();
 
-        when(this.dayEventService.create(any(Jwt.class), eq(dayEventRequest))).thenReturn(dayEvent);
+        when(this.dayEventService.create(any(Jwt.class), eq(dayEventRequest))).thenReturn(eventId);
 
         this.mockMvc.perform(post(DAY_EVENT_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -68,14 +79,14 @@ class EventControllerTest {
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpectAll(
                         status().isCreated(),
-                        header().string("Location", containsString(DAY_EVENT_PATH + "/" + dayEvent.getId()))
+                        header().string("Location", containsString(DAY_EVENT_PATH + "/" + eventId))
                 );
     }
 
     // createDayEvent() @Valid
     @Test
     void should400WhenDayEventRequestStartDateIsAfterEndDate() throws Exception {
-        DayEventRequest dayEventRequest = createDayEventRequest("2024-10-15", "2024-10-11");
+        DayEventRequest dayEventRequest = createDayEventRequest(LocalDate.now().plusDays(3), LocalDate.now().plusDays(1));
         String responseBody = String.format("""
                 {
                     "status": 400,
@@ -101,7 +112,7 @@ class EventControllerTest {
     // createDayEvent()
     @Test
     void should401WhenCreateDayEventIsCalledByUnauthorizedUser() throws Exception {
-        DayEventRequest dayEventRequest = createDayEventRequest("2024-10-11", "2024-10-15");
+        DayEventRequest dayEventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         String responseBody = String.format("""
                 {
                     "status": 401,
@@ -126,7 +137,7 @@ class EventControllerTest {
     // createDayEvent()
     @Test
     void should403WhenCreateDayEventIsCalledWithNoCsrf() throws Exception {
-        DayEventRequest dayEventRequest = createDayEventRequest("2024-10-11", "2024-10-15");
+        DayEventRequest dayEventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         String responseBody = String.format("""
                 {
                     "status": 403,
@@ -151,7 +162,7 @@ class EventControllerTest {
     // createDayEvent()
     @Test
     void should403WhenCreateDayEventIsCalledWithInvalidCsrf() throws Exception {
-        DayEventRequest dayEventRequest = createDayEventRequest("2024-10-11", "2024-10-15");
+        DayEventRequest dayEventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         String responseBody = String.format("""
                 {
                     "status": 403,
@@ -180,8 +191,8 @@ class EventControllerTest {
         DayEventSlotDTO dayEventSlotDTO = DayEventSlotDTO.builder()
                 .id(UUID.fromString("367be25c-fd30-4961-8d03-81b80a765c3e"))
                 .name("Event name")
-                .startDate(LocalDate.parse("2024-10-11"))
-                .endDate(LocalDate.parse("2024-10-15"))
+                .startDate(LocalDate.now().plusDays(1))
+                .endDate(LocalDate.now().plusDays(3))
                 .location("Location")
                 .description("Description")
                 .organizer("Organizer")
@@ -200,6 +211,7 @@ class EventControllerTest {
                 );
     }
 
+    // findDayEventSlotsByEventId()
     @Test
     void should404WhenDayEventIsNotFoundForFindDayEventSlotsByEventId() throws Exception {
         UUID eventId = UUID.randomUUID();
@@ -224,6 +236,7 @@ class EventControllerTest {
                 );
     }
 
+    // findDayEventSlotsByEventId()
     @Test
     void should403WhenCurrentUserIsNotOrganizerOfRequestedDayEventForFindDayEventSlotsByEventId() throws Exception {
         UUID eventId = UUID.randomUUID();
@@ -248,13 +261,215 @@ class EventControllerTest {
                 );
     }
 
-    private DayEventRequest createDayEventRequest(String startDate, String endDate) {
-        return DayEventRequest.builder()
+    // createTimeEvent()
+    @Test
+    void should201WhenTimeEventIsCreatedSuccessfully() throws Exception {
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
+        UUID eventId = UUID.randomUUID();
+
+        when(this.timeEventService.create(any(Jwt.class), eq(timeEventRequest))).thenReturn(eventId);
+
+        this.mockMvc.perform(post(TIME_EVENT_PATH).with(csrf().asHeader())
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(this.objectMapper.writeValueAsString(timeEventRequest))
+                        .with(authentication(AuthUtils.getAuthentication())))
+                .andExpectAll(
+                        status().isCreated(),
+                        header().string("Location", containsString(TIME_EVENT_PATH + "/" + eventId))
+                );
+    }
+
+    // createTimeEvent() @Valid
+    @Test
+    void should400WhenTimeEventRequestStartTimeIsAfterEndTime() throws Exception {
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(2), LocalDateTime.now().plusDays(1));
+        String responseBody = String.format("""
+                {
+                    "status": 400,
+                    "type": "BAD_REQUEST",
+                    "message": "Start time must be before end time",
+                    "path": "%s"
+                }
+                """, TIME_EVENT_PATH);
+
+
+        this.mockMvc.perform(post(TIME_EVENT_PATH).with(csrf().asHeader())
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(this.objectMapper.writeValueAsString(timeEventRequest))
+                        .with(authentication(AuthUtils.getAuthentication())))
+                .andExpectAll(
+                        status().isBadRequest(),
+                        content().json(responseBody, false)
+                );
+
+        verifyNoInteractions(this.timeEventService);
+    }
+
+    // createTimeEvent()
+    @Test
+    void should401WhenCreateTimeEventIsCalledByUnauthorizedUser() throws Exception {
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
+        String responseBody = String.format("""
+                {
+                    "status": 401,
+                    "type": "UNAUTHORIZED",
+                    "message": "Unauthorized",
+                    "path": "%s"
+                }
+                """, TIME_EVENT_PATH);
+
+
+        this.mockMvc.perform(post(TIME_EVENT_PATH).with(csrf().asHeader())
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(this.objectMapper.writeValueAsString(timeEventRequest)))
+                .andExpectAll(
+                        status().isUnauthorized(),
+                        content().json(responseBody, false)
+                );
+
+        verifyNoInteractions(this.timeEventService);
+    }
+
+    // createTimeEvent()
+    @Test
+    void should403WhenCreateTimeEventIsCalledWithNoCsrf() throws Exception {
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
+        String responseBody = String.format("""
+                {
+                    "status": 403,
+                    "type": "FORBIDDEN",
+                    "message": "Access Denied",
+                    "path": "%s"
+                }
+                """, TIME_EVENT_PATH);
+
+
+        this.mockMvc.perform(post(TIME_EVENT_PATH)
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(this.objectMapper.writeValueAsString(timeEventRequest))
+                        .with(authentication(AuthUtils.getAuthentication())))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody, false)
+                );
+
+        verifyNoInteractions(this.timeEventService);
+    }
+
+    // createTimeEvent()
+    @Test
+    void should403WhenCreateTimeEventIsCalledWithInvalidCsrf() throws Exception {
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
+        String responseBody = String.format("""
+                {
+                    "status": 403,
+                    "type": "FORBIDDEN",
+                    "message": "Access Denied",
+                    "path": "%s"
+                }
+                """, TIME_EVENT_PATH);
+
+
+        this.mockMvc.perform(post(TIME_EVENT_PATH).with(csrf().useInvalidToken().asHeader())
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(this.objectMapper.writeValueAsString(timeEventRequest))
+                        .with(authentication(AuthUtils.getAuthentication())))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody, false)
+                );
+
+        verifyNoInteractions(this.timeEventService);
+    }
+
+    // findTimeEventSlotsByEventId()
+    @Test
+    void should200WithListOfTimeEventSlotDTO() throws Exception {
+        UUID eventId = UUID.randomUUID();
+        TimeEventSlotDTO timeEventSlotDTO = TimeEventSlotDTO.builder()
+                .id(UUID.fromString("367be25c-fd30-4961-8d03-81b80a765c3e"))
+                .name("Event name")
+                .startTime(LocalDateTime.now().plusDays(1))
+                .endTime(LocalDateTime.now().plusDays(3))
+                .startTimeZoneId(ZoneId.of("Australia/Sydney"))
+                .endTimeZoneId(ZoneId.of("Australia/Sydney"))
+                .location("Location")
+                .description("Description")
+                .organizer("Organizer")
+                .guestEmails(Set.of())
+                .timeEventId(eventId)
+                .build();
+
+        when(this.timeEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenReturn(List.of(timeEventSlotDTO));
+
+        this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}", eventId)
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .with(authentication(AuthUtils.getAuthentication())))
+                .andExpectAll(
+                        status().isOk(),
+                        content().json(this.objectMapper.writeValueAsString(List.of(timeEventSlotDTO)))
+                );
+    }
+
+    // findTimeEventSlotsByEventId()
+    @Test
+    void should404WhenTimeEventIsNotFoundForFindTimeEventSlotsByEventId() throws Exception {
+        UUID eventId = UUID.randomUUID();
+        String responseBody = String.format("""
+                {
+                    "status": 404,
+                    "type": "NOT_FOUND",
+                    "message": "Time event not found with id: %s",
+                    "path": "%s/%s"
+                }
+                """, eventId, TIME_EVENT_PATH, eventId);
+
+        when(this.timeEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenThrow(
+                new ResourceNotFoundException("Time event not found with id: " + eventId));
+
+        this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}", eventId)
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .with(authentication(AuthUtils.getAuthentication())))
+                .andExpectAll(
+                        status().isNotFound(),
+                        content().json(responseBody, false)
+                );
+    }
+
+    // findTimeEventSlotsByEventId()
+    @Test
+    void should403WhenCurrentUserIsNotOrganizerOfRequestedTimeEventForFindTimeEventSlotsByEventId() throws Exception {
+        UUID eventId = UUID.randomUUID();
+        String responseBody = String.format("""
+                {
+                    "status": 403,
+                    "type": "FORBIDDEN",
+                    "message": "Access Denied",
+                    "path": "%s/%s"
+                }
+                """, TIME_EVENT_PATH, eventId);
+
+        when(this.timeEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenThrow(
+                new AccessDeniedException("Access Denied"));
+
+        this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}", eventId)
+                        .accept(MediaType.APPLICATION_JSON_VALUE)
+                        .with(authentication(AuthUtils.getAuthentication())))
+                .andExpectAll(
+                        status().isForbidden(),
+                        content().json(responseBody, false)
+                );
+    }
+
+    private TimeEventRequest createTimeEventRequest(LocalDateTime startTime, LocalDateTime endTime) {
+        return TimeEventRequest.builder()
                 .name("Event name")
                 .location("Location")
                 .description("Description")
-                .startDate(LocalDate.parse(startDate))
-                .endDate(LocalDate.parse(endDate))
+                .startTime(startTime)
+                .endTime(endTime)
+                .startTimeZoneId(ZoneId.of("Australia/Sydney"))
+                .endTimeZoneId(ZoneId.of("Australia/Sydney"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(3)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
@@ -263,18 +478,18 @@ class EventControllerTest {
                 .build();
     }
 
-    private DayEvent createDayEvent(DayEventRequest dayEventRequest) {
-        DayEvent dayEvent = new DayEvent();
-        dayEvent.setId(UUID.randomUUID());
-        dayEvent.setStartDate(dayEventRequest.getStartDate());
-        dayEvent.setEndDate(dayEventRequest.getEndDate());
-        dayEvent.setRepetitionFrequency(dayEventRequest.getRepetitionFrequency());
-        dayEvent.setRepetitionStep(dayEventRequest.getRepetitionStep());
-        dayEvent.setMonthlyRepetitionType(dayEventRequest.getMonthlyRepetitionType());
-        dayEvent.setRepetitionDuration(dayEventRequest.getRepetitionDuration());
-        dayEvent.setRepetitionEndDate(dayEventRequest.getRepetitionEndDate());
-        dayEvent.setRepetitionCount(dayEventRequest.getRepetitionCount());
-
-        return dayEvent;
+    private DayEventRequest createDayEventRequest(LocalDate startDate, LocalDate endDate) {
+        return DayEventRequest.builder()
+                .name("Event name")
+                .location("Location")
+                .description("Description")
+                .startDate(startDate)
+                .endDate(endDate)
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .repetitionStep(3)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(3)
+                .build();
     }
 }

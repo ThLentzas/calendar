@@ -2,12 +2,16 @@ package org.example.google_calendar_clone.calendar.event.time.dto.validator;
 
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+import org.example.google_calendar_clone.utils.DateUtils;
 import org.example.google_calendar_clone.utils.RepetitionUtils;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-
-import java.time.LocalDate;
 
 /*
     According to Google Calendar time events can have a duration of more than 1 day.
@@ -18,27 +22,86 @@ public class TimeEventRequestValidator implements ConstraintValidator<ValidTimeE
     @Override
     public boolean isValid(TimeEventRequest value, ConstraintValidatorContext context) {
         /*
+            The cases where we check if 1 of the time/timezone is null can only happen when we update an event. When
+            we create an event they are both mandatory and @NotNull handles those cases.
+         */
+        if(value.getStartTime() != null && value.getStartTimeZoneId() == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Provide a time zone for your end time")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if(value.getStartTime() == null && value.getStartTimeZoneId() != null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Provide a start time for your time zone")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if(value.getStartTime() != null) {
+            LocalDateTime utcStartTime = DateUtils.convertToUTC(value.getStartTime(), value.getStartTimeZoneId());
+            if(utcStartTime.isBefore(ZonedDateTime.now(ZoneId.of("UTC")).toLocalDateTime())) {
+                context.disableDefaultConstraintViolation();
+                context.buildConstraintViolationWithTemplate("Start time must be in the future or present")
+                        .addConstraintViolation();
+                return false;
+            }
+        }
+
+        if(value.getEndTime() != null && value.getEndTimeZoneId() == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Provide a time zone for your start time")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if(value.getEndTime() == null && value.getEndTimeZoneId() != null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Provide an end time for your time zone")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if(value.getEndTime() != null) {
+            LocalDateTime utcEndTime = DateUtils.convertToUTC(value.getEndTime(), value.getEndTimeZoneId());
+            if(utcEndTime.isBefore(ZonedDateTime.now(ZoneId.of("UTC")).toLocalDateTime())) {
+                context.disableDefaultConstraintViolation();
+                context.buildConstraintViolationWithTemplate("End time must be in the future or present")
+                        .addConstraintViolation();
+                return false;
+            }
+        }
+        /*
+            Starting time is before Ending time
+
+            When we create an event, startTime and endTime will never be null since the TimeEventRequest has a @NotNull.
+            When we update an event since startTime and endTime are optional, they can be null, but if they are not we
+            still need to make sure that the endTime is after startTime.
+
+            We support different timezones for start and end time. We have to consider the following case.
+                When user provided start time and end time in different time zones, initially it could be that
+                start time < end time without taking into consideration their time-zones, simply comparing the times.
+                We have to convert both to UTC and make sure that start time < end time
+         */
+        if (value.getStartTime() != null && value.getEndTime() != null) {
+            LocalDateTime startTime = DateUtils.convertToUTC(value.getStartTime(), value.getStartTimeZoneId());
+            LocalDateTime endTime = DateUtils.convertToUTC(value.getEndTime(), value.getEndTimeZoneId());
+
+            if (startTime.isAfter(endTime)) {
+                context.disableDefaultConstraintViolation();
+                context.buildConstraintViolationWithTemplate("Start time must be before end time")
+                        .addConstraintViolation();
+                return false;
+            }
+        }
+
+        /*
             When the user did not provide a repetition frequency we default to NEVER . An alternative would
             be to consider the request invalid.
          */
         if (value.getRepetitionFrequency() == null) {
             value.setRepetitionFrequency(RepetitionFrequency.NEVER);
-        }
-
-        /*
-            Starting time is before Ending time
-
-            When we create an event startTime and endTime will never be null since the TimeEventRequest has a @NotNull.
-            When we update an event since startTime and endTime are optional, they can be null, but if they are not we
-            still need to make sure that the endTime is after startTime.
-         */
-        if (value.getStartTime() != null
-                && value.getEndTime() != null
-                && value.getStartTime().isAfter(value.getEndTime())) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Start time must be before end time")
-                    .addConstraintViolation();
-            return false;
         }
 
         if (!RepetitionUtils.isValid(value, context)) {

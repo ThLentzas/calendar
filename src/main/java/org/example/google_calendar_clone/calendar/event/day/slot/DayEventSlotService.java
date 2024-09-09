@@ -36,50 +36,74 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         the end date will be equal to the interval of the initial startDate - endDate (The duration of the event).
         This is calculated using ChronoUnit.DAYS.between(dayEvent.getStartDate(), dayEvent.getEndDate()).
         Lastly, we need to skip ahead equal to the number of the repetition step (every 2 days/weeks/months etc).
+
+        We create the DayEventSlots based on the DayEvent, and we retrieve properties like dayEvent.getStartDate();
+        and not like dayEventRequest.getStartDate(). The values are the same. That was my thought process
     */
     @Override
-    public void create(DayEventRequest dayEventRequest, DayEvent dayEvent) {
+    public void create(DayEventRequest eventRequest, DayEvent event) {
         // We want to send invitation emails only to emails that at least contain @
         Set<String> guestEmails = new HashSet<>();
-        if (dayEventRequest.getGuestEmails() != null) {
-            guestEmails = dayEventRequest.getGuestEmails().stream()
+        if (eventRequest.getGuestEmails() != null) {
+            guestEmails = eventRequest.getGuestEmails().stream()
                     .filter(guestEmail -> guestEmail.contains("@"))
                     .collect(Collectors.toSet());
         }
-        dayEventRequest.setGuestEmails(guestEmails);
+        eventRequest.setGuestEmails(guestEmails);
 
-        switch (dayEventRequest.getRepetitionFrequency()) {
-            // Since the event is not to be repeated, we only create 1 TimeEventSlot
-            case NEVER -> createDayEventSlot(dayEventRequest, dayEvent, dayEventRequest.getStartDate());
+        switch (event.getRepetitionFrequency()) {
+            // Since the event is not repeating, we only create 1 DayEventSlot
+            case NEVER -> createDayEventSlot(eventRequest, event, event.getStartDate());
             case DAILY -> {
-                createUntilDateEventSlots(dayEventRequest, dayEvent, ChronoUnit.DAYS);
-                createNRepetitionsEventSlots(dayEventRequest, dayEvent, ChronoUnit.DAYS);
+                createUntilDateEventSlots(eventRequest, event, ChronoUnit.DAYS);
+                createNRepetitionsEventSlots(eventRequest, event, ChronoUnit.DAYS);
             }
             case WEEKLY -> {
-                createUntilDateEventSlots(dayEventRequest, dayEvent, ChronoUnit.WEEKS);
-                createNRepetitionsEventSlots(dayEventRequest, dayEvent, ChronoUnit.WEEKS);
+                createUntilDateEventSlots(eventRequest, event, ChronoUnit.WEEKS);
+                createNRepetitionsEventSlots(eventRequest, event, ChronoUnit.WEEKS);
             }
             case MONTHLY -> {
-                if (dayEventRequest.getMonthlyRepetitionType().equals(MonthlyRepetitionType.SAME_WEEKDAY)) {
-                    createUntilDateMonthlySameWeekDayEventSlots(dayEventRequest, dayEvent);
-                    createNRepetitionsMonthlySameWeekDayEventSlots(dayEventRequest, dayEvent);
+                if (event.getMonthlyRepetitionType().equals(MonthlyRepetitionType.SAME_WEEKDAY)) {
+                    createUntilDateMonthlySameWeekDayEventSlots(eventRequest, event);
+                    createNRepetitionsMonthlySameWeekDayEventSlots(eventRequest, event);
                 } else {
-                    createUntilDateEventSlots(dayEventRequest, dayEvent, ChronoUnit.MONTHS);
-                    createNRepetitionsEventSlots(dayEventRequest, dayEvent, ChronoUnit.MONTHS);
+                    // For events that are repeating Monthly, over N Months, Annually, or over N years we will use the
+                    // same method to take into consideration things like leap years for events at 29 February and
+                    // events that are to be repeated at the last day of the month
+                    createUntilDateSameDayEventSlots(eventRequest, event, ChronoUnit.MONTHS);
+                    createNRepetitionsSameDayEventSlots(eventRequest, event, ChronoUnit.MONTHS);
                 }
             }
+            /*
+                For annually repeating events, apart from 29th of February, all we need to know is that months have
+                the same numbers of days in different years.
+
+                January: Always has 31 days,
+                February:
+                    Non-leap years: February has 28 days.
+                    Leap years: February has 29 days.
+                March: Always has 31 days.
+                April: Always has 30 days.
+                May: Always has 31 days.
+                June: Always has 30 days.
+                July: Always has 31 days.
+                August: Always has 31 days.
+                September: Always has 30 days.
+                October: Always has 31 days.
+                November: Always has 30 days.
+                December: Always has 31 days.
+             */
             case ANNUALLY -> {
-                createUntilDateEventSlots(dayEventRequest, dayEvent, ChronoUnit.YEARS);
-                createNRepetitionsEventSlots(dayEventRequest, dayEvent, ChronoUnit.YEARS);
+                createUntilDateSameDayEventSlots(eventRequest, event, ChronoUnit.YEARS);
+                createNRepetitionsSameDayEventSlots(eventRequest, event, ChronoUnit.YEARS);
             }
         }
     }
 
     @Override
     public List<DayEventSlotDTO> findEventSlotsByEventId(UUID eventId) {
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventId(eventId);
-
-        return dayEventSlots.stream()
+        return this.dayEventSlotRepository.findByEventId(eventId)
+                .stream()
                 .map(converter::convert)
                 .toList();
     }
@@ -91,60 +115,123 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         date = date.plusDays(), date = date.plusWeeks() etc
      */
     private void createUntilDateEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent, ChronoUnit unit) {
-        if (dayEventRequest.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
-                && dayEventRequest.getRepetitionDuration() != RepetitionDuration.FOREVER) {
+        if (dayEvent.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
+                && dayEvent.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
         }
 
-        for (LocalDate date = dayEvent.getStartDate(); !date.isAfter(dayEvent.getRepetitionEndDate());
-             date = date.plus(dayEvent.getRepetitionStep(), unit)) {
+        LocalDate date = dayEvent.getStartDate();
+        while (!date.isAfter(dayEvent.getRepetitionEndDate())) {
             createDayEventSlot(dayEventRequest, dayEvent, date);
+            date = date.plus(dayEvent.getRepetitionStep(), unit);
         }
     }
 
     private void createNRepetitionsEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent, ChronoUnit unit) {
-        if (dayEventRequest.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
+        if (dayEvent.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
 
-        LocalDate startDate = dayEventRequest.getStartDate();
-        for (int i = 0; i <= dayEventRequest.getRepetitionCount(); i++) {
+        LocalDate startDate = dayEvent.getStartDate();
+        for (int i = 0; i <= dayEvent.getRepetitionCount(); i++) {
             createDayEventSlot(dayEventRequest, dayEvent, startDate);
            /*
                 The starDate is updated to the previous value plus the number of the repetition step which
                 can be 1, 2 etc, meaning the event is to be repeated every 1,2, days until we reach
                 N_REPETITIONS
             */
-            startDate = startDate.plus(dayEventRequest.getRepetitionStep(), unit);
+            startDate = startDate.plus(dayEvent.getRepetitionStep(), unit);
         }
     }
 
     // Monthly events that repeat the same week day until a certain date(2nd Tuesday of the month)
     private void createUntilDateMonthlySameWeekDayEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent) {
-        if (dayEventRequest.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
-                && dayEventRequest.getRepetitionDuration() != RepetitionDuration.FOREVER) {
+        if (dayEvent.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
+                && dayEvent.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
         }
 
-        int occurrences = DateUtils.findDayOfMonthOccurrence(dayEventRequest.getStartDate());
+        int occurrences = DateUtils.findDayOfMonthOccurrence(dayEvent.getStartDate());
         LocalDate startDate;
-        for (LocalDate date = dayEventRequest.getStartDate(); !date.isAfter(dayEventRequest.getRepetitionEndDate()); date = date.plusMonths(dayEventRequest.getRepetitionStep())) {
-            startDate = DateUtils.findDateOfNthDayOfWeekInMonth(YearMonth.of(date.getYear(), date.getMonth()), dayEventRequest.getStartDate().getDayOfWeek(), occurrences);
+        LocalDate date = dayEvent.getStartDate();
+        while (!date.isAfter(dayEvent.getRepetitionEndDate())) {
+            startDate = DateUtils.findDateOfNthDayOfWeekInMonth(
+                    YearMonth.of(date.getYear(), date.getMonth()),
+                    dayEvent.getStartDate().getDayOfWeek(),
+                    occurrences
+            );
             createDayEventSlot(dayEventRequest, dayEvent, startDate);
+            date = date.plusMonths(dayEvent.getRepetitionStep());
         }
     }
 
     // Monthly events that repeat the same week day until a number of repetitions(2nd Tuesday of the month)
     private void createNRepetitionsMonthlySameWeekDayEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent) {
-        if (dayEventRequest.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
+        if (dayEvent.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
-        int occurrences = DateUtils.findDayOfMonthOccurrence(dayEventRequest.getStartDate());
-        LocalDate startDate = dayEventRequest.getStartDate();
-        for (int i = 0; i <= dayEventRequest.getRepetitionCount(); i++) {
+        int occurrences = DateUtils.findDayOfMonthOccurrence(dayEvent.getStartDate());
+        LocalDate startDate = dayEvent.getStartDate();
+        for (int i = 0; i <= dayEvent.getRepetitionCount(); i++) {
             createDayEventSlot(dayEventRequest, dayEvent, startDate);
-            startDate = startDate.plusMonths(dayEventRequest.getRepetitionStep());
-            startDate = DateUtils.findDateOfNthDayOfWeekInMonth(YearMonth.of(startDate.getYear(), startDate.getMonth()), dayEventRequest.getStartDate().getDayOfWeek(), occurrences);
+            startDate = startDate.plusMonths(dayEvent.getRepetitionStep());
+            startDate = DateUtils.findDateOfNthDayOfWeekInMonth(
+                    YearMonth.of(startDate.getYear(), startDate.getMonth()),
+                    dayEvent.getStartDate().getDayOfWeek(),
+                    occurrences
+            );
+        }
+    }
+
+    /*
+        When it comes to monthly repeated events on the same day we have to consider an edge case where we want the
+        event to be repeated at the last day of each month for 14 months. If we have an event for the 31 of January
+        we can't move to the 31st of February, it is not a valid date. We need to move to the last day of each month.
+        Java takes care of the advancing part, where if we are at 31st of January and, we say date = date.plusMonths(1)
+        it will take us to 28 or 29 of February depending on if it is a leap year or not. The problem is that when we
+        advance again we will move to the 28 or 29 of March which is not the last day of the month. We have to address
+        that scenario.
+        Logic also explained to the DateUtils.adjustDateForMonth()
+     */
+    private void createUntilDateSameDayEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent, ChronoUnit unit) {
+        if (dayEvent.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
+                && dayEvent.getRepetitionDuration() != RepetitionDuration.FOREVER) {
+            return;
+        }
+
+        /*
+            int dayOfMonth = dayEvent.getStartDate().getDayOfMonth();
+            for (LocalDate date = dayEvent.getStartDate(); !date.isAfter(dayEvent.getRepetitionEndDate());
+                 date = date.plusMonths(dayEvent.getRepetitionStep())) {
+                date = DateUtils.adjustDateForMonth(dayOfMonth, date);
+                createDayEventSlot(dayEventRequest, dayEvent, date);
+            }
+
+            The above code would work but the linter would complain as : Refactor the code in order to not assign to this
+            loop counter from within the loop body. We increment the months of the date and also adjust the date of
+            the month.
+         */
+        int dayOfMonth = dayEvent.getStartDate().getDayOfMonth();
+        LocalDate date = dayEvent.getStartDate();
+        while (!date.isAfter(dayEvent.getRepetitionEndDate())) {
+            LocalDate adjustedDate = DateUtils.adjustDateForMonth(dayOfMonth, date);
+            createDayEventSlot(dayEventRequest, dayEvent, adjustedDate);
+            date = date.plus(dayEvent.getRepetitionStep(), unit);
+        }
+    }
+
+    // Same logic as the above method. We have to handle last day of month case.
+    private void createNRepetitionsSameDayEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent, ChronoUnit unit) {
+        if (dayEvent.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
+            return;
+        }
+
+        int dayOfMonth = dayEvent.getStartDate().getDayOfMonth();
+        LocalDate startDate = dayEvent.getStartDate();
+        for (int i = 0; i <= dayEvent.getRepetitionCount(); i++) {
+            startDate = DateUtils.adjustDateForMonth(dayOfMonth, startDate);
+            createDayEventSlot(dayEventRequest, dayEvent, startDate);
+            startDate = startDate.plus(dayEvent.getRepetitionStep(), unit);
         }
     }
 

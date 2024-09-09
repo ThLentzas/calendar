@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JsonTest
 class DayEventSlotDTOJsonTest {
     @Autowired
-    private JacksonTester<List<DayEventSlotDTO>> jacksonTesterList;
+    private JacksonTester<List<DayEventSlotDTO>> listJacksonTester;
 
     @Test
     void shouldSerializeDayEventSlotList() throws IOException {
@@ -72,7 +72,7 @@ class DayEventSlotDTOJsonTest {
                 ]
                 """;
 
-        JsonContent<List<DayEventSlotDTO>> actual = this.jacksonTesterList.write(eventSlots);
+        JsonContent<List<DayEventSlotDTO>> actual = this.listJacksonTester.write(eventSlots);
 
         assertThat(actual).isEqualToJson(json);
     }

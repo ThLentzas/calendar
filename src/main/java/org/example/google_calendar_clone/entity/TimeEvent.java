@@ -1,17 +1,21 @@
 package org.example.google_calendar_clone.entity;
 
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
-import lombok.*;
-
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
-import org.example.google_calendar_clone.calendar.event.AbstractEvent;
 
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Set;
+
+import org.example.google_calendar_clone.calendar.event.AbstractEvent;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -24,8 +28,8 @@ import java.util.Set;
 public class TimeEvent extends AbstractEvent {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
-    @OneToMany(mappedBy = "timeEvent")
-    private Set<TimeEventSlot> timeEventSlots;
     private ZoneId startTimeZoneId;
     private ZoneId endTimeZoneId;
+    @OneToMany(mappedBy = "timeEvent")
+    private Set<TimeEventSlot> timeEventSlots;
 }

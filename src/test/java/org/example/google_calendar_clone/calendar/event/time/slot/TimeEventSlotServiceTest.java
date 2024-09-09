@@ -1,0 +1,683 @@
+package org.example.google_calendar_clone.calendar.event.time.slot;
+
+import org.example.google_calendar_clone.AbstractRepositoryTest;
+import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
+import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
+import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.calendar.event.time.TimeEventRepository;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+import org.example.google_calendar_clone.entity.TimeEvent;
+import org.example.google_calendar_clone.entity.TimeEventSlot;
+import org.example.google_calendar_clone.entity.User;
+import org.example.google_calendar_clone.user.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.test.context.jdbc.Sql;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import net.datafaker.Faker;
+
+// The reason why the repository is not mocked, is explained in the DayEventSlotServiceTest
+@Sql(scripts = "/scripts/INIT_USERS.sql")
+class TimeEventSlotServiceTest extends AbstractRepositoryTest {
+    @Autowired
+    private TimeEventSlotRepository timeEventSlotRepository;
+    @Autowired
+    private TimeEventRepository timeEventRepository;
+    @Autowired
+    private UserRepository userRepository;
+    @Autowired
+    private TestEntityManager testEntityManager;
+    private TimeEventSlotService underTest;
+    private static final Faker FAKER = new Faker();
+
+    @BeforeEach
+    void setup() {
+        this.underTest = new TimeEventSlotService(timeEventSlotRepository);
+    }
+
+    /*
+        Calling create() of the TimeEventSlotService, will convert the startTime to UTC. When we assert on the startTime,
+        we need to know offset between the provided time zone and UTC to precompute the datetime.
+        In our case, during DST (from the last Sunday in March to the last Sunday in October for European Union) the
+        offset is UTC + 1. It means the time in London + 1 hour from UTC. If DST is not in effect we have UTC + 0.
+        date, October 11th, 2024, Europe/London will still be in Daylight Saving Time, so the offset will be UTC + 1.
+        We calculate the expected dateTime as "2024-10-11T09:00"(UTC) for "2024-10-11T10:00"(Europe/London). End time
+        is adjusted from the start time plus the event duration in minutes.
+     */
+    @Test
+    void shouldCreateTimeEventSlotForNonRepeatingEvent() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-10-11T10:00"))
+                .endTime(LocalDateTime.parse("2024-10-15T15:00"))
+                .startTimeZoneId(ZoneId.of("Europe/London"))
+                .endTimeZoneId(ZoneId.of("Europe/London"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.NEVER)
+                .build();
+
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of("2024-10-11T09:00"));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(1);
+        TimeEventSlotAssert.assertThat(eventSlots.get(0))
+                .hasStartTime(dateTimes.get(0))
+                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                .hasStartTimeZoneId(request.getStartTimeZoneId())
+                .hasEndTimeZoneId(request.getEndTimeZoneId())
+                .hasName(request.getName())
+                .hasLocation(request.getLocation())
+                .hasDescription(request.getDescription())
+                .hasGuests(request.getGuestEmails())
+                .hasTimeEvent(timeEvent);
+    }
+
+    /*
+        The time "2024-03-10T02:30" for the timezone "America/New_York" is a DST gap. What is a DST gap is fully explained
+        on the EventController. Java handles this case by moving the time that falls into the DST gap 1 hour forward,
+        so "2024-03-10T02:30" becomes 2024-03-10T03:30-04:00, the -04:00 is the offset. At that time, DST is active so
+        the offset for "America/New_York" - 4. This is why the expected date is set to "2024-03-10T07:30" (UTC), we
+        consider the adjustment of the DST gap.
+     */
+    @Test
+    void shouldCreateTimeEventSlotForNonRepeatingEventDuringDSTGap() {
+        // This time falls within the DST gap in New York on March 10, 2024
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-03-10T02:30"))
+                .endTime(LocalDateTime.parse("2024-03-10T03:30"))
+                .startTimeZoneId(ZoneId.of("America/New_York"))
+                .endTimeZoneId(ZoneId.of("America/New_York"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.NEVER)
+                .build();
+
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of("2024-03-10T07:30"));
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(1);
+        TimeEventSlotAssert.assertThat(eventSlots.get(0))
+                .hasStartTime(dateTimes.get(0))
+                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                .hasStartTimeZoneId(request.getStartTimeZoneId())
+                .hasEndTimeZoneId(request.getEndTimeZoneId())
+                .hasName(request.getName())
+                .hasLocation(request.getLocation())
+                .hasDescription(request.getDescription())
+                .hasGuests(request.getGuestEmails())
+                .hasTimeEvent(timeEvent);
+    }
+
+    /*
+        The time "2024-11-03T01:30" for the timezone "America/New_York" is a DST overlap. What is a DST overlap
+        is fully explained on the EventController. The specific time is to be repeated twice, once during DST and once
+        as DST ends. Java selects the 1st offset. During DST, it is -4 and when it ends is -5. In our test, we assert
+        that the UTC time is "2024-11-03T05:30" which takes into consideration the 1st UTC - 4 offset
+     */
+    @Test
+    void shouldCreateTimeEventSlotForNonRepeatingEventDuringDSTOverlap() {
+        // This time falls within the DST overlap in New York on November 3, 2024
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-11-03T01:30"))
+                .endTime(LocalDateTime.parse("2024-11-03T02:30"))
+                .startTimeZoneId(ZoneId.of("America/New_York"))
+                .endTimeZoneId(ZoneId.of("America/New_York"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.NEVER)
+                .build();
+
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of("2024-11-03T05:30"));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(1);
+        TimeEventSlotAssert.assertThat(eventSlots.get(0))
+                .hasStartTime(dateTimes.get(0))
+                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                .hasStartTimeZoneId(request.getStartTimeZoneId())
+                .hasEndTimeZoneId(request.getEndTimeZoneId())
+                .hasName(request.getName())
+                .hasLocation(request.getLocation())
+                .hasDescription(request.getDescription())
+                .hasGuests(request.getGuestEmails())
+                .hasTimeEvent(timeEvent);
+    }
+
+    /*
+        America/Chicago during DST is UTC - 5 otherwise UTC - 6. Our date, October 11th, 2024, America/Chicago will
+        still be in Daylight Saving Time, so the offset will be UTC - 5. We calculate the expected dateTime as
+        "2024-10-11T15:00"(UTC) for "2024-10-11T10:00"(America/Chicago). For the upcoming events, we use the same time
+        but in different days according to the repetition on the request
+     */
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNDaysUntilACertainDate() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-10-11T10:00"))
+                .endTime(LocalDateTime.parse("2024-10-11T15:00"))
+                .startTimeZoneId(ZoneId.of("America/Chicago"))
+                .endTimeZoneId(ZoneId.of("America/Chicago"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.DAILY)
+                .repetitionStep(2)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2024-10-18"))
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-10-11T15:00",
+                "2024-10-13T15:00",
+                "2024-10-15T15:00",
+                "2024-10-17T15:00")
+        );
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(4);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    /*
+        This test includes the DST change and how we correctly adjust the times. In Oslo, DST ends in 27 of October.
+        Every event that is to happen before th 27 should be UTC + 2, otherwise UTC + 1. We can see from the expected
+        dates to be DST adjusted and since our test passes we know that we handle DST changes gracefully.
+     */
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNDaysForNRepetitions() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                // Local Oslo time before DST ends
+                .startTime(LocalDateTime.parse("2024-10-25T10:00"))
+                // Local Oslo time before DST ends
+                .endTime(LocalDateTime.parse("2024-10-25T12:00"))
+                .startTimeZoneId(ZoneId.of("Europe/Oslo"))
+                .endTimeZoneId(ZoneId.of("Europe/Oslo"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.DAILY)
+                .repetitionStep(2)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(4)
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+
+        // DST ends on 2024-10-27 in Oslo, so dates before will be in DST (UTC + 2) and after in standard time (UTC + 1)
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-10-25T08:00", // Before DST ends, UTC + 2 -> UTC
+                "2024-10-27T09:00", // After DST ends, UTC + 1 -> UTC
+                "2024-10-29T09:00", // After DST ends, UTC + 1 -> UTC
+                "2024-10-31T09:00", // After DST ends, UTC + 1 -> UTC
+                "2024-11-02T09:00"  // After DST ends, UTC + 1 -> UTC
+        ));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(5);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksUntilACertainDate() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-08-12T10:00"))
+                .endTime(LocalDateTime.parse("2024-08-12T12:00"))
+                .startTimeZoneId(ZoneId.of("Asia/Tokyo")) // UTC + 9. No DST in Japan +9 all year round
+                .endTimeZoneId(ZoneId.of("Asia/Tokyo")) // UTC + 9. No DST +9 all year round
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.WEEKLY)
+                .repetitionStep(2)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2024-09-10"))
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-08-12T01:00",
+                "2024-08-26T01:00",
+                "2024-09-09T01:00"
+        ));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(3);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-09-04T10:00"))
+                .endTime(LocalDateTime.parse("2024-09-04T12:00"))
+                .startTimeZoneId(ZoneId.of("Europe/Madrid")) // UTC + 2
+                .endTimeZoneId(ZoneId.of("Europe/Madrid")) // UTC + 2
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.WEEKLY)
+                .repetitionStep(1)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(2)
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-09-04T08:00",
+                "2024-09-11T08:00",
+                "2024-09-18T08:00"
+        ));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        // Size is 3, the original event + 2 times that it is to be repeated
+        assertThat(eventSlots).hasSize(3);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayUntilACertainDate() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-09-04T10:00"))
+                .endTime(LocalDateTime.parse("2024-09-04T15:00"))
+                .startTimeZoneId(ZoneId.of("Asia/Singapore")) // UTC + 8, no DST
+                .endTimeZoneId(ZoneId.of("Asia/Singapore")) // UTC + 8, no DST
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .repetitionStep(1)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2024-12-04"))
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-09-04T02:00",
+                "2024-10-04T02:00",
+                "2024-11-04T02:00",
+                "2024-12-04T02:00"
+        ));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(4);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    /*
+        This case covers both DST ending and providing start and end time in different timezones. The event happens at
+        31st of October, which is the last day of October and, we adjust correctly for the upcoming months 31st of January,
+        January has 31 days, 28th of February, last day of a non leap year, and 30th of April that has 30 days. We adjust
+        for DST that started at March 10
+     */
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayForNRepetitions() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-10-31T08:00"))
+                .endTime(LocalDateTime.parse("2024-10-31T15:00"))
+                .startTimeZoneId(ZoneId.of("America/New_York"))
+                .endTimeZoneId(ZoneId.of("Europe/Berlin"))
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .repetitionStep(2)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(3)
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-10-31T12:00", // UTC - 4
+                "2024-12-31T13:00", // UTC - 5, DST ends
+                "2025-02-28T13:00", // UTC - 5
+                "2025-04-30T12:00"  // UTC - 4, DST started for America/New_York at March 10
+        ));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        // Size is 4, the original event + 3 times that it is to be repeated
+        assertThat(eventSlots).hasSize(4);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayUntilACertainDate() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-09-04T09:00"))
+                .endTime(LocalDateTime.parse("2024-09-04T11:00"))
+                .startTimeZoneId(ZoneId.of("Africa/Nairobi")) // UTC + 3, no DST
+                .endTimeZoneId(ZoneId.of("Africa/Nairobi")) // UTC + 3, no DST
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .repetitionStep(1)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2024-11-20"))
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-09-04T06:00", // 1st Wednesday of September
+                "2024-10-02T06:00", // 1st Wednesday of October
+                "2024-11-06T06:00"  // 1st Wednesday of November
+        ));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(3);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayForNRepetitions() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-09-04T09:00"))
+                .endTime(LocalDateTime.parse("2024-09-04T11:00"))
+                .startTimeZoneId(ZoneId.of("Africa/Nairobi")) // UTC + 3, no DST
+                .endTimeZoneId(ZoneId.of("Africa/Nairobi")) // UTC + 3, no DST
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .repetitionStep(2)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(2)
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-09-04T06:00", // 1st Wednesday of September
+                "2024-11-06T06:00", // 1st Wednesday of November
+                "2025-01-01T06:00"  // 1st Wednesday of January
+        ));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        // Size is 3, the original event + 2 times that it is to be repeated
+        assertThat(eventSlots).hasSize(3);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNYearsUntilACertainDate() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-05-18T10:00"))
+                .endTime(LocalDateTime.parse("2024-05-18T14:00"))
+                .startTimeZoneId(ZoneId.of("America/Sao_Paulo")) // UTC - 3, no DST
+                .endTimeZoneId(ZoneId.of("America/Sao_Paulo")) // UTC - 3, no DST
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.ANNUALLY)
+                .repetitionStep(1)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.parse("2026-12-04"))
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-05-18T13:00",
+                "2025-05-18T13:00",
+                "2026-05-18T13:00"
+        ));
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(3);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    // This test is in the last day of February for a leap year and we see that we adjust for the next non-leap and
+    // leap years.
+    @Test
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNYearsForNRepetitions() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-02-29T07:00"))
+                .endTime(LocalDateTime.parse("2024-02-29T09:00"))
+                .startTimeZoneId(ZoneId.of("America/Sao_Paulo")) // UTC - 3, no DST
+                .endTimeZoneId(ZoneId.of("America/Sao_Paulo")) // UTC - 3, no DST
+                .location("Location")
+                .description("Description")
+                .guestEmails(Set.of(FAKER.internet().emailAddress()))
+                .repetitionFrequency(RepetitionFrequency.ANNUALLY)
+                .repetitionStep(1)
+                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
+                .repetitionCount(4)
+                .build();
+        TimeEvent timeEvent = createTimeEvent(request);
+        List<LocalDateTime> dateTimes = createDateTimes(List.of(
+                "2024-02-29T10:00",
+                "2025-02-28T10:00",
+                "2026-02-28T10:00",
+                "2027-02-28T10:00",
+                "2028-02-29T10:00")
+        );
+
+        this.underTest.create(request, timeEvent);
+        this.testEntityManager.flush();
+
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+
+        assertThat(eventSlots).hasSize(5);
+        for (int i = 0; i < eventSlots.size(); i++) {
+            TimeEventSlotAssert.assertThat(eventSlots.get(i))
+                    .hasStartTime(dateTimes.get(i))
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
+                    .hasStartTimeZoneId(request.getStartTimeZoneId())
+                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasName(request.getName())
+                    .hasLocation(request.getLocation())
+                    .hasDescription(request.getDescription())
+                    .hasGuests(request.getGuestEmails())
+                    .hasTimeEvent(timeEvent);
+        }
+    }
+
+    private TimeEvent createTimeEvent(TimeEventRequest eventRequest) {
+        // We know the id from the sql script
+        User user = this.userRepository.getReferenceById(1L);
+        TimeEvent timeEvent = new TimeEvent();
+        timeEvent.setStartTime(eventRequest.getStartTime());
+        timeEvent.setEndTime(eventRequest.getEndTime());
+        timeEvent.setStartTimeZoneId(eventRequest.getStartTimeZoneId());
+        timeEvent.setEndTimeZoneId(eventRequest.getEndTimeZoneId());
+        timeEvent.setRepetitionFrequency(eventRequest.getRepetitionFrequency());
+        timeEvent.setRepetitionStep(eventRequest.getRepetitionStep());
+        timeEvent.setMonthlyRepetitionType(eventRequest.getMonthlyRepetitionType());
+        timeEvent.setRepetitionDuration(eventRequest.getRepetitionDuration());
+        timeEvent.setRepetitionEndDate(eventRequest.getRepetitionEndDate());
+        timeEvent.setRepetitionCount(eventRequest.getRepetitionCount());
+        timeEvent.setUser(user);
+
+        this.timeEventRepository.save(timeEvent);
+        this.testEntityManager.flush();
+
+        return timeEvent;
+    }
+
+    /*
+        The list of dateTimes is returned in ascending order, representing the upcoming occurrences of the event.
+        We retrieve the time event slots ordered by their start time. The i-th date in the list should match
+        the start time of the i-th event slot if the times are computed correctly.
+
+        For each case, the values passed to createDateTimes() represent the exact times we expect the events to occur.
+        Since we convert the start time to UTC, the expected values are also in UTC adjusted based on the timezone
+     */
+    private List<LocalDateTime> createDateTimes(List<String> dateTimes) {
+        return dateTimes.stream()
+                .map(LocalDateTime::parse)
+                .toList();
+    }
+
+    private int getEventDuration(LocalDateTime startTime, LocalDateTime endTime) {
+        return (int) ChronoUnit.MINUTES.between(startTime, endTime);
+    }
+}

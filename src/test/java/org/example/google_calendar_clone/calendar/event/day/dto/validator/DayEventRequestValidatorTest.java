@@ -15,6 +15,7 @@ import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.calendar.event.OnCreate;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -27,6 +28,8 @@ class DayEventRequestValidatorTest {
     private Validator validator;
 
     /*
+        Spring validator dependency has the Hibernate validator dependency which is the most common implementation of
+        the jakarta validator.
         The validate() method looks for any Constraints defined in the object passed as argument. In our case, it finds
         our custom validator and invokes the isValid() method. The return value of the validate() method is a
         Set<ConstraintViolation<T>> violations. Every time a constraint fails, a ConstraintViolation is created and added
@@ -45,7 +48,7 @@ class DayEventRequestValidatorTest {
         error message and, we can not be sure that iterator.next() will return the constraint we test
      */
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }

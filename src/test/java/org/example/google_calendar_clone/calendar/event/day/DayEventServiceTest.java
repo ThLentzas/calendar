@@ -69,8 +69,8 @@ class DayEventServiceTest {
                 .build();
         DayEvent dayEvent = new DayEvent();
         dayEvent.setId(eventId);
-        dayEvent.setStartDate(LocalDate.parse("2024-10-11"));
-        dayEvent.setEndDate(LocalDate.parse("2024-10-15"));
+        dayEvent.setStartDate(LocalDate.now().plusDays(1));
+        dayEvent.setEndDate(LocalDate.now().plusDays(3));
         dayEvent.setRepetitionFrequency(RepetitionFrequency.NEVER);
         dayEvent.setUser(user);
 
