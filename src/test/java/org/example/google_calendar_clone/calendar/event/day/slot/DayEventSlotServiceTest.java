@@ -3,6 +3,7 @@ package org.example.google_calendar_clone.calendar.event.day.slot;
 import org.example.google_calendar_clone.AbstractRepositoryTest;
 import org.example.google_calendar_clone.calendar.event.day.DayEventRepository;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
@@ -24,6 +25,7 @@ import java.util.Set;
 import net.datafaker.Faker;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 /*
     Typically when we test our services we mock the repository because it is already tested. In this case, creating
@@ -38,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     repetition End Date to plus 100 years. We treat the event then as UNTIL_DATE but now the repetitionEndDate will be
     100 years from now. Tests cover all the cases for repetition duration set to UNTIL_DATE.
  */
-@Sql(scripts = "/scripts/INIT_USERS.sql")
+@Sql(scripts = {"/scripts/INIT_USERS.sql", "/scripts/INIT_EVENTS.sql"})
 class DayEventSlotServiceTest extends AbstractRepositoryTest {
     @Autowired
     private DayEventSlotRepository dayEventSlotRepository;
@@ -484,6 +486,31 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                     .hasGuests(request.getGuestEmails())
                     .hasDayEvent(dayEvent);
         }
+    }
+
+    @Test
+    void shouldFindDayEventSlotsInDateRangeWhereUserIsOrganizerOrInvitedAsGuest() {
+        User user = this.userRepository.getReferenceById(2L);
+
+        List<DayEventSlotDTO> eventSlots = this.underTest.findEventSlotsByUserInDateRange(user,
+                LocalDate.parse("2024-10-10"),
+                LocalDate.parse("2024-10-30")
+        );
+
+        /*
+            According to the sql script, the user has username = "clement.gulgowski" and email = "ericka.ankunding@hotmail.com"
+            In the 1st event, they are the organizer(username) and in the 2nd, they are invited as guest
+
+            We could also assertThat(eventSlots).isSortedAccordingTo(Comparator.comparing(DayEventSlot::getStartDate))
+         */
+        assertThat(eventSlots).hasSize(2)
+                .extracting(
+                        DayEventSlotDTO::getStartDate,
+                        DayEventSlotDTO::getGuestEmails,
+                        DayEventSlotDTO::getOrganizer)
+                .containsExactly(
+                        tuple(LocalDate.parse("2024-10-12"), Set.of(), "clement.gulgowski"),
+                        tuple(LocalDate.parse("2024-10-29"), Set.of("ericka.ankunding@hotmail.com"), "ellyn.roberts"));
     }
 
     private DayEvent createDayEvent(DayEventRequest dayEventRequest) {

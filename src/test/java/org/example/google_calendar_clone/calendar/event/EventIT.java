@@ -19,9 +19,11 @@ import io.restassured.common.mapper.TypeRef;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 
-import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
+import static org.assertj.core.api.Assertions.assertThat;
+import static io.restassured.RestAssured.given;
 
 /*
     It is important to generate the dates dynamically so the test will pass the validation of dates being in the
@@ -29,6 +31,9 @@ import static org.hamcrest.Matchers.containsString;
     serialization and the business logic that the dates will be computed correctly. What we can assert though is that the
     correct number of upcoming event slots for repeating events will be created, and that they will be sorted in ascending
     order
+
+    Time assertions in the tests below, are in the timezone provided by the user. In the sql, scripts are in UTC, but
+    we assert on the local time based on the timezone
  */
 class EventIT extends AbstractIntegrationTest {
     private static final String AUTH_PATH = "/api/v1/auth";
@@ -100,8 +105,7 @@ class EventIT extends AbstractIntegrationTest {
                 .accept(ContentType.JSON)
                 .when()
                 .get(DAY_EVENT_PATH + "/{eventId}", dayEventId)
-                .then()
-                .statusCode(200)
+                .then().statusCode(200)
                 .extract()
                 .response().as(new TypeRef<>() {
                 });
@@ -120,6 +124,56 @@ class EventIT extends AbstractIntegrationTest {
                         && slot.getGuestEmails().equals(Collections.emptySet())
                         && slot.getDayEventId().equals(dayEventId))
                 .isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate));
+    }
+
+    @Test
+    @Sql({"/scripts/INIT_USERS.sql", "/scripts/INIT_EVENTS.sql"})
+    void shouldDeleteDayEvent() {
+        // Get csrf token from response header
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .extract()
+                .response();
+
+        Map<String, String> cookies = response.getCookies();
+
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(1).getFirst())
+                .formParam("password", userCredentials().get(1).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
+        // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
+        cookies = response.getCookies();
+        // Known from the sql script
+        UUID dayEventId = UUID.fromString("4472d36c-2051-40e3-a2cf-00c6497807b5");
+
+        // Delete the event
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .delete(DAY_EVENT_PATH + "/{eventId}", dayEventId)
+                .then()
+                .statusCode(204);
+
+        // GET request should result in 404
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .accept(ContentType.JSON)
+                .when()
+                .get(DAY_EVENT_PATH + "/{eventId}", dayEventId)
+                .then()
+                .statusCode(404);
     }
 
     @Test
@@ -192,7 +246,6 @@ class EventIT extends AbstractIntegrationTest {
                 .get(TIME_EVENT_PATH + "/{eventId}", timeEventId)
                 .then()
                 .statusCode(200)
-                .log().all()
                 .extract()
                 .response().as(new TypeRef<>() {
                 });
@@ -213,5 +266,112 @@ class EventIT extends AbstractIntegrationTest {
                         && slot.getEndTimeZoneId().equals(ZoneId.of("Europe/London"))
                         && slot.getTimeEventId().equals(timeEventId))
                 .isSortedAccordingTo(Comparator.comparing(TimeEventSlotDTO::getStartTime));
+    }
+
+    @Test
+    @Sql({"/scripts/INIT_USERS.sql", "/scripts/INIT_EVENTS.sql"})
+    void shouldDeleteTimeEvent() {
+        // Get csrf token from response header
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .extract()
+                .response();
+
+        Map<String, String> cookies = response.getCookies();
+
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(0).getFirst())
+                .formParam("password", userCredentials().get(0).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
+        // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
+        cookies = response.getCookies();
+        // Known from the sql script
+        UUID timeEventId = UUID.fromString("0c9d6398-a6de-47f0-8328-04a2f3c0511c");
+
+        // Delete the event
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .delete(TIME_EVENT_PATH + "/{eventId}", timeEventId)
+                .then()
+                .statusCode(204);
+
+        // GET request should result in 404
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .accept(ContentType.JSON)
+                .when()
+                .get(TIME_EVENT_PATH + "/{eventId}", timeEventId)
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @Sql({"/scripts/INIT_USERS.sql", "/scripts/INIT_EVENTS.sql"})
+    void shouldFindEventsInRange() {
+        // Get csrf token from response header
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .extract()
+                .response();
+
+        Map<String, String> cookies = response.getCookies();
+
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(1).getFirst())
+                .formParam("password", userCredentials().get(1).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
+        // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
+        cookies = response.getCookies();
+
+        /*
+            There are 3 events that fall in the provided date range. 2 TimeEvents and 1 DayEvent. The user that made
+            the request is the organizer of the DayEvent, and is invited to the other 2.
+         */
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .accept(ContentType.JSON)
+                .queryParam("start", "2024-10-10")
+                .queryParam("end", "2024-10-28")
+                .when()
+                .get("/api/v1/events")
+                .then()
+                .statusCode(200)
+                .body("", hasSize(3))
+                // In the script the time is: '2024-10-11T09:00:00' (UTC) but since DST is active at that time for the
+                // startTimeZoneId we adjust it when we return to the user
+                .body("[0].startTime", equalTo("2024-10-11T10:00:00"))
+                .body("[0].organizer", equalTo("kris.hudson"))
+                // Guest
+                .body("[0].guestEmails[0]", equalTo("ericka.ankunding@hotmail.com"))
+                // Organizer
+                .body("[1].startDate", equalTo("2024-10-12"))
+                .body("[1].organizer", equalTo("clement.gulgowski"))
+                .body("[2].startTime", equalTo("2024-10-25T10:00:00"))
+                .body("[2].organizer", equalTo("kris.hudson"))
+                // Guest
+                .body("[2].guestEmails[0]", equalTo("ericka.ankunding@hotmail.com"));
     }
 }

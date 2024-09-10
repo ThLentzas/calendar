@@ -5,14 +5,11 @@ import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventReques
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.example.google_calendar_clone.utils.RepetitionUtils;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
+import java.time.LocalDate;
 /*
     According to Google Calendar time events can have a duration of more than 1 day.
     September 30, 2024, 3:30pm – October 2, 2024, 4:30pm is a valid time event
@@ -25,53 +22,48 @@ public class TimeEventRequestValidator implements ConstraintValidator<ValidTimeE
             The cases where we check if 1 of the time/timezone is null can only happen when we update an event. When
             we create an event they are both mandatory and @NotNull handles those cases.
          */
-        if(value.getStartTime() != null && value.getStartTimeZoneId() == null) {
+        if (value.getStartTime() != null && value.getStartTimeZoneId() == null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Provide a time zone for your end time")
                     .addConstraintViolation();
             return false;
         }
 
-        if(value.getStartTime() == null && value.getStartTimeZoneId() != null) {
+        if (value.getStartTime() == null && value.getStartTimeZoneId() != null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Provide a start time for your time zone")
                     .addConstraintViolation();
             return false;
         }
 
-        if(value.getStartTime() != null) {
-            LocalDateTime utcStartTime = DateUtils.convertToUTC(value.getStartTime(), value.getStartTimeZoneId());
-            if(utcStartTime.isBefore(ZonedDateTime.now(ZoneId.of("UTC")).toLocalDateTime())) {
-                context.disableDefaultConstraintViolation();
-                context.buildConstraintViolationWithTemplate("Start time must be in the future or present")
-                        .addConstraintViolation();
-                return false;
-            }
+        if (value.getStartTime() != null && DateUtils.futureOrPresent(value.getStartTime(), value.getStartTimeZoneId())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Start time must be in the future or present")
+                    .addConstraintViolation();
+            return false;
         }
 
-        if(value.getEndTime() != null && value.getEndTimeZoneId() == null) {
+        if (value.getEndTime() != null && value.getEndTimeZoneId() == null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Provide a time zone for your start time")
                     .addConstraintViolation();
             return false;
         }
 
-        if(value.getEndTime() == null && value.getEndTimeZoneId() != null) {
+        if (value.getEndTime() == null && value.getEndTimeZoneId() != null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Provide an end time for your time zone")
                     .addConstraintViolation();
             return false;
         }
 
-        if(value.getEndTime() != null) {
-            LocalDateTime utcEndTime = DateUtils.convertToUTC(value.getEndTime(), value.getEndTimeZoneId());
-            if(utcEndTime.isBefore(ZonedDateTime.now(ZoneId.of("UTC")).toLocalDateTime())) {
-                context.disableDefaultConstraintViolation();
-                context.buildConstraintViolationWithTemplate("End time must be in the future or present")
-                        .addConstraintViolation();
-                return false;
-            }
+        if (value.getEndTime() != null && DateUtils.futureOrPresent(value.getEndTime(), value.getEndTimeZoneId())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("End time must be in the future or present")
+                    .addConstraintViolation();
+            return false;
         }
+
         /*
             Starting time is before Ending time
 
@@ -84,16 +76,14 @@ public class TimeEventRequestValidator implements ConstraintValidator<ValidTimeE
                 start time < end time without taking into consideration their time-zones, simply comparing the times.
                 We have to convert both to UTC and make sure that start time < end time
          */
-        if (value.getStartTime() != null && value.getEndTime() != null) {
-            LocalDateTime startTime = DateUtils.convertToUTC(value.getStartTime(), value.getStartTimeZoneId());
-            LocalDateTime endTime = DateUtils.convertToUTC(value.getEndTime(), value.getEndTimeZoneId());
-
-            if (startTime.isAfter(endTime)) {
-                context.disableDefaultConstraintViolation();
-                context.buildConstraintViolationWithTemplate("Start time must be before end time")
-                        .addConstraintViolation();
-                return false;
-            }
+        if (value.getStartTime() != null && value.getEndTime() != null && DateUtils.isAfter(value.getStartTime(),
+                value.getStartTimeZoneId(),
+                value.getEndTime(),
+                value.getEndTimeZoneId())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Start time must be before end time")
+                    .addConstraintViolation();
+            return false;
         }
 
         /*
@@ -117,7 +107,7 @@ public class TimeEventRequestValidator implements ConstraintValidator<ValidTimeE
             We have to extract the Date part of the DateTime before comparing
          */
         if (value.getRepetitionEndDate() != null && value.getEndTime() != null
-                && value.getRepetitionEndDate().isBefore(LocalDate.from(value.getEndTime()))) {
+                && DateUtils.isBefore(value.getRepetitionEndDate(), LocalDate.from(value.getEndTime()))) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Repetition end date must be after end date")
                     .addConstraintViolation();

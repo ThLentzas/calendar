@@ -9,7 +9,7 @@ import lombok.experimental.SuperBuilder;
 import java.time.LocalDate;
 import java.util.UUID;
 
-import org.example.google_calendar_clone.calendar.event.EventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
 
 @Getter
 @Setter

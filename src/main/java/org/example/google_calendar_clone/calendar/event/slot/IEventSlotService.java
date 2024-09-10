@@ -1,8 +1,10 @@
-package org.example.google_calendar_clone.calendar.event;
+package org.example.google_calendar_clone.calendar.event.slot;
 
 import java.util.List;
 import java.util.UUID;
 
+import org.example.google_calendar_clone.calendar.event.AbstractEvent;
+import org.example.google_calendar_clone.calendar.event.AbstractEventRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 /*
@@ -14,6 +16,5 @@ public interface IEventSlotService <T extends AbstractEventRequest, U extends Ab
     @Transactional
     void create(T eventRequest, U event);
 
-    @Transactional
     List<K> findEventSlotsByEventId(UUID eventId);
 }

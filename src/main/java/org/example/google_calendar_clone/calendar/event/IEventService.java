@@ -13,4 +13,7 @@ public interface IEventService <T extends AbstractEventRequest> {
     // The organizer of the event is the current authenticated user
     @Transactional
     UUID create(Jwt jwt, T eventRequest);
+
+    @Transactional
+    void deleteById(Jwt jwt, UUID id);
 }

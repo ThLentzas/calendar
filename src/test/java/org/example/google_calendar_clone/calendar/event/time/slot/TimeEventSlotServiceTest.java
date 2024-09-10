@@ -1,11 +1,13 @@
 package org.example.google_calendar_clone.calendar.event.time.slot;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
+import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.TimeEventRepository;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.entity.User;
@@ -24,11 +26,17 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import net.datafaker.Faker;
 
-// The reason why the repository is not mocked, is explained in the DayEventSlotServiceTest
-@Sql(scripts = "/scripts/INIT_USERS.sql")
+/*
+    The reason why the repository is not mocked, is explained in the DayEventSlotServiceTest
+
+    Time assertions in the tests below, are in the timezone provided by the user. In the sql, scripts are in UTC, but
+    we assert on the local time based on the timezone
+ */
+@Sql(scripts = {"/scripts/INIT_USERS.sql", "/scripts/INIT_EVENTS.sql"})
 class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     @Autowired
     private TimeEventSlotRepository timeEventSlotRepository;
@@ -639,6 +647,32 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                     .hasGuests(request.getGuestEmails())
                     .hasTimeEvent(timeEvent);
         }
+    }
+
+    @Test
+    void shouldFindDayEventSlotsInDateRangeWhereUserIsOrganizerOrInvitedAsGuest() {
+        User user = this.userRepository.getReferenceById(2L);
+
+        List<TimeEventSlotDTO> eventSlots = this.underTest.findEventSlotsByUserInDateRange(user,
+                LocalDateTime.parse("2024-10-20T00:00:00"),
+                LocalDateTime.parse("2024-10-30T00:00:00")
+        );
+
+        /*
+            According to the sql script, the user has username = "clement.gulgowski" and email = "ericka.ankunding@hotmail.com"
+            In the 1st event, they are invited as guest and in the 2nd, they are the organizer
+
+            We could also assertThat(eventSlots).isSortedAccordingTo(Comparator.comparing(DayEventSlot::getStartDate))
+         */
+        assertThat(eventSlots).hasSize(2)
+                .extracting(
+                        TimeEventSlotDTO::getStartTime,
+                        TimeEventSlotDTO::getGuestEmails,
+                        TimeEventSlotDTO::getOrganizer)
+                .containsExactly(
+                        // In the 1st event UTC + 1(Europe/London) and in the 2nd one UTC + 9(Asia/Tokyo)
+                        tuple(LocalDateTime.parse("2024-10-25T10:00:00"), Set.of("ericka.ankunding@hotmail.com"), "kris.hudson"),
+                        tuple(LocalDateTime.parse("2024-10-28T22:00:00"), Set.of(), "clement.gulgowski"));
     }
 
     private TimeEvent createTimeEvent(TimeEventRequest eventRequest) {

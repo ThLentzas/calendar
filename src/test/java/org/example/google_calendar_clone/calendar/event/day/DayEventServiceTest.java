@@ -46,7 +46,7 @@ class DayEventServiceTest {
     }
 
     @Test
-    void shouldThrowAccessDeniedExceptionWhenCurrentUserIsNotHostOfRequestedEvent() {
+    void shouldThrowAccessDeniedExceptionWhenUserIsNotOrganizerOfEventForFindEventSlotsByEventId() {
         UUID eventId = UUID.randomUUID();
         DayEvent dayEvent = createDayEvent(eventId);
         Jwt mockJwt = mock(Jwt.class);
@@ -60,6 +60,35 @@ class DayEventServiceTest {
 
         assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() ->
                         this.underTest.findEventSlotsByEventId(mockJwt, eventId))
+                .withMessage("Access Denied");
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundExceptionWhenEventIsNotFoundForDeleteById() {
+        UUID eventId = UUID.randomUUID();
+
+        when(this.dayEventRepository.findByIdFetchingUser(eventId)).thenReturn(Optional.empty());
+
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() ->
+                        this.underTest.deleteById(mock(Jwt.class), eventId))
+                .withMessage("Day event not found with id: " + eventId);
+    }
+
+    @Test
+    void shouldThrowAccessDeniedExceptionWhenUserIsNotOrganizerOfEventForDeleteById() {
+        UUID eventId = UUID.randomUUID();
+        DayEvent dayEvent = createDayEvent(eventId);
+        Jwt mockJwt = mock(Jwt.class);
+        User user = User.builder()
+                .id(2L)
+                .build();
+
+        when(this.dayEventRepository.findByIdFetchingUser(eventId)).thenReturn(Optional.of(dayEvent));
+        when(mockJwt.getSubject()).thenReturn(String.valueOf(2L));
+        when(this.userRepository.getReferenceById(user.getId())).thenReturn(user);
+
+        assertThatExceptionOfType(AccessDeniedException.class).isThrownBy(() ->
+                        this.underTest.deleteById(mockJwt, eventId))
                 .withMessage("Access Denied");
     }
 

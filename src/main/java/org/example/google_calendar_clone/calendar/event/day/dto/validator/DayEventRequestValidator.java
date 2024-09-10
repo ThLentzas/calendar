@@ -6,6 +6,7 @@ import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFre
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
+import org.example.google_calendar_clone.utils.DateUtils;
 import org.example.google_calendar_clone.utils.RepetitionUtils;
 
 /*
@@ -35,7 +36,7 @@ public class DayEventRequestValidator implements ConstraintValidator<ValidDayEve
          */
         if (value.getStartDate() != null
                 && value.getEndDate() != null
-                && value.getStartDate().isAfter(value.getEndDate())) {
+                && DateUtils.isAfter(value.getStartDate(), value.getEndDate())) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Start date must be before end date")
                     .addConstraintViolation();
@@ -54,7 +55,7 @@ public class DayEventRequestValidator implements ConstraintValidator<ValidDayEve
          */
         if (value.getRepetitionEndDate() != null
                 && value.getEndDate() != null
-                && value.getRepetitionEndDate().isBefore(value.getEndDate())) {
+                && DateUtils.isBefore(value.getRepetitionEndDate(), value.getEndDate())) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Repetition end date must be after end date")
                     .addConstraintViolation();

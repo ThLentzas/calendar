@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS day_events (
     repetition_duration repetition_duration NULL,
     repetition_end_date DATE NULL,
     repetition_count INTEGER NULL,
-    current_repetition INTEGER NULL,
     CONSTRAINT pk_day_events PRIMARY KEY (id),
     CONSTRAINT fk_day_events_users_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );

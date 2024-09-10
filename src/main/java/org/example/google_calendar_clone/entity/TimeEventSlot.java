@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Set;
 
-import org.example.google_calendar_clone.calendar.event.AbstractEventSlot;
+import org.example.google_calendar_clone.calendar.event.slot.AbstractEventSlot;
 
 @Entity
 @Table(name = "time_event_slots")

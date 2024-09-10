@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.UUID;
 
-import org.example.google_calendar_clone.calendar.event.EventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
 
 @Getter
 @Setter

@@ -1,6 +1,6 @@
 package org.example.google_calendar_clone.calendar.event.time.slot;
 
-import org.example.google_calendar_clone.calendar.event.IEventSlotService;
+import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
@@ -8,6 +8,7 @@ import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventS
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTOConverter;
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
+import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.springframework.stereotype.Service;
 
@@ -79,6 +80,15 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
     @Override
     public List<TimeEventSlotDTO> findEventSlotsByEventId(UUID eventId) {
         return this.timeEventSlotRepository.findByEventId(eventId)
+                .stream()
+                .map(converter::convert)
+                .toList();
+    }
+
+    public List<TimeEventSlotDTO> findEventSlotsByUserInDateRange(User user,
+                                                                  LocalDateTime startTime,
+                                                                  LocalDateTime endTime) {
+        return this.timeEventSlotRepository.findByUserInDateRange(user, user.getEmail(), startTime, endTime)
                 .stream()
                 .map(converter::convert)
                 .toList();

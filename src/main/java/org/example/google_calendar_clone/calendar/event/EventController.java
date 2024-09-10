@@ -1,12 +1,23 @@
 package org.example.google_calendar_clone.calendar.event;
 
+import org.example.google_calendar_clone.calendar.event.slot.EventSlotComparator;
+import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
+import org.example.google_calendar_clone.validation.OnCreate;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.example.google_calendar_clone.calendar.event.day.DayEventService;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
@@ -15,9 +26,11 @@ import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventReques
 import org.example.google_calendar_clone.calendar.event.time.TimeEventService;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 
-import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.net.URI;
+import java.time.LocalDate;
 
 import lombok.RequiredArgsConstructor;
 
@@ -122,7 +135,7 @@ class EventController {
     private final DayEventService dayEventService;
     private final TimeEventService timeEventService;
 
-    // toDo: indexing
+    // toDo: indexing,?invite=false,
     @PostMapping("/day-events")
     ResponseEntity<Void> createDayEvent(@AuthenticationPrincipal Jwt jwt,
                                         @Validated(OnCreate.class) @RequestBody DayEventRequest dayEventRequest) {
@@ -146,6 +159,15 @@ class EventController {
         return new ResponseEntity<>(dayEventSlots, HttpStatus.OK);
     }
 
+    // DayEventSlots for the given DayEvent are deleted by ON DELETE CASCADE
+    @DeleteMapping("/day-events/{eventId}")
+    ResponseEntity<Void> deleteDayEventById(@AuthenticationPrincipal Jwt jwt,
+                                            @PathVariable("eventId") UUID eventId) {
+        this.dayEventService.deleteById(jwt, eventId);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
     @PostMapping("/time-events")
     ResponseEntity<Void> createTimeEvent(@AuthenticationPrincipal Jwt jwt,
                                          @Validated(OnCreate.class) @RequestBody TimeEventRequest timeEventRequest) {
@@ -159,9 +181,55 @@ class EventController {
 
     @GetMapping("/time-events/{eventId}")
     ResponseEntity<List<TimeEventSlotDTO>> findTimeEventSlotsByEventId(@AuthenticationPrincipal Jwt jwt,
-                                                                     @PathVariable("eventId") UUID eventId) {
+                                                                       @PathVariable("eventId") UUID eventId) {
         List<TimeEventSlotDTO> timeEventSlots = this.timeEventService.findEventSlotsByEventId(jwt, eventId);
 
         return new ResponseEntity<>(timeEventSlots, HttpStatus.OK);
+    }
+
+    // TimeEventSlots for the given TimeEvent are deleted by ON DELETE CASCADE
+    @DeleteMapping("/time-events/{eventId}")
+    ResponseEntity<Void> deleteTimeEventById(@AuthenticationPrincipal Jwt jwt,
+                                             @PathVariable("eventId") UUID eventId) {
+        this.timeEventService.deleteById(jwt, eventId);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    /*
+        We return all the events(DayEvents and TimeEvents) that are within a range of dates. The user is either the
+        organizer of the event or an invited guest.
+
+        If startDate > endDate we return an empty list
+     */
+    @GetMapping
+    ResponseEntity<List<EventSlotDTO>> findEventsByUserInDateRange(@RequestParam(value = "start")
+                                                                   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                                                                   LocalDate startDate,
+                                                                   @RequestParam(value = "end")
+                                                                   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                                                                   LocalDate endDate,
+                                                                   @AuthenticationPrincipal Jwt jwt) {
+        List<DayEventSlotDTO> dayEventSlots = this.dayEventService.findEventSlotsByUserInDateRange(
+                jwt,
+                startDate,
+                endDate
+        );
+        List<EventSlotDTO> eventSlots = new ArrayList<>(dayEventSlots);
+        eventSlots.addAll(this.timeEventService.findEventSlotsByUserInDateRange(
+                jwt,
+                // converts a LocalDate into a LocalDateTime adding time of the midnight as 00:00:00
+                startDate.atStartOfDay(),
+                endDate.atStartOfDay())
+        );
+        /*
+            Both the DayEventSlots and TimeEventSlots are sorted but when we add them in 1 list, we need to make sure
+            that they are also sorted based on their starting date. We need a comparator so that we can compare the
+            starting date of DayEventSlot with the starting dateTime of the TimeEventSlot. If we have 2 DayEventSlots
+            we compare their starting date, if we have 2 TimeEventSlots we compare their starting time.
+         */
+        eventSlots.sort(new EventSlotComparator());
+
+        return new ResponseEntity<>(eventSlots, HttpStatus.OK);
     }
 }

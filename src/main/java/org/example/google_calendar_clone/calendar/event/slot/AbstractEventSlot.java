@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event;
+package org.example.google_calendar_clone.calendar.event.slot;
 
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;

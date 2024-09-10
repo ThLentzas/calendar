@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event;
+package org.example.google_calendar_clone.calendar.event.slot;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -14,7 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @SuperBuilder
-public class EventSlotDTO {
+public abstract class EventSlotDTO {
     protected UUID id;
     protected String name;
     protected String location;

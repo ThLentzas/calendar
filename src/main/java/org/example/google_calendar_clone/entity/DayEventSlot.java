@@ -16,7 +16,7 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.Set;
 
-import org.example.google_calendar_clone.calendar.event.AbstractEventSlot;
+import org.example.google_calendar_clone.calendar.event.slot.AbstractEventSlot;
 
 @Entity
 @Table(name = "day_event_slots")

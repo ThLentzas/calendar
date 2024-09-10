@@ -1,6 +1,6 @@
 package org.example.google_calendar_clone.calendar.event.time.dto.validator;
 
-import org.example.google_calendar_clone.calendar.event.OnCreate;
+import org.example.google_calendar_clone.validation.OnCreate;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;

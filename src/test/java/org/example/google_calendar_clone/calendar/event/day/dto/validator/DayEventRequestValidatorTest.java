@@ -15,7 +15,7 @@ import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-import org.example.google_calendar_clone.calendar.event.OnCreate;
+import org.example.google_calendar_clone.validation.OnCreate;
 
 import java.time.LocalDate;
 import java.util.Set;

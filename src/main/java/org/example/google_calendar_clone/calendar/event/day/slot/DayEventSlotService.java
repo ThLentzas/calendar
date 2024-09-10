@@ -1,6 +1,6 @@
 package org.example.google_calendar_clone.calendar.event.day.slot;
 
-import org.example.google_calendar_clone.calendar.event.IEventSlotService;
+import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTOConverter;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
@@ -8,16 +8,14 @@ import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepeti
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.entity.DayEventSlot;
+import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
@@ -103,6 +101,13 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
     @Override
     public List<DayEventSlotDTO> findEventSlotsByEventId(UUID eventId) {
         return this.dayEventSlotRepository.findByEventId(eventId)
+                .stream()
+                .map(converter::convert)
+                .toList();
+    }
+
+    public List<DayEventSlotDTO> findEventSlotsByUserInDateRange(User user, LocalDate startDate, LocalDate endDate) {
+        return this.dayEventSlotRepository.findByUserInDateRange(user, user.getEmail(), startDate, endDate)
                 .stream()
                 .map(converter::convert)
                 .toList();

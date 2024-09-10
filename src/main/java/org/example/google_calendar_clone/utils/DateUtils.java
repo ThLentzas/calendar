@@ -21,6 +21,29 @@ public final class DateUtils {
         throw new UnsupportedOperationException("DateUtils is a utility class and cannot be instantiated");
     }
 
+    public static boolean futureOrPresent(LocalDateTime dateTime, ZoneId zonedId)  {
+        LocalDateTime utcStartTime = convertToUTC(dateTime, zonedId);
+        return utcStartTime.isBefore(ZonedDateTime.now(ZoneId.of("UTC")).toLocalDateTime());
+    }
+
+    public static boolean isAfter(LocalDateTime starTime,
+                                  ZoneId startTimeZoneId,
+                                  LocalDateTime endTime,
+                                  ZoneId endTimeZoneId) {
+        LocalDateTime utcStartTime = convertToUTC(starTime, startTimeZoneId);
+        LocalDateTime utcEndTime = convertToUTC(endTime, endTimeZoneId);
+
+        return utcStartTime.isAfter(utcEndTime);
+    }
+
+    public static boolean isBefore(LocalDate startDate, LocalDate endDate) {
+        return startDate.isBefore(endDate);
+    }
+
+    public static boolean isAfter(LocalDate startDate, LocalDate endDate) {
+        return startDate.isAfter(endDate);
+    }
+
     public static int findDayOfMonthOccurrence(LocalDate date) {
         // For the given year/month and index returns the day of the month
         LocalDate firstDayOfMonth = LocalDate.of(date.getYear(), date.getMonth(), 1);
