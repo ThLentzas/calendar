@@ -3,7 +3,7 @@ package org.example.google_calendar_clone.user.contact.request;
 import org.example.google_calendar_clone.entity.ContactRequest;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.entity.key.ContactRequestId;
-import org.example.google_calendar_clone.exception.ContactRequestException;
+import org.example.google_calendar_clone.exception.ConflictException;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.example.google_calendar_clone.user.contact.ContactService;
 import org.mockito.InjectMocks;
@@ -47,7 +47,7 @@ class ContactRequestServiceTest {
         when(this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId()))
                 .thenReturn(List.of(contactRequest));
 
-        assertThatExceptionOfType(ContactRequestException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender,
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender,
                 receiver)).withMessage("Contact request already pending");
     }
 
@@ -62,7 +62,7 @@ class ContactRequestServiceTest {
         when(this.contactRequestRepository.findContactRequestBetweenUsers(receiver.getId(), sender.getId()))
                 .thenReturn(List.of(contactRequest));
 
-        assertThatExceptionOfType(ContactRequestException.class).isThrownBy(() -> this.underTest.sendContactRequest(receiver,
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(receiver,
                 sender)).withMessage("Contact request already pending");
     }
 
@@ -77,7 +77,7 @@ class ContactRequestServiceTest {
         when(this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId()))
                 .thenReturn(List.of(contactRequest));
 
-        assertThatExceptionOfType(ContactRequestException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender,
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender,
                 receiver)).withMessage("Contact request already accepted");
     }
 
@@ -92,7 +92,7 @@ class ContactRequestServiceTest {
         when(this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId()))
                 .thenReturn(List.of(contactRequest));
 
-        assertThatExceptionOfType(ContactRequestException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender,
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender,
                 receiver)).withMessage("Contact request already rejected");
     }
 

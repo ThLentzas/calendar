@@ -8,6 +8,7 @@ import org.example.google_calendar_clone.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 interface TimeEventSlotRepository extends JpaRepository<TimeEventSlot, UUID> {
@@ -43,4 +44,12 @@ interface TimeEventSlotRepository extends JpaRepository<TimeEventSlot, UUID> {
                                               @Param("email") String email,
                                               @Param("startTime") LocalDateTime startTime,
                                               @Param("endTime") LocalDateTime endTime);
+
+    @Query("""
+                SELECT tes
+                FROM TimeEventSlot tes
+                LEFT JOIN FETCH tes.guestEmails
+                WHERE tes.id = :id
+            """)
+    Optional<TimeEventSlot> findBySlotId(@Param("id") UUID id);
 }

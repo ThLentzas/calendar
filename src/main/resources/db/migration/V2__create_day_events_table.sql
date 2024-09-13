@@ -22,13 +22,14 @@ CREATE TABLE IF NOT EXISTS day_events (
     user_id INTEGER NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    -- It can not be null because if it was during parsing it is set to NEVER
+    -- It can not be null because if it was during parsing, it is set to NEVER
     repetition_frequency repetition_frequency NOT NULL,
     repetition_step INTEGER NULL,
+    weekly_recurrence_days VARCHAR(56) NULL,
     monthly_repetition_type monthly_repetition_type NULL,
     repetition_duration repetition_duration NULL,
     repetition_end_date DATE NULL,
-    repetition_count INTEGER NULL,
+    repetition_occurrences INTEGER NULL,
     CONSTRAINT pk_day_events PRIMARY KEY (id),
     CONSTRAINT fk_day_events_users_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );

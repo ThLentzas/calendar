@@ -1,5 +1,6 @@
 package org.example.google_calendar_clone.calendar.event;
 
+import jakarta.persistence.Convert;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import org.example.google_calendar_clone.calendar.event.dto.WeeklyRecurrenceDaysConverter;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
@@ -22,7 +24,9 @@ import org.example.google_calendar_clone.entity.User;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.UUID;
 
 /*
@@ -49,6 +53,9 @@ public abstract class AbstractEvent {
     protected RepetitionFrequency repetitionFrequency;
     // For repeated events: what is the repetition step? (every two days/weeks)
     protected Integer repetitionStep;
+    // For weekly repeated events: which days of the week does it fall on?
+    @Convert(converter = WeeklyRecurrenceDaysConverter.class)
+    protected EnumSet<DayOfWeek> weeklyRecurrenceDays;
     // For monthly repeated events: which day of the month does it fall on? (same_day, same_weekday)
     @JdbcType(PostgreSQLEnumJdbcType.class)
     protected MonthlyRepetitionType monthlyRepetitionType;
@@ -58,8 +65,6 @@ public abstract class AbstractEvent {
     // For events repeated until a certain date: what is the date?
     protected LocalDate repetitionEndDate;
     // For events repeated for a certain number of reps: how many reps?
-    protected Integer repetitionCount;
-    // For events repeated for a certain number of reps: what is the current count?
-    // protected Integer currentRepetition; !!!! We don't care about it, we are going to compute all repetitionCount events
+    protected Integer repetitionOccurrences;
 }
 

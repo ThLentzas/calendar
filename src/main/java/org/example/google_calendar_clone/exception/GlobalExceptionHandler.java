@@ -78,9 +78,9 @@ class GlobalExceptionHandler {
         return new ResponseEntity<>(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(ContactRequestException.class)
+    @ExceptionHandler(ConflictException.class)
     private ResponseEntity<ErrorMessage> handleContactRequestException(HttpServletRequest servletRequest,
-                                                                              ContactRequestException cre) {
+                                                                              ConflictException cre) {
         ErrorMessage errorMessage = new ErrorMessage(Instant.now(),
                 HttpStatus.CONFLICT.value(),
                 ErrorMessage.ErrorType.CONFLICT,

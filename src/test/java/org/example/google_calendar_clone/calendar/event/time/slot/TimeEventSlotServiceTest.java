@@ -1,7 +1,6 @@
 package org.example.google_calendar_clone.calendar.event.time.slot;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
-import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
@@ -18,10 +17,12 @@ import org.springframework.test.context.jdbc.Sql;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
@@ -51,7 +52,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @BeforeEach
     void setup() {
-        this.underTest = new TimeEventSlotService(timeEventSlotRepository);
+        this.underTest = new TimeEventSlotService(timeEventSlotRepository, userRepository);
     }
 
     /*
@@ -189,7 +190,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         but in different days according to the repetition on the request
      */
     @Test
-    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNDaysUntilACertainDate() {
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNDaysUntilDate() {
         TimeEventRequest request = TimeEventRequest.builder()
                 .name("Event name")
                 .startTime(LocalDateTime.parse("2024-10-11T10:00"))
@@ -253,7 +254,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionFrequency(RepetitionFrequency.DAILY)
                 .repetitionStep(2)
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionCount(4)
+                .repetitionOccurrences(4)
                 .build();
         TimeEvent timeEvent = createTimeEvent(request);
 
@@ -286,12 +287,19 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         }
     }
 
+    /*
+        It is very important, the weeklyRecurrenceDays set to contain the day of the startTime. It is part of the
+        validation. "2024-08-20" is a Tuesday
+
+        "2024-08-20" is a Tuesday and we want the event to be repeated every 2 weeks until "2024-09-05" on Monday and
+        Tuesday. After 2 weeks, the next Monday is at "2024-09-02" and Tuesday is at "2024-09-03"
+     */
     @Test
-    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksUntilACertainDate() {
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksUntilDate() {
         TimeEventRequest request = TimeEventRequest.builder()
                 .name("Event name")
-                .startTime(LocalDateTime.parse("2024-08-12T10:00"))
-                .endTime(LocalDateTime.parse("2024-08-12T12:00"))
+                .startTime(LocalDateTime.parse("2024-08-20T10:00"))
+                .endTime(LocalDateTime.parse("2024-08-20T12:00"))
                 .startTimeZoneId(ZoneId.of("Asia/Tokyo")) // UTC + 9. No DST in Japan +9 all year round
                 .endTimeZoneId(ZoneId.of("Asia/Tokyo")) // UTC + 9. No DST +9 all year round
                 .location("Location")
@@ -299,14 +307,15 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .guestEmails(Set.of(FAKER.internet().emailAddress()))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .repetitionStep(2)
+                .weeklyRecurrenceDays(EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.TUESDAY))
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
-                .repetitionEndDate(LocalDate.parse("2024-09-10"))
+                .repetitionEndDate(LocalDate.parse("2024-09-05"))
                 .build();
         TimeEvent timeEvent = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
-                "2024-08-12T01:00",
-                "2024-08-26T01:00",
-                "2024-09-09T01:00"
+                "2024-08-20T01:00",
+                "2024-09-02T01:00",
+                "2024-09-03T01:00"
         ));
 
         this.underTest.create(request, timeEvent);
@@ -328,13 +337,19 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                     .hasTimeEvent(timeEvent);
         }
     }
+    /*
+        It is very important, the weeklyRecurrenceDays set to contain the day of the startTime. It is part of the
+        validation. "2024-09-06" is a Friday
 
+        "2024-09-06" is a Friday and we want the event to be repeated every 1 week, 4 times in total, on Friday and
+        Saturday.
+     */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions() {
         TimeEventRequest request = TimeEventRequest.builder()
                 .name("Event name")
-                .startTime(LocalDateTime.parse("2024-09-04T10:00"))
-                .endTime(LocalDateTime.parse("2024-09-04T12:00"))
+                .startTime(LocalDateTime.parse("2024-09-06T10:00"))
+                .endTime(LocalDateTime.parse("2024-09-06T12:00"))
                 .startTimeZoneId(ZoneId.of("Europe/Madrid")) // UTC + 2
                 .endTimeZoneId(ZoneId.of("Europe/Madrid")) // UTC + 2
                 .location("Location")
@@ -342,14 +357,16 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .guestEmails(Set.of(FAKER.internet().emailAddress()))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .repetitionStep(1)
+                .weeklyRecurrenceDays(EnumSet.of(DayOfWeek.FRIDAY, DayOfWeek.SATURDAY))
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionCount(2)
+                .repetitionOccurrences(4)
                 .build();
         TimeEvent timeEvent = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
-                "2024-09-04T08:00",
-                "2024-09-11T08:00",
-                "2024-09-18T08:00"
+                "2024-09-06T08:00",
+                "2024-09-07T08:00",
+                "2024-09-13T08:00",
+                "2024-09-14T08:00"
         ));
 
         this.underTest.create(request, timeEvent);
@@ -357,8 +374,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
         List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
 
-        // Size is 3, the original event + 2 times that it is to be repeated
-        assertThat(eventSlots).hasSize(3);
+        assertThat(eventSlots).hasSize(4);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
@@ -374,7 +390,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
     @Test
-    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayUntilACertainDate() {
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayUntilDate() {
         TimeEventRequest request = TimeEventRequest.builder()
                 .name("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T10:00"))
@@ -439,7 +455,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionStep(2)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionCount(3)
+                .repetitionOccurrences(3)
                 .build();
         TimeEvent timeEvent = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
@@ -471,7 +487,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
     @Test
-    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayUntilACertainDate() {
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayUntilDate() {
         TimeEventRequest request = TimeEventRequest.builder()
                 .name("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
@@ -529,7 +545,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionStep(2)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionCount(2)
+                .repetitionOccurrences(2)
                 .build();
         TimeEvent timeEvent = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
@@ -560,7 +576,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
     @Test
-    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNYearsUntilACertainDate() {
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNYearsUntilDate() {
         TimeEventRequest request = TimeEventRequest.builder()
                 .name("Event name")
                 .startTime(LocalDateTime.parse("2024-05-18T10:00"))
@@ -618,7 +634,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionFrequency(RepetitionFrequency.ANNUALLY)
                 .repetitionStep(1)
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionCount(4)
+                .repetitionOccurrences(4)
                 .build();
         TimeEvent timeEvent = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
@@ -685,10 +701,11 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         timeEvent.setEndTimeZoneId(eventRequest.getEndTimeZoneId());
         timeEvent.setRepetitionFrequency(eventRequest.getRepetitionFrequency());
         timeEvent.setRepetitionStep(eventRequest.getRepetitionStep());
+        timeEvent.setWeeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays());
         timeEvent.setMonthlyRepetitionType(eventRequest.getMonthlyRepetitionType());
         timeEvent.setRepetitionDuration(eventRequest.getRepetitionDuration());
         timeEvent.setRepetitionEndDate(eventRequest.getRepetitionEndDate());
-        timeEvent.setRepetitionCount(eventRequest.getRepetitionCount());
+        timeEvent.setRepetitionOccurrences(eventRequest.getRepetitionOccurrences());
         timeEvent.setUser(user);
 
         this.timeEventRepository.save(timeEvent);

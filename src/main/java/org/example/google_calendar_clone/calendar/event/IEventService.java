@@ -2,6 +2,7 @@ package org.example.google_calendar_clone.calendar.event;
 
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
+import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
 
 import java.util.UUID;
 

@@ -43,10 +43,11 @@ public class TimeEventService implements IEventService<TimeEventRequest> {
                 .endTimeZoneId(eventRequest.getEndTimeZoneId())
                 .repetitionFrequency(eventRequest.getRepetitionFrequency())
                 .repetitionStep(eventRequest.getRepetitionStep())
+                .weeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays())
                 .monthlyRepetitionType(eventRequest.getMonthlyRepetitionType())
                 .repetitionDuration(eventRequest.getRepetitionDuration())
                 .repetitionEndDate(eventRequest.getRepetitionEndDate())
-                .repetitionCount(eventRequest.getRepetitionCount())
+                .repetitionOccurrences(eventRequest.getRepetitionOccurrences())
                 .user(user)
                 .build();
         /*

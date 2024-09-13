@@ -29,10 +29,10 @@ class TimeEventRequestJsonTest {
                      "endTime": "2024-10-15T15:00",
                      "startTimeZoneId": "Europe/London",
                      "endTimeZoneId": "Europe/London",
-                     "repetitionFrequency": "WEEKLY",
+                     "repetitionFrequency": "DAILY",
                      "repetitionStep": 2,
                      "repetitionDuration": "N_REPETITIONS",
-                     "repetitionCount": 5
+                     "repetitionOccurrences": 5
                 }
                 """;
 
@@ -44,10 +44,10 @@ class TimeEventRequestJsonTest {
                 .endTime(LocalDateTime.parse("2024-10-15T15:00"))
                 .startTimeZoneId(ZoneId.of("Europe/London"))
                 .endTimeZoneId(ZoneId.of("Europe/London"))
-                .repetitionFrequency(RepetitionFrequency.WEEKLY)
+                .repetitionFrequency(RepetitionFrequency.DAILY)
                 .repetitionStep(2)
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionCount(5)
+                .repetitionOccurrences(5)
                 .build();
 
         TimeEventRequest actual = this.jacksonTester.parseObject(json);

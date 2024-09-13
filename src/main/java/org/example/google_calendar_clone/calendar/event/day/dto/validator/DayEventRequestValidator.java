@@ -47,6 +47,19 @@ public class DayEventRequestValidator implements ConstraintValidator<ValidDayEve
             return false;
         }
 
+        // If the date is 2024-09-10 (a Tuesday), the weeklyRecurrenceDays set must contain TUESDAY
+        if (value.getStartDate() != null
+                && value.getRepetitionFrequency().equals(RepetitionFrequency.WEEKLY)
+                && !value.getWeeklyRecurrenceDays().contains(value.getStartDate().getDayOfWeek())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate(
+                            "The start date " + value.getStartDate() + " is a " + value.getStartDate().getDayOfWeek() +
+                                    ", but this day is not included in the weekly recurrence days: " +
+                                    value.getWeeklyRecurrenceDays())
+                    .addConstraintViolation();
+            return false;
+        }
+
         /*
             RepetitionCount can only be null at this point. Repetition end date is before the ending date. When we
             create an event endDate will never be null since the DayEventRequest has a @NotNull. When we update an event

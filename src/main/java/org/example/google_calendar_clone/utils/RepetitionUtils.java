@@ -1,6 +1,6 @@
 package org.example.google_calendar_clone.utils;
 
-import org.example.google_calendar_clone.calendar.event.AbstractEventRequest;
+import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 
@@ -23,8 +23,26 @@ public final class RepetitionUtils {
             eventRequest.setMonthlyRepetitionType(null);
             eventRequest.setRepetitionDuration(null);
             eventRequest.setRepetitionEndDate(null);
-            eventRequest.setRepetitionCount(null);
+            eventRequest.setRepetitionOccurrences(null);
             return true;
+        }
+
+        if (eventRequest.getRepetitionFrequency().equals(RepetitionFrequency.WEEKLY)
+                && (eventRequest.getWeeklyRecurrenceDays() == null || eventRequest.getWeeklyRecurrenceDays().isEmpty())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Provide at least one day of the week for weekly repeating events")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if (!eventRequest.getRepetitionFrequency().equals(RepetitionFrequency.WEEKLY)
+                && eventRequest.getWeeklyRecurrenceDays() != null
+                && !eventRequest.getWeeklyRecurrenceDays().isEmpty()) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Weekly recurrence days are only valid for weekly repeating " +
+                            "events")
+                    .addConstraintViolation();
+            return false;
         }
 
         // https://stackoverflow.com/questions/19825563/custom-validator-message-throwing-exception-in-implementation-of-constraintvali/19833921#19833921
@@ -32,7 +50,7 @@ public final class RepetitionUtils {
                 && eventRequest.getMonthlyRepetitionType() == null) {
             // Disable the default violation message from the annotation
             context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Please provide a monthly repetition type for monthly " +
+            context.buildConstraintViolationWithTemplate("Provide a monthly repetition type for monthly " +
                             "repeating events")
                     .addConstraintViolation();
             return false;
@@ -51,7 +69,7 @@ public final class RepetitionUtils {
         // At this point getMonthlyType() will always be null
         if (eventRequest.getRepetitionDuration() == null) {
             context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Please specify an end date or a number of repetitions for" +
+            context.buildConstraintViolationWithTemplate("Specify an end date or a number of repetitions for" +
                             " repeating events")
                     .addConstraintViolation();
             return false;
@@ -63,7 +81,7 @@ public final class RepetitionUtils {
          */
         if (eventRequest.getRepetitionDuration().equals(RepetitionDuration.FOREVER)) {
             eventRequest.setRepetitionEndDate(null);
-            eventRequest.setRepetitionCount(null);
+            eventRequest.setRepetitionOccurrences(null);
             return true;
         }
 
@@ -79,7 +97,7 @@ public final class RepetitionUtils {
 
         // Duration is N_REPETITIONS and repetitionCount is null
         if (eventRequest.getRepetitionDuration().equals(RepetitionDuration.N_REPETITIONS)
-                && (eventRequest.getRepetitionCount() == null || eventRequest.getRepetitionCount() == 0)) {
+                && (eventRequest.getRepetitionOccurrences() == null || eventRequest.getRepetitionOccurrences() == 0)) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("The number of repetitions is required when repetition " +
                             "duration is set to a certain number of repetitions")
@@ -88,7 +106,7 @@ public final class RepetitionUtils {
         }
 
         // Both end date and repetition count were provided
-        if (eventRequest.getRepetitionEndDate() != null && eventRequest.getRepetitionCount() != null) {
+        if (eventRequest.getRepetitionEndDate() != null && eventRequest.getRepetitionOccurrences() != null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Specify either a repetition end date or a number of " +
                             "repetitions. Not both")

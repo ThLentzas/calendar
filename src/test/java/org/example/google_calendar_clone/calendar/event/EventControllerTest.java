@@ -804,7 +804,7 @@ class EventControllerTest {
                 .repetitionStep(3)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionCount(3)
+                .repetitionOccurrences(3)
                 .build();
     }
 
@@ -836,7 +836,7 @@ class EventControllerTest {
                 .repetitionStep(3)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionCount(3)
+                .repetitionOccurrences(3)
                 .build();
     }
 

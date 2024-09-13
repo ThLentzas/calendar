@@ -1,5 +1,6 @@
 package org.example.google_calendar_clone.calendar.event.time.slot;
 
+import org.example.google_calendar_clone.calendar.event.dto.InviteGuestRequest;
 import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
@@ -9,9 +10,17 @@ import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventS
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.entity.User;
+import org.example.google_calendar_clone.exception.ConflictException;
+import org.example.google_calendar_clone.exception.ResourceNotFoundException;
+import org.example.google_calendar_clone.exception.ServerErrorException;
+import org.example.google_calendar_clone.user.UserRepository;
 import org.example.google_calendar_clone.utils.DateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -29,7 +38,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TimeEventSlotService implements IEventSlotService<TimeEventRequest, TimeEvent, TimeEventSlotDTO> {
     private final TimeEventSlotRepository timeEventSlotRepository;
+    private final UserRepository userRepository;
     private static final TimeEventSlotDTOConverter converter = new TimeEventSlotDTOConverter();
+    private static final Logger logger = LoggerFactory.getLogger(TimeEventSlotService.class);
 
     /*
         For every time event slot, we convert the start/end time to UTC according to their respective timezones. All
@@ -51,12 +62,12 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
             // Since the event is not repeating, we only create 1 TimeEventSlot
             case NEVER -> createTimeEventSlot(eventRequest, event, event.getStartTime());
             case DAILY -> {
-                createUntilDateEventSlots(eventRequest, event, ChronoUnit.DAYS);
-                createNRepetitionsEventSlots(eventRequest, event, ChronoUnit.DAYS);
+                createUntilDateDailyEventSlots(eventRequest, event);
+                createNRepetitionsDailyEventSlots(eventRequest, event);
             }
             case WEEKLY -> {
-                createUntilDateEventSlots(eventRequest, event, ChronoUnit.WEEKS);
-                createNRepetitionsEventSlots(eventRequest, event, ChronoUnit.WEEKS);
+                createUntilDateWeeklyEventSlots(eventRequest, event);
+                createNRepetitionsWeeklyEventSlots(eventRequest, event);
             }
             case MONTHLY -> {
                 if (event.getMonthlyRepetitionType().equals(MonthlyRepetitionType.SAME_WEEKDAY)) {
@@ -75,6 +86,27 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
                 createNRepetitionsSameDayEventSlots(eventRequest, event, ChronoUnit.YEARS);
             }
         }
+    }
+
+    @Override
+    public void inviteGuests(Jwt jwt, UUID slotId, InviteGuestRequest inviteGuestRequest) {
+        TimeEventSlot timeEventSlot = this.timeEventSlotRepository.findBySlotId(slotId).orElseThrow(() ->
+                new ResourceNotFoundException("Time event slot not found with id: " + slotId));
+        User user = this.userRepository.findById(Long.valueOf(jwt.getSubject())).orElseThrow(() -> {
+            logger.info("Authenticated user with id: {} was not found in the database", jwt.getSubject());
+            return new ServerErrorException("Internal Server Error");
+        });
+
+
+        if (inviteGuestRequest.guestEmails().contains(user.getEmail())) {
+            throw new ConflictException("Organizer of the event can't be added as guest");
+        }
+
+        // We filter out emails that don't contain @ and exclude emails that are already invited
+        Set<String> guestEmails = inviteGuestRequest.guestEmails().stream()
+                .filter(email -> email.contains("@"))
+                .filter(email -> timeEventSlot.getGuestEmails().contains(email))
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -100,7 +132,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
 
         date = date.plusDays(), date = date.plusWeeks() etc
      */
-    private void createUntilDateEventSlots(TimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
+    private void createUntilDateDailyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -109,24 +141,111 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         LocalDateTime dateTime = event.getStartTime();
         while (!dateTime.toLocalDate().isAfter(event.getRepetitionEndDate())) {
             createTimeEventSlot(eventRequest, event, dateTime);
-            dateTime = dateTime.plus(event.getRepetitionStep(), unit);
+            dateTime = dateTime.plusDays(event.getRepetitionStep());
         }
     }
 
-    private void createNRepetitionsEventSlots(TimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
+    private void createNRepetitionsDailyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
 
         LocalDateTime startTime = event.getStartTime();
-        for (int i = 0; i <= event.getRepetitionCount(); i++) {
+        for (int i = 0; i <= event.getRepetitionOccurrences(); i++) {
             createTimeEventSlot(eventRequest, event, startTime);
            /*
                 The starDate is updated to the previous value plus the number of the repetition step which
                 can be 1, 2 etc, meaning the event is to be repeated every 1,2, days until we reach
                 N_REPETITIONS
             */
-            startTime = startTime.plus(event.getRepetitionStep(), unit);
+            startTime = startTime.plusDays(event.getRepetitionStep());
+        }
+    }
+
+    /*
+        Weekly events can be repeated on certain days of week. ["MONDAY", "THURSDAY", "SATURDAY"]. In the request,
+        one of those 3 days will correspond to the date provided by the user. We have 2 cases to consider:
+            Case 1: The next day to be repeated is after the day that corresponds to the start date. For example,
+            if 2024-09-12 is a Thursday and we want the event to be repeated on Monday, Monday is before Thursday so,
+            we need to adjust the date. We need to find the difference between the day of the start date and the day
+            to be repeated in our case: Thursday - Monday (in ordinal enum values) will give us a positive difference
+            which means the day of the start date is after the day to be repeated, so we need to subtract days from the
+            startDate (startDate = date.minus(difference)), Thursday - Monday = 3 in ordinal,
+            startDate = date.minus(3) would result in 2024-09-09 which is a Monday, but this is in the past relative
+            to our event. In this case, we need to find the next Monday, this is why the check is there
+            !startDate.isBefore(dayEventRequest.getStartDate()). We are interested in future occurrences relative to
+            our eventRequest.getStatDate()
+
+            Case 2: Opposite of 1. We need to add the difference but since the number will be negative will add its
+            absolute value
+
+            @Test
+            void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksUntilACertainDate(), TimeEventSlotServiceTest
+     */
+    private void createUntilDateWeeklyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+        if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
+                && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
+            return;
+        }
+
+        LocalDate startDate;
+        LocalDateTime startTime;
+        LocalDateTime dateTime = event.getStartTime();
+        while (!dateTime.toLocalDate().isAfter(event.getRepetitionEndDate())) {
+            for (DayOfWeek dayOfWeek : event.getWeeklyRecurrenceDays()) {
+                int differenceInDays = event.getStartTime().getDayOfWeek().getValue() - dayOfWeek.getValue();
+                if (differenceInDays > 0) {
+                    startDate = LocalDate.from(dateTime.minusDays(differenceInDays));
+                } else {
+                    // Math.abs() would also, we are using the minus operator, which negates the integer(changes the sing)
+                    startDate = LocalDate.from(dateTime).plusDays(-differenceInDays);
+                }
+
+                // The start date is within the repetition end date
+                if (!startDate.isBefore(event.getStartTime().toLocalDate()) && !startDate.isAfter(event.getRepetitionEndDate())) {
+                    startTime = startDate.atTime(event.getStartTime().toLocalTime());
+                    createTimeEventSlot(eventRequest, event, startTime);
+                }
+            }
+            dateTime = dateTime.plusWeeks(event.getRepetitionStep());
+        }
+    }
+
+    /*
+        Similar logic with createUntilDateWeeklyEventSlots()
+
+            @Test
+            void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions(), TimeEventSlotServiceTest
+     */
+    private void createNRepetitionsWeeklyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+        if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
+            return;
+        }
+
+        int count = 0;
+        LocalDate startDate;
+        LocalDateTime startTime;
+        LocalDateTime dateTime = event.getStartTime();
+        while (count < event.getRepetitionOccurrences()) {
+            for (DayOfWeek dayOfWeek : event.getWeeklyRecurrenceDays()) {
+                int differenceInDays = event.getStartTime().getDayOfWeek().getValue() - dayOfWeek.getValue();
+                if (differenceInDays > 0) {
+                    startDate = LocalDate.from(dateTime.minusDays(differenceInDays));
+                } else {
+                    // Math.abs() would also, we are using the minus operator, which negates the integer(changes the sing)
+                    startDate = LocalDate.from(dateTime).plusDays(-differenceInDays);
+                }
+                if (!startDate.isBefore(event.getStartTime().toLocalDate())) {
+                    startTime = startDate.atTime(event.getStartTime().toLocalTime());
+                    createTimeEventSlot(eventRequest, event, startTime);
+                    count++;
+                    // During the inner loop the count might be equal or greater than the occurrences
+                    if (count == event.getRepetitionOccurrences()) {
+                        return;
+                    }
+                }
+            }
+            dateTime = dateTime.plusWeeks(event.getRepetitionStep());
         }
     }
 
@@ -164,7 +283,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         int occurrences = DateUtils.findDayOfMonthOccurrence(LocalDate.from(event.getStartTime()));
         LocalDate startDate = LocalDate.from(event.getStartTime());
         LocalDateTime startTime = event.getStartTime();
-        for (int i = 0; i <= event.getRepetitionCount(); i++) {
+        for (int i = 0; i <= event.getRepetitionOccurrences(); i++) {
             createTimeEventSlot(eventRequest, event, startTime);
             startDate = LocalDate.from(startDate).plusMonths(event.getRepetitionStep());
             startDate = DateUtils.findDateOfNthDayOfWeekInMonth(
@@ -201,7 +320,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
 
         int dayOfMonth = event.getStartTime().getDayOfMonth();
         LocalDateTime startTime = event.getStartTime();
-        for (int i = 0; i <= event.getRepetitionCount(); i++) {
+        for (int i = 0; i <= event.getRepetitionOccurrences(); i++) {
             LocalDate adjustedDate = DateUtils.adjustDateForMonth(dayOfMonth, startTime.toLocalDate());
             LocalDateTime adjustedStartTime = adjustedDate.atTime(startTime.toLocalTime());
             createTimeEventSlot(eventRequest, event, adjustedStartTime);

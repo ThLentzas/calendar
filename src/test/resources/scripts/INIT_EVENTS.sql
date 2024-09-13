@@ -1,5 +1,5 @@
 INSERT INTO day_events (id, user_id, start_date, end_date, repetition_frequency, repetition_step,
-                        repetition_duration, repetition_end_date, repetition_count)
+                        repetition_duration, repetition_end_date, repetition_occurrences)
 VALUES ('4472d36c-2051-40e3-a2cf-00c6497807b5', 2, '2024-09-30', '2024-09-30', 'DAILY', 4, 'UNTIL_DATE', '2024-10-14',
         NULL),
        ('6b9b32f2-3c2a-4420-9d52-781c09f320ce', 3, '2024-09-30', '2024-09-30', 'NEVER', NULL, NULL, NULL, NULL);
@@ -22,7 +22,7 @@ VALUES ('9c6f34b8-4128-42ec-beb1-99c35af8d7fa', 'ericka.ankunding@hotmail.com');
 -- UTC times
 INSERT INTO time_events (id, user_id, start_time, start_time_zone_id, end_time, end_time_zone_id,
                          repetition_frequency, repetition_step, monthly_repetition_type,
-                         repetition_duration, repetition_end_date, repetition_count)
+                         repetition_duration, repetition_end_date, repetition_occurrences)
 VALUES ('0c9d6398-a6de-47f0-8328-04a2f3c0511c', 1, '2024-10-11T09:00:00', 'Europe/London', '2024-10-15T14:00:00',
         'Europe/London', 'WEEKLY', 2, NULL, 'N_REPETITIONS', NULL, 3),
        ('00026b7d-85ad-490a-8875-a85b3e5f37de', 2, '2024-10-28T13:00:00', 'Asia/Tokyo', '2024-10-28T15:30:00',

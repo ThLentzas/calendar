@@ -1,5 +1,6 @@
 package org.example.google_calendar_clone.calendar.event;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -79,7 +80,7 @@ class EventIT extends AbstractIntegrationTest {
                      "repetitionStep": 3,
                      "monthlyRepetitionType": "SAME_WEEKDAY",
                      "repetitionDuration": "N_REPETITIONS",
-                     "repetitionCount": "1"
+                     "repetitionOccurrences": 2
                 }
                 """, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2));
 
@@ -204,6 +205,17 @@ class EventIT extends AbstractIntegrationTest {
         // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
         cookies = response.getCookies();
 
+        /*
+            Adjusts startTime to the closest upcoming Friday. If startDate is already a Friday, it remains unchanged.
+
+            LocalDateTime.now().with(DayOfWeek.FRIDAY): If today is Wednesday, September 11, 2024, and the current time
+            is 10:00 AM, calling LocalDateTime.now().with(DayOfWeek.FRIDAY) will return Friday, September 13, 2024,
+            10:00 AM.
+
+            LocalDateTime.now().plusMinutes(30).with(DayOfWeek.FRIDAY): If today is Wednesday, September 11, 2024,
+            and the current time is 10:00 AM, calling LocalDateTime.now().plusMinutes(30).with(DayOfWeek.FRIDAY) will
+            return Friday, September 13, 2024, 10:30 AM.
+        */
         String requestBody = String.format("""
                 {
                     "name": "Event name",
@@ -215,10 +227,11 @@ class EventIT extends AbstractIntegrationTest {
                     "endTimeZoneId": "Europe/London",
                     "repetitionFrequency": "WEEKLY",
                     "repetitionStep": 2,
+                    "weeklyRecurrenceDays": ["FRIDAY", "SATURDAY"],
                     "repetitionDuration": "N_REPETITIONS",
-                    "repetitionCount": 5
+                    "repetitionOccurrences": 5
                 }
-                """, LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(2));
+                """, LocalDateTime.now().with(DayOfWeek.FRIDAY), LocalDateTime.now().plusMinutes(30).with(DayOfWeek.FRIDAY));
 
         // Create the time event
         response = given()
@@ -256,7 +269,7 @@ class EventIT extends AbstractIntegrationTest {
             are sorted based on the start time and the list of event slots has the expected size based on the repetition
             values provided
          */
-        assertThat(timeEventSlots).hasSize(6)
+        assertThat(timeEventSlots).hasSize(5)
                 .allMatch(slot -> slot.getName().equals("Event name")
                         && slot.getLocation().equals("Location")
                         && slot.getDescription().equals("Description")

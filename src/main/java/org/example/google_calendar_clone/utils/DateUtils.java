@@ -10,9 +10,6 @@ import java.time.ZonedDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import org.example.google_calendar_clone.exception.ServerErrorException;
-
-
 public final class DateUtils {
     private static final Logger logger = LoggerFactory.getLogger(DateUtils.class);
 
@@ -21,7 +18,7 @@ public final class DateUtils {
         throw new UnsupportedOperationException("DateUtils is a utility class and cannot be instantiated");
     }
 
-    public static boolean futureOrPresent(LocalDateTime dateTime, ZoneId zonedId)  {
+    public static boolean futureOrPresent(LocalDateTime dateTime, ZoneId zonedId) {
         LocalDateTime utcStartTime = convertToUTC(dateTime, zonedId);
         return utcStartTime.isBefore(ZonedDateTime.now(ZoneId.of("UTC")).toLocalDateTime());
     }
@@ -56,29 +53,52 @@ public final class DateUtils {
         return occurrences;
     }
 
+    // toDo: adjust one of the tests to test this case
     /*
         The date corresponds to the nth occurrence of a given day of the week within a month.
         2nd Tuesday of April 2024 -> returns the date 9/04/2024
+
+        The edge case to consider here is that some days appear 5 times within a month so if a user requests for a
+        monthly event to be repeated on the 5th Monday of the month, we need to make sure that if the repeating months
+        do not have 5 occurrences of a Monday we return the last one(4th). For example 2024-09-30, is the 5th Monday
+        of September if the event is to be repeated on October on the 5th Monday it would not work, October has only 4
+        Mondays, we return the last one at 28.
      */
     public static LocalDate findDateOfNthDayOfWeekInMonth(YearMonth yearMonth, DayOfWeek day, int occurrences) {
         LocalDate firstDayOfMonth = LocalDate.of(yearMonth.getYear(), yearMonth.getMonth(), 1);
         LocalDate lastDayOfMonth = yearMonth.atEndOfMonth();
-        LocalDate date = null;
+        LocalDate lastFoundDate = null;
+        int count = 0;
 
         for (LocalDate currentDate = firstDayOfMonth; !currentDate.isAfter(lastDayOfMonth); currentDate = currentDate.plusDays(1)) {
             if (currentDate.getDayOfWeek().equals(day)) {
-                occurrences--;
+                count++;
+                lastFoundDate = currentDate;
             }
-            if (occurrences == 0) {
-                date = currentDate;
-                break;
+            if (count == occurrences) {
+                return lastFoundDate;
             }
         }
-        if (date == null) {
-            logger.info("The {} of {} in {} is null", occurrences, day, yearMonth);
-            throw new ServerErrorException("Internal Server Error");
+
+        logger.info("The {} occurrence of {} was not found in {}. Returning last found: {}",
+                occurrences, day, yearMonth, lastFoundDate);
+        return lastFoundDate;
+    }
+
+    public static boolean isLastOccurrenceOfMonth(LocalDate date, int occurrences) {
+        LocalDate firstDayOfMonth = LocalDate.of(date.getYear(), date.getMonth(), 1);
+        LocalDate lastDayOfMonth = YearMonth.of(date.getYear(), date.getMonth()).atEndOfMonth();
+        int count = 0;
+
+        for (LocalDate currentDate = firstDayOfMonth; !currentDate.isAfter(lastDayOfMonth); currentDate = currentDate.plusDays(1)) {
+            if (currentDate.getDayOfWeek().equals(date.getDayOfWeek())) {
+                count++;
+            }
+            if (count == occurrences) {
+                return true;
+            }
         }
-        return date;
+        return false;
     }
 
     /*

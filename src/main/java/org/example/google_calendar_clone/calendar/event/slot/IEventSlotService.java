@@ -4,7 +4,9 @@ import java.util.List;
 import java.util.UUID;
 
 import org.example.google_calendar_clone.calendar.event.AbstractEvent;
-import org.example.google_calendar_clone.calendar.event.AbstractEventRequest;
+import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
+import org.example.google_calendar_clone.calendar.event.dto.InviteGuestRequest;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.transaction.annotation.Transactional;
 
 /*
@@ -15,6 +17,9 @@ public interface IEventSlotService <T extends AbstractEventRequest, U extends Ab
 
     @Transactional
     void create(T eventRequest, U event);
+
+    @Transactional
+    void inviteGuests(Jwt jw, UUID slotId, InviteGuestRequest inviteGuestRequest);
 
     List<K> findEventSlotsByEventId(UUID eventId);
 }

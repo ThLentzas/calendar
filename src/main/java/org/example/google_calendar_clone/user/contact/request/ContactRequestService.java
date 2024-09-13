@@ -3,7 +3,7 @@ package org.example.google_calendar_clone.user.contact.request;
 import org.example.google_calendar_clone.entity.ContactRequest;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.entity.key.ContactRequestId;
-import org.example.google_calendar_clone.exception.ContactRequestException;
+import org.example.google_calendar_clone.exception.ConflictException;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.example.google_calendar_clone.user.contact.ContactService;
 import org.springframework.stereotype.Service;
@@ -52,13 +52,13 @@ public class ContactRequestService {
                 receiver.getId());
         for (ContactRequest contactRequest : contactRequests) {
             switch (contactRequest.getStatus()) {
-                case PENDING -> throw new ContactRequestException("Contact request already pending");
+                case PENDING -> throw new ConflictException("Contact request already pending");
                 case REJECTED -> {
                     if (contactRequest.getSender().equals(sender)) {
-                        throw new ContactRequestException("Contact request already rejected");
+                        throw new ConflictException("Contact request already rejected");
                     }
                 }
-                case ACCEPTED -> throw new ContactRequestException("Contact request already accepted");
+                case ACCEPTED -> throw new ConflictException("Contact request already accepted");
             }
         }
 

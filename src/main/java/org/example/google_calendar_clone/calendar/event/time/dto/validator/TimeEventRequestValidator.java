@@ -10,6 +10,7 @@ import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
 import java.time.LocalDate;
+
 /*
     According to Google Calendar time events can have a duration of more than 1 day.
     September 30, 2024, 3:30pm – October 2, 2024, 4:30pm is a valid time event
@@ -95,6 +96,19 @@ public class TimeEventRequestValidator implements ConstraintValidator<ValidTimeE
         }
 
         if (!RepetitionUtils.isValid(value, context)) {
+            return false;
+        }
+
+        // If the date is 2024-09-10 (a Tuesday), the weeklyRecurrenceDays set must contain TUESDAY
+        if (value.getStartTime() != null
+                && value.getRepetitionFrequency().equals(RepetitionFrequency.WEEKLY)
+                && !value.getWeeklyRecurrenceDays().contains(value.getStartTime().getDayOfWeek())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate(
+                            "The start date " + value.getStartTime() + " is a " + value.getStartTime().getDayOfWeek() +
+                                    ", but this day is not included in the weekly recurrence days: " +
+                                    value.getWeeklyRecurrenceDays())
+                    .addConstraintViolation();
             return false;
         }
 

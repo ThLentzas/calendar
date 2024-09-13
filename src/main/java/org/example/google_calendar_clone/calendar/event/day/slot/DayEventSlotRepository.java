@@ -7,6 +7,7 @@ import org.example.google_calendar_clone.entity.User;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.example.google_calendar_clone.entity.DayEventSlot;
@@ -44,5 +45,14 @@ interface DayEventSlotRepository extends JpaRepository<DayEventSlot, UUID> {
                                              @Param("email") String email,
                                              @Param("startDate") LocalDate startDate,
                                              @Param("endDate") LocalDate endDate);
+
+    @Query("""
+                SELECT des
+                FROM DayEventSlot des
+                JOIN FETCH des.dayEvent
+                LEFT JOIN FETCH des.guestEmails
+                WHERE des.id = :id
+            """)
+    Optional<DayEventSlot> findBySlotId(@Param("id") UUID id);
 
 }

@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event;
+package org.example.google_calendar_clone.calendar.event.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -10,12 +10,14 @@ import lombok.experimental.SuperBuilder;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.validation.OnCreate;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.Set;
 
 import jakarta.validation.constraints.NotBlank;
-import org.example.google_calendar_clone.validation.OnCreate;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -31,8 +33,9 @@ public abstract class AbstractEventRequest {
     protected Set<String> guestEmails;
     protected RepetitionFrequency repetitionFrequency;
     protected Integer repetitionStep;
+    protected EnumSet<DayOfWeek> weeklyRecurrenceDays;
     protected MonthlyRepetitionType monthlyRepetitionType;
     protected RepetitionDuration repetitionDuration;
     protected LocalDate repetitionEndDate;
-    protected Integer repetitionCount;
+    protected Integer repetitionOccurrences;
 }

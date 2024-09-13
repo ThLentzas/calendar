@@ -1,11 +1,13 @@
 package org.example.google_calendar_clone.calendar.event.day;
 
 import org.example.google_calendar_clone.calendar.event.IEventService;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventInvitationEmailRequest;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.DayEventSlotService;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.email.EmailService;
 import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
@@ -30,21 +32,29 @@ public class DayEventService implements IEventService<DayEventRequest> {
     private final DayEventSlotService dayEventSlotService;
     private final DayEventRepository dayEventRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
     private static final Logger logger = LoggerFactory.getLogger(DayEventService.class);
 
     @Override
     public UUID create(Jwt jwt, DayEventRequest dayEventRequest) {
-        // The current authenticated user is the host of the event
-        User user = this.userRepository.getReferenceById(Long.valueOf(jwt.getSubject()));
+        /*
+            The current authenticated user is the organizer of the event. We can't call getReferenceById(), we need the
+            username of the user to set it as the organizer in the invitation email template
+         */
+        User user = this.userRepository.findById(Long.valueOf(jwt.getSubject())).orElseThrow(() -> {
+            logger.info("Authenticated user with id: {} was not found in the database", jwt.getSubject());
+            return new ServerErrorException("Internal Server Error");
+        });
         DayEvent dayEvent = DayEvent.builder()
                 .startDate(dayEventRequest.getStartDate())
                 .endDate(dayEventRequest.getEndDate())
                 .repetitionFrequency(dayEventRequest.getRepetitionFrequency())
                 .repetitionStep(dayEventRequest.getRepetitionStep())
+                .weeklyRecurrenceDays(dayEventRequest.getWeeklyRecurrenceDays())
                 .monthlyRepetitionType(dayEventRequest.getMonthlyRepetitionType())
                 .repetitionDuration(dayEventRequest.getRepetitionDuration())
                 .repetitionEndDate(dayEventRequest.getRepetitionEndDate())
-                .repetitionCount(dayEventRequest.getRepetitionCount())
+                .repetitionOccurrences(dayEventRequest.getRepetitionOccurrences())
                 .user(user)
                 .build();
 
@@ -61,6 +71,22 @@ public class DayEventService implements IEventService<DayEventRequest> {
 
         this.dayEventRepository.save(dayEvent);
         this.dayEventSlotService.create(dayEventRequest, dayEvent);
+        DayEventInvitationEmailRequest emailRequest = DayEventInvitationEmailRequest.builder()
+                .eventName(dayEventRequest.getName())
+                .location(dayEventRequest.getLocation())
+                .organizer(user.getUsername())
+                .guestEmails(dayEventRequest.getGuestEmails())
+                .repetitionFrequency(dayEvent.getRepetitionFrequency())
+                .repetitionStep(dayEvent.getRepetitionStep())
+                .weeklyRecurrenceDays(dayEvent.getWeeklyRecurrenceDays())
+                .monthlyRepetitionType(dayEvent.getMonthlyRepetitionType())
+                .repetitionDuration(dayEvent.getRepetitionDuration())
+                .repetitionEndDate(dayEvent.getRepetitionEndDate())
+                .repetitionOccurrences(dayEvent.getRepetitionOccurrences())
+                .startDate(dayEvent.getStartDate())
+                .build();
+
+        this.emailService.sendInvitationEmail(emailRequest);
 
         return dayEvent.getId();
     }
