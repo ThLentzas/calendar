@@ -15,11 +15,11 @@ import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepeti
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@SuperBuilder
 @Getter
 @Setter
+@SuperBuilder
+@AllArgsConstructor
+@NoArgsConstructor
 public abstract class AbstractEventInvitationEmailRequest {
     protected String eventName;
     protected String location;

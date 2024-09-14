@@ -5,15 +5,16 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+
 import org.example.google_calendar_clone.calendar.event.AbstractEventInvitationEmailRequest;
 
 import java.time.LocalDate;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@SuperBuilder
 @Getter
 @Setter
+@SuperBuilder
+@AllArgsConstructor
+@NoArgsConstructor
 public class DayEventInvitationEmailRequest extends AbstractEventInvitationEmailRequest {
     private LocalDate startDate;
 }

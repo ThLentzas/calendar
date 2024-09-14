@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.support.StaticApplicationContext;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
@@ -52,7 +53,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextForNonRepeatingEvent() throws Exception {
+    void shouldSetContextForNonRepeatingEvent() throws IOException {
         String path = "src/test/resources/templates/never/non_repeating.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -68,7 +69,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingDailyUntilDate() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingDailyUntilDate() throws IOException {
         String path = "src/test/resources/templates/daily/daily_until_date.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -84,7 +85,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingDailyForNRepetitions() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingDailyForNRepetitions() throws IOException {
         String path = "src/test/resources/templates/daily/daily_n_repetitions.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -99,7 +100,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingEveryNDaysUntilDate() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingEveryNDaysUntilDate() throws IOException {
         String path = "src/test/resources/templates/daily/every_n_days_until_date.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -114,7 +115,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingEveryNDaysForNRepetitions() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingEveryNDaysForNRepetitions() throws IOException {
         String path = "src/test/resources/templates/daily/every_n_days_n_repetitions.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -130,15 +131,15 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingMonthlyOnTheSameDayUntilDate() throws Exception {
-        String path = "src/test/resources/templates/monthly/monthly_same_day_until_date.html";
+    void shouldSetContextWhenEventIsRepeatedWeeklyUntilDate() throws IOException {
+        String path = "src/test/resources/templates/weekly/weekly_until_date.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
-                LocalDate.parse("2024-12-09"),
+                LocalDate.parse("2025-05-12"),
                 "Event name",
                 "Organizer",
                 "Location",
-                "Monthly on day 9, from Mon Dec 9, 2024 to Sun Feb 9, 2025"
+                "Weekly on Monday, Wednesday from Mon May 12, 2025 to Mon Aug 11, 2025"
         );
 
         // Location is not null, don't need to replace and trim
@@ -146,7 +147,71 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingMonthlyOnTheSameDayForNRepetitions() throws Exception {
+    void shouldSetContextWhenEventIsRepeatedWeeklyForNRepetitions() throws IOException {
+        String path = "src/test/resources/templates/weekly/weekly_n_repetitions.html";
+        String expected = new String(Files.readAllBytes(Paths.get(path)));
+        String actual = this.underTest.setInvitationEmailContext(
+                LocalDate.parse("2024-10-27"),
+                "Event name",
+                "Organizer",
+                null,
+                "Weekly on Friday, Sunday 12 times"
+        );
+
+        // Location is not null, don't need to replace and trim
+        assertThat(actual.replaceAll("\\s+", " ").trim()).isEqualTo(expected.replaceAll("\\s+", " ").trim());
+    }
+
+    @Test
+    void shouldSetContextWhenEventIsRepeatedEveryNWeeksUntilDate() throws IOException {
+        String path = "src/test/resources/templates/weekly/every_n_weeks_until_date.html";
+        String expected = new String(Files.readAllBytes(Paths.get(path)));
+        String actual = this.underTest.setInvitationEmailContext(
+                LocalDate.parse("2025-06-14"),
+                "Event name",
+                "Organizer",
+                "Location",
+                "Every 3 weeks on Wednesday, Saturday from Sat Jun 14, 2025 to Sat Sep 13, 2025"
+        );
+
+        // Location is not null, don't need to replace and trim
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void shouldSetContextWhenEventIsRepeatedEveryNWeeksForNRepetitions() throws IOException {
+        String path = "src/test/resources/templates/weekly/every_n_weeks_n_repetitions.html";
+        String expected = new String(Files.readAllBytes(Paths.get(path)));
+        String actual = this.underTest.setInvitationEmailContext(
+                LocalDate.parse("2025-08-27"),
+                "Event name",
+                "Organizer",
+                "Location",
+                "Every 2 weeks on Wednesday, Thursday, Friday 15 times"
+        );
+
+        // Location is not null, don't need to replace and trim
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void shouldSetContextWhenEventIsRepeatingMonthlyOnTheSameDayUntilDate() throws IOException {
+        String path = "src/test/resources/templates/monthly/monthly_same_day_until_date.html";
+        String expected = new String(Files.readAllBytes(Paths.get(path)));
+        String actual = this.underTest.setInvitationEmailContext(
+                LocalDate.parse("2024-12-09"),
+                "Event name",
+                "Organizer",
+                "Location",
+                "Monthly on day 9, from Mon Dec 9 to Sun Feb 9, 2025"
+        );
+
+        // Location is not null, don't need to replace and trim
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void shouldSetContextWhenEventIsRepeatingMonthlyOnTheSameDayForNRepetitions() throws IOException {
         String path = "src/test/resources/templates/monthly/monthly_same_day_n_repetitions.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -162,7 +227,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingMonthlyOnTheSameWeekDayUntilDate() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingMonthlyOnTheSameWeekDayUntilDate() throws IOException {
         String path = "src/test/resources/templates/monthly/monthly_same_weekday_until_date.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -177,7 +242,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingMonthlyOnTheSameWeekDayNRepetitions() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingMonthlyOnTheSameWeekDayNRepetitions() throws IOException {
         String path = "src/test/resources/templates/monthly/monthly_same_weekday_n_repetitions.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -192,7 +257,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingEveryNMonthsOnTheSameDayUntilDate() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingEveryNMonthsOnTheSameDayUntilDate() throws IOException {
         String path = "src/test/resources/templates/monthly/every_n_months_same_day_until_date.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -200,7 +265,7 @@ class ThymeleafServiceTest {
                 "Event name",
                 "Organizer",
                 "Location",
-                "Every 3 months on day 6, from Wed Nov 6, 2024 to Tue Feb 18, 2025"
+                "Every 3 months on day 6, from Wed Nov 6 to Tue Feb 18, 2025"
         );
 
         // Location is not null, don't need to replace and trim
@@ -208,7 +273,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingEveryNMonthsOnTheSameDayForNRepetitions() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingEveryNMonthsOnTheSameDayForNRepetitions() throws IOException {
         String path = "src/test/resources/templates/monthly/every_n_months_same_day_n_repetitions.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -224,7 +289,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingEveryNMonthsOnTheSameWeekDayUntilDate() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingEveryNMonthsOnTheSameWeekDayUntilDate() throws IOException {
         String path = "src/test/resources/templates/monthly/every_n_months_same_weekday_until_date.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -240,7 +305,7 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextWhenEventIsRepeatingEveryNMonthsOnTheSameWeekDayForNRepetitions() throws Exception {
+    void shouldSetContextWhenEventIsRepeatingEveryNMonthsOnTheSameWeekDayForNRepetitions() throws IOException {
         String path = "src/test/resources/templates/monthly/every_n_months_same_weekday_n_repetitions.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
@@ -249,6 +314,69 @@ class ThymeleafServiceTest {
                 "Organizer",
                 "Location",
                 "Every 5 months on the fourth Sunday, 14 times"
+        );
+
+        // Location is not null, don't need to replace and trim
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void shouldSetContextWhenEventIsRepeatingAnnuallyUntilDate() throws IOException {
+        String path = "src/test/resources/templates/annually/annually_until_date.html";
+        String expected = new String(Files.readAllBytes(Paths.get(path)));
+        String actual = this.underTest.setInvitationEmailContext(
+                LocalDate.parse("2025-04-28"),
+                "Event name",
+                "Organizer",
+                "Location",
+                "Annually on April 28, from Mon Apr 28, 2025 to Wed Apr 28, 2027"
+        );
+
+        // Location is not null, don't need to replace and trim
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void shouldSetContextWhenEventIsRepeatingAnnuallyForNRepetitions() throws IOException {
+        String path = "src/test/resources/templates/annually/annually_n_repetitions.html";
+        String expected = new String(Files.readAllBytes(Paths.get(path)));
+        String actual = this.underTest.setInvitationEmailContext(
+                LocalDate.parse("2025-07-18"),
+                "Event name",
+                "Organizer",
+                null,
+                "Annually on July 18, 6 times"
+        );
+
+        assertThat(actual.replaceAll("\\s+", " ").trim()).isEqualTo(expected.replaceAll("\\s+", " ").trim());
+    }
+
+    @Test
+    void shouldSetContextWhenEventIsRepeatingEveryNYearsUntilDate() throws IOException {
+        String path = "src/test/resources/templates/annually/every_n_years_until_date.html";
+        String expected = new String(Files.readAllBytes(Paths.get(path)));
+        String actual = this.underTest.setInvitationEmailContext(
+                LocalDate.parse("2025-09-18"),
+                "Event name",
+                "Organizer",
+                "Location",
+                "Every 2 years on September 18, from Thu Sep 18, 2025 to Tue Sep 18, 2029"
+        );
+
+        // Location is not null, don't need to replace and trim
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void shouldSetContextWhenEventIsRepeatingEveryNYearsForNRepetitions() throws IOException {
+        String path = "src/test/resources/templates/annually/every_n_years_n_repetitions.html";
+        String expected = new String(Files.readAllBytes(Paths.get(path)));
+        String actual = this.underTest.setInvitationEmailContext(
+                LocalDate.parse("2025-11-11"),
+                "Event name",
+                "Organizer",
+                "Location",
+                "Every 3 years on November 11, 8 times"
         );
 
         // Location is not null, don't need to replace and trim

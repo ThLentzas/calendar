@@ -8,11 +8,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import org.example.google_calendar_clone.AbstractIntegrationTest;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import org.junit.jupiter.api.Test;
 
@@ -20,11 +23,17 @@ import io.restassured.common.mapper.TypeRef;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 
+import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.assertj.core.api.Assertions.assertThat;
 import static io.restassured.RestAssured.given;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+
+import net.datafaker.Faker;
 
 /*
     It is important to generate the dates dynamically so the test will pass the validation of dates being in the
@@ -36,14 +45,17 @@ import static io.restassured.RestAssured.given;
     Time assertions in the tests below, are in the timezone provided by the user. In the sql, scripts are in UTC, but
     we assert on the local time based on the timezone
  */
+@ActiveProfiles(profiles = "test")
 class EventIT extends AbstractIntegrationTest {
     private static final String AUTH_PATH = "/api/v1/auth";
     private static final String DAY_EVENT_PATH = "/api/v1/events/day-events";
     private static final String TIME_EVENT_PATH = "/api/v1/events/time-events";
+    private static final Faker FAKER = new Faker();
 
     @Test
     @Sql("/scripts/INIT_USERS.sql")
-    void shouldCreateDayEvent() {
+    void shouldCreateDayEvent() throws MessagingException {
+        String guestEmail = FAKER.internet().emailAddress();
         // Get csrf token from response header
         Response response = given()
                 .when()
@@ -74,6 +86,7 @@ class EventIT extends AbstractIntegrationTest {
                      "name": "Event name",
                      "location": "Location",
                      "description": "Description",
+                     "guestEmails": ["%s"],
                      "startDate": "%s",
                      "endDate": "%s",
                      "repetitionFrequency": "MONTHLY",
@@ -82,7 +95,7 @@ class EventIT extends AbstractIntegrationTest {
                      "repetitionDuration": "N_REPETITIONS",
                      "repetitionOccurrences": 2
                 }
-                """, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2));
+                """, guestEmail, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2));
 
         response = given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
@@ -122,9 +135,24 @@ class EventIT extends AbstractIntegrationTest {
                         && slot.getLocation().equals("Location")
                         && slot.getDescription().equals("Description")
                         && slot.getOrganizer().equals("ellyn.roberts")
-                        && slot.getGuestEmails().equals(Collections.emptySet())
+                        && slot.getGuestEmails().equals(Set.of(guestEmail))
                         && slot.getDayEventId().equals(dayEventId))
                 .isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate));
+
+        /*
+            Asserting on the invitation email(recipient, subject)
+            Sending the email is done Async so, we have to wait before we assert
+
+            Setting the body of the email correctly is already tested in ThymeleafServiceTest and EmailUtilsTest
+         */
+        await().atMost(5, TimeUnit.SECONDS).until(() -> greenMail.getReceivedMessages().length == 1);
+
+        MimeMessage[] messages = greenMail.getReceivedMessages();
+        MimeMessage message = messages[0];
+
+        assertThat(messages).hasSize(1);
+        assertThat(message.getAllRecipients()[0]).hasToString(guestEmail);
+        assertThat(message.getSubject()).isEqualTo("Event Invitation");
     }
 
     @Test
@@ -227,11 +255,13 @@ class EventIT extends AbstractIntegrationTest {
                     "endTimeZoneId": "Europe/London",
                     "repetitionFrequency": "WEEKLY",
                     "repetitionStep": 2,
-                    "weeklyRecurrenceDays": ["FRIDAY", "SATURDAY"],
+                    "weeklyRecurrenceDays": ["THURSDAY", "SATURDAY"],
                     "repetitionDuration": "N_REPETITIONS",
                     "repetitionOccurrences": 5
                 }
-                """, LocalDateTime.now().with(DayOfWeek.FRIDAY), LocalDateTime.now().plusMinutes(30).with(DayOfWeek.FRIDAY));
+                """,
+                LocalDateTime.now().with(DayOfWeek.THURSDAY).plusWeeks(1),
+                LocalDateTime.now().plusMinutes(30).with(DayOfWeek.THURSDAY).plusWeeks(1));
 
         // Create the time event
         response = given()

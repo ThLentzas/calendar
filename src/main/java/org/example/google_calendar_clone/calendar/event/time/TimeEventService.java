@@ -3,9 +3,11 @@ package org.example.google_calendar_clone.calendar.event.time;
 import org.example.google_calendar_clone.calendar.event.IEventService;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationEmailRequest;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotService;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
+import org.example.google_calendar_clone.email.EmailService;
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
@@ -31,11 +33,19 @@ public class TimeEventService implements IEventService<TimeEventRequest> {
     private final UserRepository userRepository;
     private final TimeEventRepository timeEventRepository;
     private final TimeEventSlotService timeEventSlotService;
+    private final EmailService emailService;
     private static final Logger logger = LoggerFactory.getLogger(TimeEventService.class);
 
     @Override
     public UUID create(Jwt jwt, TimeEventRequest eventRequest) {
-        User user = this.userRepository.getReferenceById(Long.valueOf(jwt.getSubject()));
+        /*
+            The current authenticated user is the organizer of the event. We can't call getReferenceById(), we need the
+            username of the user to set it as the organizer in the invitation email template
+         */
+        User user = this.userRepository.findById(Long.valueOf(jwt.getSubject())).orElseThrow(() -> {
+            logger.info("Authenticated user with id: {} was not found in the database", jwt.getSubject());
+            return new ServerErrorException("Internal Server Error");
+        });
         TimeEvent event = TimeEvent.builder()
                 .startTime(eventRequest.getStartTime())
                 .endTime(eventRequest.getEndTime())
@@ -63,6 +73,25 @@ public class TimeEventService implements IEventService<TimeEventRequest> {
 
         this.timeEventRepository.save(event);
         this.timeEventSlotService.create(eventRequest, event);
+        TimeEventInvitationEmailRequest emailRequest = TimeEventInvitationEmailRequest.builder()
+                .eventName(eventRequest.getName())
+                .location(eventRequest.getLocation())
+                .organizer(user.getUsername())
+                .guestEmails(eventRequest.getGuestEmails())
+                .repetitionFrequency(event.getRepetitionFrequency())
+                .repetitionStep(event.getRepetitionStep())
+                .weeklyRecurrenceDays(event.getWeeklyRecurrenceDays())
+                .monthlyRepetitionType(event.getMonthlyRepetitionType())
+                .repetitionDuration(event.getRepetitionDuration())
+                .repetitionEndDate(event.getRepetitionEndDate())
+                .repetitionOccurrences(event.getRepetitionOccurrences())
+                .startTime(event.getStartTime())
+                .endTime(event.getEndTime())
+                .startTimeZoneId(event.getStartTimeZoneId())
+                .endTimeZoneId(event.getEndTimeZoneId())
+                .build();
+
+        this.emailService.sendInvitationEmail(emailRequest);
 
         return event.getId();
     }

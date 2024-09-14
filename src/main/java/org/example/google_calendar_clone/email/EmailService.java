@@ -1,6 +1,7 @@
 package org.example.google_calendar_clone.email;
 
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventInvitationEmailRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationEmailRequest;
 import org.example.google_calendar_clone.utils.EmailUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +28,7 @@ public class EmailService {
 
     @Async
     public void sendInvitationEmail(DayEventInvitationEmailRequest emailRequest) {
-        String frequencyText = EmailUtils.dayEventFrequencyText(emailRequest);
+        String frequencyText = EmailUtils.formatFrequencyDescription(emailRequest);
         String context = this.thymeleafService.setInvitationEmailContext(
                 emailRequest.getStartDate(),
                 emailRequest.getEventName(),
@@ -36,8 +37,23 @@ public class EmailService {
                 frequencyText);
 
         for (String guestEmail : emailRequest.getGuestEmails()) {
-            sendEmail(guestEmail, "Event invitation", context);
+            sendEmail(guestEmail, "Event Invitation", context);
         }
+    }
+
+    @Async
+    public void sendInvitationEmail(TimeEventInvitationEmailRequest emailRequest) {
+//        String frequencyText = EmailUtils.formatFrequencyDescription(emailRequest);
+//        String context = this.thymeleafService.setInvitationEmailContext(
+//                emailRequest.getStartDate(),
+//                emailRequest.getEventName(),
+//                emailRequest.getOrganizer(),
+//                emailRequest.getLocation(),
+//                frequencyText);
+//
+//        for (String guestEmail : emailRequest.getGuestEmails()) {
+//            sendEmail(guestEmail, "Event invitation", context);
+//        }
     }
 
     private void sendEmail(String recipient, String subject, String emailContext) {

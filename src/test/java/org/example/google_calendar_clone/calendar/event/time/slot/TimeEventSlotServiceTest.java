@@ -11,6 +11,7 @@ import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.user.UserRepository;
+import org.example.google_calendar_clone.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.test.context.jdbc.Sql;
@@ -21,7 +22,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -78,25 +78,29 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionFrequency(RepetitionFrequency.NEVER)
                 .build();
 
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of("2024-10-11T09:00"));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(1);
         TimeEventSlotAssert.assertThat(eventSlots.get(0))
                 .hasStartTime(dateTimes.get(0))
-                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                .hasStartTimeZoneId(request.getStartTimeZoneId())
-                .hasEndTimeZoneId(request.getEndTimeZoneId())
+                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                        event.getStartTime(),
+                        event.getStartTimeZoneId(),
+                        event.getEndTime(),
+                        event.getEndTimeZoneId())))
+                .hasStartTimeZoneId(event.getStartTimeZoneId())
+                .hasEndTimeZoneId(event.getEndTimeZoneId())
                 .hasName(request.getName())
                 .hasLocation(request.getLocation())
                 .hasDescription(request.getDescription())
                 .hasGuests(request.getGuestEmails())
-                .hasTimeEvent(timeEvent);
+                .hasTimeEvent(event);
     }
 
     /*
@@ -121,24 +125,28 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionFrequency(RepetitionFrequency.NEVER)
                 .build();
 
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of("2024-03-10T07:30"));
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(1);
         TimeEventSlotAssert.assertThat(eventSlots.get(0))
                 .hasStartTime(dateTimes.get(0))
-                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                .hasStartTimeZoneId(request.getStartTimeZoneId())
-                .hasEndTimeZoneId(request.getEndTimeZoneId())
+                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                        event.getStartTime(),
+                        event.getStartTimeZoneId(),
+                        event.getEndTime(),
+                        event.getEndTimeZoneId())))
+                .hasStartTimeZoneId(event.getStartTimeZoneId())
+                .hasEndTimeZoneId(event.getEndTimeZoneId())
                 .hasName(request.getName())
                 .hasLocation(request.getLocation())
                 .hasDescription(request.getDescription())
                 .hasGuests(request.getGuestEmails())
-                .hasTimeEvent(timeEvent);
+                .hasTimeEvent(event);
     }
 
     /*
@@ -162,25 +170,29 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionFrequency(RepetitionFrequency.NEVER)
                 .build();
 
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of("2024-11-03T05:30"));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(1);
         TimeEventSlotAssert.assertThat(eventSlots.get(0))
                 .hasStartTime(dateTimes.get(0))
-                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                .hasStartTimeZoneId(request.getStartTimeZoneId())
-                .hasEndTimeZoneId(request.getEndTimeZoneId())
+                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                        event.getStartTime(),
+                        event.getStartTimeZoneId(),
+                        event.getEndTime(),
+                        event.getEndTimeZoneId())))
+                .hasStartTimeZoneId(event.getStartTimeZoneId())
+                .hasEndTimeZoneId(event.getEndTimeZoneId())
                 .hasName(request.getName())
                 .hasLocation(request.getLocation())
                 .hasDescription(request.getDescription())
                 .hasGuests(request.getGuestEmails())
-                .hasTimeEvent(timeEvent);
+                .hasTimeEvent(event);
     }
 
     /*
@@ -205,7 +217,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2024-10-18"))
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
                 "2024-10-11T15:00",
                 "2024-10-13T15:00",
@@ -213,23 +225,27 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 "2024-10-17T15:00")
         );
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(4);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
 
@@ -256,7 +272,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(4)
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
 
         // DST ends on 2024-10-27 in Oslo, so dates before will be in DST (UTC + 2) and after in standard time (UTC + 1)
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
@@ -267,23 +283,27 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 "2024-11-02T09:00"  // After DST ends, UTC + 1 -> UTC
         ));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(5);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
 
@@ -311,32 +331,37 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2024-09-05"))
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
                 "2024-08-20T01:00",
                 "2024-09-02T01:00",
                 "2024-09-03T01:00"
         ));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(3);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
+
     /*
         It is very important, the weeklyRecurrenceDays set to contain the day of the startTime. It is part of the
         validation. "2024-09-06" is a Friday
@@ -361,7 +386,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(4)
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
                 "2024-09-06T08:00",
                 "2024-09-07T08:00",
@@ -369,23 +394,27 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 "2024-09-14T08:00"
         ));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(4);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
 
@@ -406,7 +435,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2024-12-04"))
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
                 "2024-09-04T02:00",
                 "2024-10-04T02:00",
@@ -414,23 +443,27 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 "2024-12-04T02:00"
         ));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(4);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
 
@@ -457,7 +490,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(3)
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
                 "2024-10-31T12:00", // UTC - 4
                 "2024-12-31T13:00", // UTC - 5, DST ends
@@ -465,24 +498,28 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 "2025-04-30T12:00"  // UTC - 4, DST started for America/New_York at March 10
         ));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         // Size is 4, the original event + 3 times that it is to be repeated
         assertThat(eventSlots).hasSize(4);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
 
@@ -503,30 +540,34 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2024-11-20"))
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
                 "2024-09-04T06:00", // 1st Wednesday of September
                 "2024-10-02T06:00", // 1st Wednesday of October
                 "2024-11-06T06:00"  // 1st Wednesday of November
         ));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(3);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
 
@@ -547,31 +588,35 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(2)
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
                 "2024-09-04T06:00", // 1st Wednesday of September
                 "2024-11-06T06:00", // 1st Wednesday of November
                 "2025-01-01T06:00"  // 1st Wednesday of January
         ));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         // Size is 3, the original event + 2 times that it is to be repeated
         assertThat(eventSlots).hasSize(3);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
 
@@ -591,30 +636,34 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2026-12-04"))
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
                 "2024-05-18T13:00",
                 "2025-05-18T13:00",
                 "2026-05-18T13:00"
         ));
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(3);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
 
@@ -636,7 +685,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(4)
                 .build();
-        TimeEvent timeEvent = createTimeEvent(request);
+        TimeEvent event = createTimeEvent(request);
         List<LocalDateTime> dateTimes = createDateTimes(List.of(
                 "2024-02-29T10:00",
                 "2025-02-28T10:00",
@@ -645,23 +694,27 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                 "2028-02-29T10:00")
         );
 
-        this.underTest.create(request, timeEvent);
+        this.underTest.create(request, event);
         this.testEntityManager.flush();
 
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(timeEvent.getId());
+        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByEventId(event.getId());
 
         assertThat(eventSlots).hasSize(5);
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(getEventDuration(request.getStartTime(), request.getEndTime())))
-                    .hasStartTimeZoneId(request.getStartTimeZoneId())
-                    .hasEndTimeZoneId(request.getEndTimeZoneId())
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                            event.getStartTime(),
+                            event.getStartTimeZoneId(),
+                            event.getEndTime(),
+                            event.getEndTimeZoneId())))
+                    .hasStartTimeZoneId(event.getStartTimeZoneId())
+                    .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasTimeEvent(timeEvent);
+                    .hasTimeEvent(event);
         }
     }
 
@@ -726,9 +779,5 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         return dateTimes.stream()
                 .map(LocalDateTime::parse)
                 .toList();
-    }
-
-    private int getEventDuration(LocalDateTime startTime, LocalDateTime endTime) {
-        return (int) ChronoUnit.MINUTES.between(startTime, endTime);
     }
 }

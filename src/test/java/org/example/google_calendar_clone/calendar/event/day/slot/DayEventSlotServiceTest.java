@@ -266,7 +266,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         Our code handles this case gracefully.
      */
     @Test
-    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayUntilDate() {
+    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameDayUntilDate() {
         DayEventRequest request = DayEventRequest.builder()
                 .name("Event name")
                 .startDate(LocalDate.parse("2023-01-31"))
@@ -317,7 +317,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         of the month so the 2n slot will be at "2023-02-28" and then the last one "2023-03-29"
      */
     @Test
-    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayForNRepetitions() {
+    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameDayForNRepetitions() {
         DayEventRequest request = DayEventRequest.builder()
                 .name("Event name")
                 .startDate(LocalDate.parse("2023-01-29"))
@@ -353,13 +353,17 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         }
     }
 
-    // 1st Wednesday of September is "2024-09-04", of October is "2024-10-02" and of November is "2024-11-06"
+    /*
+        We test the edge case where a day will appear for the 5th time in some months. For example "2024-09-30" is
+        the 5th Monday of September, not all months have 5 Mondays. We adjust to latest found, in our case, the last
+        Monday of October is at 28, the last Monday of November is at 25 and December has 5 Mondays.
+     */
     @Test
-    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayUntilDate() {
+    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekDayUntilDate() {
         DayEventRequest request = DayEventRequest.builder()
                 .name("Event name")
-                .startDate(LocalDate.parse("2024-09-04"))
-                .endDate(LocalDate.parse("2024-09-04"))
+                .startDate(LocalDate.parse("2024-09-30"))
+                .endDate(LocalDate.parse("2024-09-30"))
                 .location("Location")
                 .description("Description")
                 .guestEmails(Set.of(FAKER.internet().emailAddress()))
@@ -367,17 +371,17 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                 .repetitionStep(1)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
-                .repetitionEndDate(LocalDate.parse("2024-11-20"))
+                .repetitionEndDate(LocalDate.parse("2024-12-31"))
                 .build();
         DayEvent dayEvent = createDayEvent(request);
-        List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-10-02", "2024-11-06"));
+        List<LocalDate> dates = createDates(List.of("2024-09-30", "2024-10-28", "2024-11-25", "2024-12-30"));
 
         this.underTest.create(request, dayEvent);
         this.testEntityManager.flush();
 
         List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventId(dayEvent.getId());
 
-        assertThat(dayEventSlots).hasSize(3);
+        assertThat(dayEventSlots).hasSize(4);
         for (int i = 0; i < dayEventSlots.size(); i++) {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
@@ -392,12 +396,12 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     /*
         Our repetitionOccurrences are not inclusive. When it is set to 2, it will occur 2 times in total, the initial one
-         plus 1 more time. Not the initial one plus the repetitionOccurrences.
-         1st Wednesday of September is "2024-09-04", of November is "2024-11-06", of January is "2025-01-01"(if it was
-         inclusive)
+        plus 1 more time. Not the initial one plus the repetitionOccurrences.
+        1st Wednesday of September is "2024-09-04", of November is "2024-11-06", of January is "2025-01-01"(if it was
+        inclusive)
      */
     @Test
-    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayForNRepetitions() {
+    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekDayForNRepetitions() {
         DayEventRequest request = DayEventRequest.builder()
                 .name("Event name")
                 .startDate(LocalDate.parse("2024-09-04"))

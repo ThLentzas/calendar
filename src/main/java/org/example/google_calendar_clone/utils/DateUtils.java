@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,7 +54,6 @@ public final class DateUtils {
         return occurrences;
     }
 
-    // toDo: adjust one of the tests to test this case
     /*
         The date corresponds to the nth occurrence of a given day of the week within a month.
         2nd Tuesday of April 2024 -> returns the date 9/04/2024
@@ -63,6 +63,10 @@ public final class DateUtils {
         do not have 5 occurrences of a Monday we return the last one(4th). For example 2024-09-30, is the 5th Monday
         of September if the event is to be repeated on October on the 5th Monday it would not work, October has only 4
         Mondays, we return the last one at 28.
+
+        The edge case is tested:
+        @Test
+        void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayUntilDate(), DayEventSlotServiceTest
      */
     public static LocalDate findDateOfNthDayOfWeekInMonth(YearMonth yearMonth, DayOfWeek day, int occurrences) {
         LocalDate firstDayOfMonth = LocalDate.of(yearMonth.getYear(), yearMonth.getMonth(), 1);
@@ -168,5 +172,23 @@ public final class DateUtils {
 
         // Convert the ZonedDateTime to the specified time zone
         return utc.withZoneSameInstant(zoneId).toLocalDateTime();
+    }
+
+    /*
+        Let's consider these 2 dates:
+            2024-09-12 10:00 AM EDT
+            2024-09-12 4:00 PM CEST
+
+            Without taking timezones into consideration, the duration of the event would be 6 hours, but this not the
+            case. If both are converted to UTC, the difference is 0, both are 14:00 UTC. This is why we need to consider
+            timezones for the event duration
+     */
+    public static long calculateTimeZoneAwareDifference(LocalDateTime startTime,
+                                                        ZoneId startTimeZoneId,
+                                                        LocalDateTime endTime,
+                                                        ZoneId endTimeZoneId) {
+        LocalDateTime utcStartTime = convertToUTC(startTime, startTimeZoneId);
+        LocalDateTime utcEndTime = convertToUTC(endTime, endTimeZoneId);
+        return ChronoUnit.MINUTES.between(utcStartTime, utcEndTime);
     }
 }

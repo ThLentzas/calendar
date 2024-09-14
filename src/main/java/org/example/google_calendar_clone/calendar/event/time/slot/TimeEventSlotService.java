@@ -333,26 +333,35 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         The user provides the start time and end time to their preferred timezone. We are storing the start time and
         end time to UTC. When we will display the event to the user, we can convert back to the user's timezone that we
         stored along the start and end time. This way we have consistency in the times stored in our db and we can adjust
-        accordingly. The end time in UTC is the start time in UTC plus the event duration.
+        accordingly. The end time in UTC is the start time in UTC plus the event duration calculated aware of different
+        timezones.
+
+        Let's consider these 2 dates:
+            2024-09-12 10:00 AM EDT
+            2024-09-12 4:00 PM CEST
+
+            Without taking timezones into consideration, the duration of the event would be 6 hours, but this not the
+            case. If both are converted to UTC, the difference is 0, both are 14:00 UTC. This is why we need to consider
+            timezones for the event duration
      */
     private void createTimeEventSlot(TimeEventRequest eventRequest, TimeEvent event, LocalDateTime startTime) {
         startTime = DateUtils.convertToUTC(startTime, eventRequest.getStartTimeZoneId());
-        LocalDateTime endTime = startTime.plusMinutes(getEventDuration(event.getStartTime(), eventRequest.getEndTime()));
+        LocalDateTime endTime = startTime.plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                event.getStartTime(),
+                event.getStartTimeZoneId(),
+                event.getEndTime(),
+                event.getEndTimeZoneId()));
 
         TimeEventSlot timeEventSlot = new TimeEventSlot();
         timeEventSlot.setStartTime(startTime);
         timeEventSlot.setEndTime(endTime);
-        timeEventSlot.setStartTimeZoneId(eventRequest.getStartTimeZoneId());
-        timeEventSlot.setEndTimeZoneId(eventRequest.getEndTimeZoneId());
+        timeEventSlot.setStartTimeZoneId(event.getStartTimeZoneId());
+        timeEventSlot.setEndTimeZoneId(event.getEndTimeZoneId());
         timeEventSlot.setName(eventRequest.getName());
         timeEventSlot.setDescription(eventRequest.getDescription());
         timeEventSlot.setLocation(eventRequest.getLocation());
         timeEventSlot.setGuestEmails(eventRequest.getGuestEmails());
         timeEventSlot.setTimeEvent(event);
         this.timeEventSlotRepository.save(timeEventSlot);
-    }
-
-    private int getEventDuration(LocalDateTime startTime, LocalDateTime endTime) {
-        return (int) ChronoUnit.MINUTES.between(startTime, endTime);
     }
 }

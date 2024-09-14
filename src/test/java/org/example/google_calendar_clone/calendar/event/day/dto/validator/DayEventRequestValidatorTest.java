@@ -249,8 +249,8 @@ class DayEventRequestValidatorTest {
                     Adjusts now() to the closest upcoming Thursday. If now() is already a Thursday, it remains unchanged.
                     For example, if now() is 2024-09-10 (a Tuesday), with(DayOfWeek.THURSDAY) will return 2024-09-12.
                  */
-                .startDate(LocalDate.now().with(DayOfWeek.THURSDAY))
-                .endDate(LocalDate.now().with(DayOfWeek.THURSDAY))
+                .startDate(LocalDate.now().with(DayOfWeek.THURSDAY).plusWeeks(1))
+                .endDate(LocalDate.now().with(DayOfWeek.THURSDAY).plusWeeks(1))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .weeklyRecurrenceDays(EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY))
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)

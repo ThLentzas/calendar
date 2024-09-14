@@ -36,7 +36,7 @@ public class DayEventService implements IEventService<DayEventRequest> {
     private static final Logger logger = LoggerFactory.getLogger(DayEventService.class);
 
     @Override
-    public UUID create(Jwt jwt, DayEventRequest dayEventRequest) {
+    public UUID create(Jwt jwt, DayEventRequest eventRequest) {
         /*
             The current authenticated user is the organizer of the event. We can't call getReferenceById(), we need the
             username of the user to set it as the organizer in the invitation email template
@@ -45,16 +45,16 @@ public class DayEventService implements IEventService<DayEventRequest> {
             logger.info("Authenticated user with id: {} was not found in the database", jwt.getSubject());
             return new ServerErrorException("Internal Server Error");
         });
-        DayEvent dayEvent = DayEvent.builder()
-                .startDate(dayEventRequest.getStartDate())
-                .endDate(dayEventRequest.getEndDate())
-                .repetitionFrequency(dayEventRequest.getRepetitionFrequency())
-                .repetitionStep(dayEventRequest.getRepetitionStep())
-                .weeklyRecurrenceDays(dayEventRequest.getWeeklyRecurrenceDays())
-                .monthlyRepetitionType(dayEventRequest.getMonthlyRepetitionType())
-                .repetitionDuration(dayEventRequest.getRepetitionDuration())
-                .repetitionEndDate(dayEventRequest.getRepetitionEndDate())
-                .repetitionOccurrences(dayEventRequest.getRepetitionOccurrences())
+        DayEvent event = DayEvent.builder()
+                .startDate(eventRequest.getStartDate())
+                .endDate(eventRequest.getEndDate())
+                .repetitionFrequency(eventRequest.getRepetitionFrequency())
+                .repetitionStep(eventRequest.getRepetitionStep())
+                .weeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays())
+                .monthlyRepetitionType(eventRequest.getMonthlyRepetitionType())
+                .repetitionDuration(eventRequest.getRepetitionDuration())
+                .repetitionEndDate(eventRequest.getRepetitionEndDate())
+                .repetitionOccurrences(eventRequest.getRepetitionOccurrences())
                 .user(user)
                 .build();
 
@@ -64,31 +64,31 @@ public class DayEventService implements IEventService<DayEventRequest> {
             now the repetitionEndDate will be 100 years from now. This is 1 way to approach the FOREVER
             case
         */
-        if (dayEventRequest.getRepetitionFrequency() != RepetitionFrequency.NEVER
-                && dayEventRequest.getRepetitionDuration() == RepetitionDuration.FOREVER) {
-            dayEvent.setRepetitionEndDate(dayEventRequest.getStartDate().plusYears(100));
+        if (eventRequest.getRepetitionFrequency() != RepetitionFrequency.NEVER
+                && eventRequest.getRepetitionDuration() == RepetitionDuration.FOREVER) {
+            event.setRepetitionEndDate(eventRequest.getStartDate().plusYears(100));
         }
 
-        this.dayEventRepository.save(dayEvent);
-        this.dayEventSlotService.create(dayEventRequest, dayEvent);
+        this.dayEventRepository.save(event);
+        this.dayEventSlotService.create(eventRequest, event);
         DayEventInvitationEmailRequest emailRequest = DayEventInvitationEmailRequest.builder()
-                .eventName(dayEventRequest.getName())
-                .location(dayEventRequest.getLocation())
+                .eventName(eventRequest.getName())
+                .location(eventRequest.getLocation())
                 .organizer(user.getUsername())
-                .guestEmails(dayEventRequest.getGuestEmails())
-                .repetitionFrequency(dayEvent.getRepetitionFrequency())
-                .repetitionStep(dayEvent.getRepetitionStep())
-                .weeklyRecurrenceDays(dayEvent.getWeeklyRecurrenceDays())
-                .monthlyRepetitionType(dayEvent.getMonthlyRepetitionType())
-                .repetitionDuration(dayEvent.getRepetitionDuration())
-                .repetitionEndDate(dayEvent.getRepetitionEndDate())
-                .repetitionOccurrences(dayEvent.getRepetitionOccurrences())
-                .startDate(dayEvent.getStartDate())
+                .guestEmails(eventRequest.getGuestEmails())
+                .repetitionFrequency(event.getRepetitionFrequency())
+                .repetitionStep(event.getRepetitionStep())
+                .weeklyRecurrenceDays(event.getWeeklyRecurrenceDays())
+                .monthlyRepetitionType(event.getMonthlyRepetitionType())
+                .repetitionDuration(event.getRepetitionDuration())
+                .repetitionEndDate(event.getRepetitionEndDate())
+                .repetitionOccurrences(event.getRepetitionOccurrences())
+                .startDate(event.getStartDate())
                 .build();
 
         this.emailService.sendInvitationEmail(emailRequest);
 
-        return dayEvent.getId();
+        return event.getId();
     }
 
     @Override
