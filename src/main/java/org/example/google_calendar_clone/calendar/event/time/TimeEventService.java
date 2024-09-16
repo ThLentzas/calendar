@@ -90,7 +90,6 @@ public class TimeEventService implements IEventService<TimeEventRequest> {
                 .startTimeZoneId(event.getStartTimeZoneId())
                 .endTimeZoneId(event.getEndTimeZoneId())
                 .build();
-
         this.emailService.sendInvitationEmail(emailRequest);
 
         return event.getId();

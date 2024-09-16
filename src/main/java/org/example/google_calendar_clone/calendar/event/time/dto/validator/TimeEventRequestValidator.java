@@ -5,11 +5,11 @@ import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventReques
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.example.google_calendar_clone.utils.RepetitionUtils;
 
-
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 
 /*
     According to Google Calendar time events can have a duration of more than 1 day.
@@ -87,6 +87,35 @@ public class TimeEventRequestValidator implements ConstraintValidator<ValidTimeE
             return false;
         }
 
+        /*
+            A time event can span between 2 days, but no more than 24 hours.
+
+            September 16, 2024, 23:00 (UTC+2, Central European Summer Time)
+            September 17, 2024, 03:00 (UTC+4, Dubai Time)
+
+            In UTC the event's duration is from 21:00 - 23:00, it is a 2-hour event that spans in 2 different days, this
+            is valid.
+
+            September 16, 2024, 18:00 (UTC+2, Central European Summer Time)
+            September 17, 2024, 21:00 (UTC+4, Dubai Time)
+
+            In UTC the event's duration is from September 16, 16:00 - to September 17, 17:00, it is more than 24 hours,
+            not a valid Time event
+
+         */
+        if (value.getStartTime() != null
+                && value.getEndTime() != null
+                && DateUtils.calculateTimeZoneAwareDifference(value.getStartTime(),
+                value.getStartTimeZoneId(),
+                value.getEndTime(),
+                value.getEndTimeZoneId(),
+                ChronoUnit.DAYS) > 0) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Time events can not span for more than 24 hours. Consider " +
+                            "creating a Day event instead")
+                    .addConstraintViolation();
+            return false;
+        }
         /*
             When the user did not provide a repetition frequency we default to NEVER . An alternative would
             be to consider the request invalid.

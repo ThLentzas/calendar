@@ -1,5 +1,6 @@
 package org.example.google_calendar_clone;
 
+import com.icegreen.greenmail.store.FolderException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -70,10 +71,16 @@ public abstract class AbstractIntegrationTest {
         RestAssured.port = port;
     }
 
+    /*
+        We have ON DELETE CASCADE and every user related entries will also be deleted.
+        We need to delete the received emails between the tests, so
+            await().atMost(5, TimeUnit.SECONDS).until(() -> greenMail.getReceivedMessages().length == 1);
+        does not fail, if there are previously received emails.
+     */
     @AfterEach
-    void clear() {
-        // We have ON DELETE CASCADE and every user related entries will also be deleted
+    void clear() throws FolderException {
         this.userRepository.deleteAll();
+        greenMail.purgeEmailFromAllMailboxes();
     }
 
     // The credentials from the users in the INIT_USERS.sql script. The import is from springframework data util.

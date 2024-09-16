@@ -4,7 +4,6 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -207,7 +206,8 @@ class EventIT extends AbstractIntegrationTest {
 
     @Test
     @Sql("/scripts/INIT_USERS.sql")
-    void shouldCreateTimeEvent() {
+    void shouldCreateTimeEvent() throws MessagingException {
+        String guestEmail = FAKER.internet().emailAddress();
         // Get csrf token from response header
         Response response = given()
                 .when()
@@ -249,6 +249,7 @@ class EventIT extends AbstractIntegrationTest {
                     "name": "Event name",
                     "location": "Location",
                     "description": "Description",
+                    "guestEmails": ["%s"],
                     "startTime": "%s",
                     "endTime": "%s",
                     "startTimeZoneId": "Europe/London",
@@ -260,6 +261,7 @@ class EventIT extends AbstractIntegrationTest {
                     "repetitionOccurrences": 5
                 }
                 """,
+                guestEmail,
                 LocalDateTime.now().with(DayOfWeek.THURSDAY).plusWeeks(1),
                 LocalDateTime.now().plusMinutes(30).with(DayOfWeek.THURSDAY).plusWeeks(1));
 
@@ -304,11 +306,25 @@ class EventIT extends AbstractIntegrationTest {
                         && slot.getLocation().equals("Location")
                         && slot.getDescription().equals("Description")
                         && slot.getOrganizer().equals("ellyn.roberts")
-                        && slot.getGuestEmails().equals(Collections.emptySet())
+                        && slot.getGuestEmails().equals(Set.of(guestEmail))
                         && slot.getStartTimeZoneId().equals(ZoneId.of("Europe/London"))
                         && slot.getEndTimeZoneId().equals(ZoneId.of("Europe/London"))
                         && slot.getTimeEventId().equals(timeEventId))
                 .isSortedAccordingTo(Comparator.comparing(TimeEventSlotDTO::getStartTime));
+        /*
+            Asserting on the invitation email(recipient, subject)
+            Sending the email is done Async so, we have to wait before we assert
+
+            Setting the body of the email correctly is already tested in ThymeleafServiceTest and EmailUtilsTest
+         */
+        await().atMost(5, TimeUnit.SECONDS).until(() -> greenMail.getReceivedMessages().length == 1);
+
+        MimeMessage[] messages = greenMail.getReceivedMessages();
+        MimeMessage message = messages[0];
+
+        assertThat(messages).hasSize(1);
+        assertThat(message.getAllRecipients()[0]).hasToString(guestEmail);
+        assertThat(message.getSubject()).isEqualTo("Event Invitation");
     }
 
     @Test

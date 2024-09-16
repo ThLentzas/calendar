@@ -28,7 +28,7 @@ public class EmailService {
 
     @Async
     public void sendInvitationEmail(DayEventInvitationEmailRequest emailRequest) {
-        String frequencyText = EmailUtils.formatFrequencyDescription(emailRequest);
+        String frequencyText = EmailUtils.formatFrequencyText(emailRequest);
         String context = this.thymeleafService.setInvitationEmailContext(
                 emailRequest.getStartDate(),
                 emailRequest.getEventName(),
@@ -43,17 +43,17 @@ public class EmailService {
 
     @Async
     public void sendInvitationEmail(TimeEventInvitationEmailRequest emailRequest) {
-//        String frequencyText = EmailUtils.formatFrequencyDescription(emailRequest);
-//        String context = this.thymeleafService.setInvitationEmailContext(
-//                emailRequest.getStartDate(),
-//                emailRequest.getEventName(),
-//                emailRequest.getOrganizer(),
-//                emailRequest.getLocation(),
-//                frequencyText);
-//
-//        for (String guestEmail : emailRequest.getGuestEmails()) {
-//            sendEmail(guestEmail, "Event invitation", context);
-//        }
+        String frequencyText = EmailUtils.formatFrequencyText(emailRequest);
+        String context = this.thymeleafService.setInvitationEmailContext(
+                emailRequest.getStartTime().toLocalDate(),
+                emailRequest.getEventName(),
+                emailRequest.getOrganizer(),
+                emailRequest.getLocation(),
+                frequencyText);
+
+        for (String guestEmail : emailRequest.getGuestEmails()) {
+            sendEmail(guestEmail, "Event Invitation", context);
+        }
     }
 
     private void sendEmail(String recipient, String subject, String emailContext) {

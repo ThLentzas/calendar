@@ -350,7 +350,8 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
                 event.getStartTime(),
                 event.getStartTimeZoneId(),
                 event.getEndTime(),
-                event.getEndTimeZoneId()));
+                event.getEndTimeZoneId(),
+                ChronoUnit.MINUTES));
 
         TimeEventSlot timeEventSlot = new TimeEventSlot();
         timeEventSlot.setStartTime(startTime);

@@ -22,6 +22,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -93,7 +94,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                         event.getStartTime(),
                         event.getStartTimeZoneId(),
                         event.getEndTime(),
-                        event.getEndTimeZoneId())))
+                        event.getEndTimeZoneId(),
+                        ChronoUnit.MINUTES)))
                 .hasStartTimeZoneId(event.getStartTimeZoneId())
                 .hasEndTimeZoneId(event.getEndTimeZoneId())
                 .hasName(request.getName())
@@ -139,7 +141,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                         event.getStartTime(),
                         event.getStartTimeZoneId(),
                         event.getEndTime(),
-                        event.getEndTimeZoneId())))
+                        event.getEndTimeZoneId(),
+                        ChronoUnit.MINUTES)))
                 .hasStartTimeZoneId(event.getStartTimeZoneId())
                 .hasEndTimeZoneId(event.getEndTimeZoneId())
                 .hasName(request.getName())
@@ -185,7 +188,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                         event.getStartTime(),
                         event.getStartTimeZoneId(),
                         event.getEndTime(),
-                        event.getEndTimeZoneId())))
+                        event.getEndTimeZoneId(),
+                        ChronoUnit.MINUTES)))
                 .hasStartTimeZoneId(event.getStartTimeZoneId())
                 .hasEndTimeZoneId(event.getEndTimeZoneId())
                 .hasName(request.getName())
@@ -238,7 +242,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
@@ -296,7 +301,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
@@ -351,7 +357,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
@@ -407,7 +414,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
@@ -456,7 +464,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
@@ -512,7 +521,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
@@ -560,7 +570,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
@@ -609,7 +620,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
@@ -656,7 +668,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())
@@ -707,7 +720,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
-                            event.getEndTimeZoneId())))
+                            event.getEndTimeZoneId(),
+                            ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
                     .hasName(request.getName())

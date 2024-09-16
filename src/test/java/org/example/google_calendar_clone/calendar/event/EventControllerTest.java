@@ -410,7 +410,7 @@ class EventControllerTest {
     // createTimeEvent()
     @Test
     void should201WhenTimeEventIsCreatedSuccessfully() throws Exception {
-        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(1).plusMinutes(30));
         UUID eventId = UUID.randomUUID();
 
         when(this.timeEventService.create(any(Jwt.class), eq(timeEventRequest))).thenReturn(eventId);

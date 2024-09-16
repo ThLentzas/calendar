@@ -79,7 +79,6 @@ class TimeEventRequestValidatorTest {
 
     // We don't have to test if end time is in the past because start time > end time if start time is in future or
     // present and end time is in the past, the condition will be true
-
     @Test
     void shouldReturnFalseWhenStartTimeIsAfterEndTimeWithSameTimezones() {
         TimeEventRequest request = TimeEventRequest.builder()
@@ -99,7 +98,27 @@ class TimeEventRequestValidatorTest {
 
         assertThat(violation.getMessage()).isEqualTo("Start time must be before end time");
     }
+    @Test
+    void shouldReturnFalseWhenTimeEventSpansMoreThan24HoursAcrossTimeZones() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .name("Event name")
+                .startTime(LocalDateTime.now(ZoneId.of("Asia/Dubai")).plusDays(1))
+                .endTime(LocalDateTime.now(ZoneId.of("Asia/Dubai")).plusDays(2))
+                .startTimeZoneId(ZoneId.of("Asia/Dubai"))
+                .endTimeZoneId(ZoneId.of("Asia/Dubai"))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.now().plusYears(1))
+                .build();
 
+        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
+
+        assertThat(violation.getMessage()).isEqualTo("Time events can not span for more than 24 hours. Consider creating a Day event instead");
+    }
+
+    // Time events can't be more than 24 hours long
     @Test
     void shouldReturnFalseWhenStartTimeIsAfterEndTimeWithDifferentTimezones() {
         LocalDateTime startTime = LocalDateTime.now(ZoneId.of("America/New_York")).plusDays(2);
@@ -127,13 +146,13 @@ class TimeEventRequestValidatorTest {
         TimeEventRequest request = TimeEventRequest.builder()
                 .name("Event name")
                 .startTime(LocalDateTime.now(ZoneId.of("Asia/Tokyo")).plusDays(1))
-                .endTime(LocalDateTime.now(ZoneId.of("Asia/Tokyo")).plusDays(3))
+                .endTime(LocalDateTime.now(ZoneId.of("Asia/Tokyo")).plusDays(1).plusMinutes(30))
                 .startTimeZoneId(ZoneId.of("Asia/Tokyo"))
                 .endTimeZoneId(ZoneId.of("Asia/Tokyo"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
-                .repetitionEndDate(LocalDate.now().plusDays(2))
+                .repetitionEndDate(LocalDate.now(ZoneId.of("Asia/Tokyo")))
                 .build();
 
         Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnCreate.class);

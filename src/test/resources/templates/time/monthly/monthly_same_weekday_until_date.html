@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Invitation</title>
+    <style>
+        * {
+            border: 0;
+            margin: 0;
+            padding: 0;
+            outline: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+        }
+
+        .event-container {
+            display: flex;
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .calendar-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 80px;
+            background-color: #e0e0e0;
+            border-right: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        .calendar-icon {
+            width: 70px;
+            height: 100px;
+            background-color: #ffffff;
+            border-radius: 4px;
+            text-align: center;
+            overflow: visible;
+        }
+
+        .calendar-icon .month {
+            background-color: #6200EE;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 4px 0;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .calendar-icon .day {
+            font-size: 18px;
+            color: #2f2f2f;
+            padding: 6px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .calendar-icon .weekday {
+            font-size: 12px;
+            color: #777;
+            padding: 4px 0;
+            width: 100%;
+        }
+
+        .event-details {
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        .event-details h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .event-details p {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .response-buttons button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .response-buttons button:last-child {
+            margin-right: 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="event-container">
+    <div class="calendar-section">
+        <div class="calendar-icon">
+            <div class="month">Mar</div>
+            <div class="day">20</div>
+            <div class="weekday">Thu</div>
+        </div>
+    </div>
+    <div class="event-details">
+        <h3>Event name</h3>
+        <p>Frequency: Monthly on the third Thursday, from Thu Mar 20, 2025 to Tue Jul 15, 2025</p>
+        <p>Organizer: Organizer</p>
+    </div>
+</div>
+
+</body>
+</html>

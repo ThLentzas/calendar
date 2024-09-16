@@ -6,7 +6,9 @@ import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.temporal.ChronoUnit;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalUnit;
+import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,15 +96,20 @@ public final class DateUtils {
         LocalDate lastDayOfMonth = YearMonth.of(date.getYear(), date.getMonth()).atEndOfMonth();
         int count = 0;
 
-        for (LocalDate currentDate = firstDayOfMonth; !currentDate.isAfter(lastDayOfMonth); currentDate = currentDate.plusDays(1)) {
+        LocalDate currentDate = firstDayOfMonth;
+        for (; !currentDate.isAfter(lastDayOfMonth); currentDate = currentDate.plusDays(1)) {
             if (currentDate.getDayOfWeek().equals(date.getDayOfWeek())) {
                 count++;
             }
             if (count == occurrences) {
-                return true;
+                break;
             }
         }
-        return false;
+
+        // Returns true when the if condition in the loop was never true, which is the case of the 5th occurrence of a day in a month
+        // 2024-09-30 is the 5th Monday of September. If the month we are iterating does not have a 5th Monday it will return true
+        // because we will iterate the loop without the condition count == occurrences being true.
+        return currentDate.equals(lastDayOfMonth);
     }
 
     /*
@@ -157,6 +164,9 @@ public final class DateUtils {
         https://stackoverflow.com/questions/76191242/converting-utc-to-local-time-with-daylight-saving-in-java
 
         ZoneDateTime handles the DST we don't have to worry about it.
+
+        We handle the following scenario correctly where September 16, 2024, 11:00 PM (23:00) for "America/Los_Angeles"
+        with a UTC offset of -7 is actually 2024-09-17T06:00 which moves it to the next day the (17)
      */
     public static LocalDateTime convertToUTC(LocalDateTime dateTime, ZoneId zoneId) {
         // Convert the LocalDateTime to ZonedDateTime with the provided ZoneId
@@ -186,9 +196,28 @@ public final class DateUtils {
     public static long calculateTimeZoneAwareDifference(LocalDateTime startTime,
                                                         ZoneId startTimeZoneId,
                                                         LocalDateTime endTime,
-                                                        ZoneId endTimeZoneId) {
+                                                        ZoneId endTimeZoneId,
+                                                        TemporalUnit unit) {
         LocalDateTime utcStartTime = convertToUTC(startTime, startTimeZoneId);
         LocalDateTime utcEndTime = convertToUTC(endTime, endTimeZoneId);
-        return ChronoUnit.MINUTES.between(utcStartTime, utcEndTime);
+        return unit.between(utcStartTime, utcEndTime);
+    }
+
+    /*
+        The DateTimeFormatter uses the default locale of the JVM when formatting dates and times unless a specific
+        locale is provided. If we do not specify Locale it will use Greek in our case so the result will look like this
+
+        Sat Sep 14, 2024 from 4:30μ.μ.to 5:30μ.μ.
+     */
+    public static String formatTimeRange(LocalDateTime startTime, LocalDateTime endTime) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("h:mma", Locale.ENGLISH);
+        String startFormatted = startTime.format(formatter).toLowerCase(Locale.ENGLISH);
+        String endFormatted = endTime.format(formatter).toLowerCase(Locale.ENGLISH);
+
+        if (startTime.getDayOfMonth() == endTime.getDayOfMonth()) {
+            return startFormatted + " - " + endFormatted;
+        }
+
+        return startFormatted;
     }
 }
