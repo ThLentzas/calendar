@@ -1,6 +1,7 @@
 package org.example.google_calendar_clone.calendar.event.time.slot;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
+import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
@@ -10,6 +11,8 @@ import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventS
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.entity.User;
+import org.example.google_calendar_clone.exception.ConflictException;
+import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.example.google_calendar_clone.user.UserRepository;
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,14 +26,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
+import java.util.UUID;
 
 import net.datafaker.Faker;
+
+import static org.assertj.core.api.Assertions.*;
 
 /*
     The reason why the repository is not mocked, is explained in the DayEventSlotServiceTest
@@ -53,7 +57,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @BeforeEach
     void setup() {
-        this.underTest = new TimeEventSlotService(timeEventSlotRepository, userRepository);
+        this.underTest = new TimeEventSlotService(timeEventSlotRepository, timeEventRepository, userRepository);
     }
 
     /*
@@ -534,7 +538,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
     @Test
-    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayUntilDate() {
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekdayUntilDate() {
         TimeEventRequest request = TimeEventRequest.builder()
                 .name("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
@@ -583,7 +587,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
     @Test
-    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekDayForNRepetitions() {
+    void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekdayForNRepetitions() {
         TimeEventRequest request = TimeEventRequest.builder()
                 .name("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
@@ -733,6 +737,99 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
     @Test
+    void shouldInviteGuests() {
+        UUID slotId = UUID.fromString("3075c6eb-8028-4f99-8c6c-27db1bb5cc43");
+        String guestEmail = FAKER.internet().emailAddress();
+        InviteGuestsRequest inviteGuestsRequest = new InviteGuestsRequest(Set.of(guestEmail));
+
+        this.underTest.inviteGuests(1L, slotId, inviteGuestsRequest);
+        // flush() the changes to the db so the findById() does not fetch from the cache(1st level)
+        this.testEntityManager.flush();
+
+        TimeEventSlot actual = this.timeEventSlotRepository.findByIdOrThrow(slotId);
+        TimeEventSlotAssert.assertThat(actual)
+                .hasGuests(Set.of("ericka.ankunding@hotmail.com", guestEmail));
+    }
+
+    /*
+        In this case, the event slot exists the user that made the request is not the organizer
+     */
+    @Test
+    void shouldThrowResourceNotFoundExceptionForInviteGuests() {
+        UUID slotId = UUID.fromString("3075c6eb-8028-4f99-8c6c-27db1bb5cc43");
+        String guestEmail = FAKER.internet().emailAddress();
+        InviteGuestsRequest inviteGuestsRequest = new InviteGuestsRequest(Set.of(guestEmail));
+
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.inviteGuests(
+                        2L, slotId, inviteGuestsRequest))
+                .withMessage("Time event slot not found with id: " + slotId);
+    }
+
+    @Test
+    void shouldThrowConflictExceptionWhenOrganizerEmailIsInGuestList() {
+        UUID slotId = UUID.fromString("3075c6eb-8028-4f99-8c6c-27db1bb5cc43");
+        String guestEmail = FAKER.internet().emailAddress();
+        // 2nd email is the email of the organizer(from the sql script)
+        InviteGuestsRequest inviteGuestsRequest = new InviteGuestsRequest(Set.of(guestEmail, "joshua.wolf@hotmail.com"));
+
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.inviteGuests(
+                        1L, slotId, inviteGuestsRequest))
+                .withMessage("Organizer of the event can't be added as guest");
+    }
+
+    // The method returns the events slots in ASC order and for the given eventId we expect 4 event slots.
+    @Test
+    void shouldFindEventSlotsByEventId() {
+        List<TimeEventSlotDTO> eventSlots = this.underTest.findEventSlotsByEventId(
+                UUID.fromString("0c9d6398-a6de-47f0-8328-04a2f3c0511c"));
+
+        assertThat(eventSlots).hasSize(4)
+                .isSortedAccordingTo(Comparator.comparing(TimeEventSlotDTO::getStartTime))
+                .extracting(TimeEventSlotDTO::getId)
+                .containsExactly(
+                        UUID.fromString("3075c6eb-8028-4f99-8c6c-27db1bb5cc43"),
+                        UUID.fromString("f8020ab5-1bc8-4b45-9d77-1a3859c264dd"),
+                        UUID.fromString("446d9d18-2a94-4bcf-b70d-b79941e9c31a"),
+                        UUID.fromString("cdcf754a-8ebd-45aa-bd0c-85719e3b16a2")
+                );
+    }
+
+    // User with id 3L is the organizer of the event
+    @Test
+    void shouldFindEventSlotByIdWhereUserIsEitherOrganizerOrInvitedGuest() {
+        UUID slotId = UUID.fromString("3075c6eb-8028-4f99-8c6c-27db1bb5cc43");
+        TimeEventSlotDTO expected = TimeEventSlotDTO.builder()
+                .id(slotId)
+                .name("Event name")
+                .startTime(LocalDateTime.parse("2024-10-11T10:00:00"))
+                .endTime(LocalDateTime.parse("2024-10-15T15:00:00"))
+                .startTimeZoneId(ZoneId.of("Europe/London"))
+                .endTimeZoneId(ZoneId.of("Europe/London"))
+                .location("Location")
+                .description("Description")
+                .organizer("kris.hudson")
+                .guestEmails(Set.of("ericka.ankunding@hotmail.com"))
+                .timeEventId(UUID.fromString("0c9d6398-a6de-47f0-8328-04a2f3c0511c"))
+                .build();
+
+        TimeEventSlotDTO actual = this.underTest.findByUserAndSlotId(1L, slotId);
+
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+    }
+
+    /*
+        In this case, the event slot does not exist.
+     */
+    @Test
+    void shouldThrowResourceNotFoundExceptionForFindByUserAndSlotId() {
+        UUID slotId = UUID.randomUUID();
+
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.findByUserAndSlotId(
+                        1L, slotId))
+                .withMessage("Time event slot not found with id: " + slotId);
+    }
+
+    @Test
     void shouldFindDayEventSlotsInDateRangeWhereUserIsOrganizerOrInvitedAsGuest() {
         User user = this.userRepository.getReferenceById(2L);
 
@@ -757,6 +854,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                         tuple(LocalDateTime.parse("2024-10-25T10:00:00"), Set.of("ericka.ankunding@hotmail.com"), "kris.hudson"),
                         tuple(LocalDateTime.parse("2024-10-28T22:00:00"), Set.of(), "clement.gulgowski"));
     }
+
 
     private TimeEvent createTimeEvent(TimeEventRequest eventRequest) {
         // We know the id from the sql script

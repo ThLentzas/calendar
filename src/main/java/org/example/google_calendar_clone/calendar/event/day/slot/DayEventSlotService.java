@@ -1,7 +1,7 @@
 package org.example.google_calendar_clone.calendar.event.day.slot;
 
-import org.example.google_calendar_clone.calendar.event.day.DayEventService;
-import org.example.google_calendar_clone.calendar.event.dto.InviteGuestRequest;
+import org.example.google_calendar_clone.calendar.event.day.DayEventRepository;
+import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTOConverter;
@@ -11,14 +11,10 @@ import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDur
 import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.entity.DayEventSlot;
 import org.example.google_calendar_clone.entity.User;
-import org.example.google_calendar_clone.exception.ConflictException;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
-import org.example.google_calendar_clone.exception.ServerErrorException;
 import org.example.google_calendar_clone.user.UserRepository;
 import org.example.google_calendar_clone.utils.DateUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.oauth2.jwt.Jwt;
+import org.example.google_calendar_clone.utils.EventUtils;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -37,9 +33,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class DayEventSlotService implements IEventSlotService<DayEventRequest, DayEvent, DayEventSlotDTO> {
     private final DayEventSlotRepository dayEventSlotRepository;
+    private final DayEventRepository dayEventRepository;
     private final UserRepository userRepository;
     private static final DayEventSlotDTOConverter converter = new DayEventSlotDTOConverter();
-    private static final Logger logger = LoggerFactory.getLogger(DayEventSlotService.class);
+    private static final String EVENT_SLOT_NOT_FOUND_MSG = "Day event slot not found with id: ";
 
     /*
         For every event we need to precompute the future day events as long as it repeats. In the DAILY case
@@ -113,29 +110,35 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         }
     }
 
-    // We can not call getReferenceById(), we need the email. An alternative could be to add the email as custom claim
-    // Our Jwt is stored in an HttpOnlyCookie
+    /*
+        We can not call getReferenceById(), we need the email.
+
+        There are 2 cases where the existsByEventIdAndUserId() could throw ResourceNotFoundException.
+            1. Event exists but the authenticated user is not the organizer
+            2. Event does not exist
+        We cover both with our existsByEventIdAndUserId(). If the event exists and the user is not organizer it returns
+        false. If the event does not exist it also returns false. In theory, the user should exist in our database,
+        because we use the id of the current authenticated user. There is also an argument for data integrity problems,
+        where the user was deleted and the token was not invalidated.
+     */
     @Override
-    public void inviteGuests(Jwt jwt, UUID slotId, InviteGuestRequest inviteGuestRequest) {
-        DayEventSlot dayEventSlot = this.dayEventSlotRepository.findBySlotId(slotId).orElseThrow(() ->
-                new ResourceNotFoundException("Day event slot not found with id: " + slotId));
-        User user = this.userRepository.findById(Long.valueOf(jwt.getSubject())).orElseThrow(() -> {
-            logger.info("Authenticated user with id: {} was not found in the database", jwt.getSubject());
-            return new ServerErrorException("Internal Server Error");
-        });
-
-
-        if (inviteGuestRequest.guestEmails().contains(user.getEmail())) {
-            throw new ConflictException("Organizer of the event can't be added as guest");
+    public void inviteGuests(Long userId, UUID slotId, InviteGuestsRequest inviteGuestsRequest) {
+        DayEventSlot eventSlot = this.dayEventSlotRepository.findByIdOrThrow(slotId);
+        if (!this.dayEventRepository.existsByEventIdAndUserId(eventSlot.getDayEvent().getId(), userId)) {
+            throw new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId);
         }
 
-        // We filter out emails that don't contain @ and those that are already invited.
-        Set<String> guestEmails = inviteGuestRequest.guestEmails().stream()
-                .filter(email -> email.contains("@"))
-                .filter(email -> dayEventSlot.getGuestEmails().contains(email))
-                .collect(Collectors.toSet());
+        User user = this.userRepository.findAuthUserByIdOrThrow(userId);
+        Set<String> guestEmails = EventUtils.processGuestEmails(user, inviteGuestsRequest, eventSlot.getGuestEmails());
+        eventSlot.getGuestEmails().addAll(guestEmails);
+
+        // The method is @Transactional, but we explicitly call save() to know that we update the guest list
+        this.dayEventSlotRepository.save(eventSlot);
     }
 
+    /*
+        Returns an event slot where the user is either the organizer or invited as guest
+     */
     @Override
     public List<DayEventSlotDTO> findEventSlotsByEventId(UUID eventId) {
         return this.dayEventSlotRepository.findByEventId(eventId)
@@ -144,8 +147,19 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
                 .toList();
     }
 
+    @Override
+    public DayEventSlotDTO findByUserAndSlotId(Long userId, UUID slotId) {
+        User user = this.userRepository.findAuthUserByIdOrThrow(userId);
+        DayEventSlot eventSlot = this.dayEventSlotRepository.findByUserIdAndSlotId(
+                user.getId(),
+                user.getEmail(),
+                slotId).orElseThrow(() -> new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId));
+
+        return converter.convert(eventSlot);
+    }
+
     public List<DayEventSlotDTO> findEventSlotsByUserInDateRange(User user, LocalDate startDate, LocalDate endDate) {
-        return this.dayEventSlotRepository.findByUserInDateRange(user, user.getEmail(), startDate, endDate)
+        return this.dayEventSlotRepository.findByUserInDateRange(user.getId(), user.getEmail(), startDate, endDate)
                 .stream()
                 .map(converter::convert)
                 .toList();
@@ -242,7 +256,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         int count = 0;
         LocalDate startDate;
         LocalDate date = dayEvent.getStartDate();
-        while(count < dayEvent.getRepetitionOccurrences()) {
+        while (count < dayEvent.getRepetitionOccurrences()) {
             for (DayOfWeek dayOfWeek : dayEvent.getWeeklyRecurrenceDays()) {
                 int differenceInDays = dayEvent.getStartDate().getDayOfWeek().getValue() - dayOfWeek.getValue();
                 if (differenceInDays > 0) {
@@ -251,11 +265,11 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
                     // Math.abs() would also, we are using the minus operator, which negates the integer(changes the sing)
                     startDate = date.plusDays(-differenceInDays);
                 }
-                if(!startDate.isBefore(dayEvent.getStartDate())) {
+                if (!startDate.isBefore(dayEvent.getStartDate())) {
                     createDayEventSlot(dayEventRequest, dayEvent, startDate);
                     count++;
                     // During the inner loop the count might be equal or greater than the occurrences
-                    if(count == dayEvent.getRepetitionOccurrences()) {
+                    if (count == dayEvent.getRepetitionOccurrences()) {
                         return;
                     }
                 }

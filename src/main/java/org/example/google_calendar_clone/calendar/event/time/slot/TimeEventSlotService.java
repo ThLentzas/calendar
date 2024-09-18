@@ -1,23 +1,22 @@
 package org.example.google_calendar_clone.calendar.event.time.slot;
 
-import org.example.google_calendar_clone.calendar.event.dto.InviteGuestRequest;
+import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
+import org.example.google_calendar_clone.calendar.event.time.TimeEventRepository;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTOConverter;
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.entity.User;
-import org.example.google_calendar_clone.exception.ConflictException;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
-import org.example.google_calendar_clone.exception.ServerErrorException;
 import org.example.google_calendar_clone.user.UserRepository;
 import org.example.google_calendar_clone.utils.DateUtils;
+import org.example.google_calendar_clone.utils.EventUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -38,9 +37,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TimeEventSlotService implements IEventSlotService<TimeEventRequest, TimeEvent, TimeEventSlotDTO> {
     private final TimeEventSlotRepository timeEventSlotRepository;
+    private final TimeEventRepository timeEventRepository;
     private final UserRepository userRepository;
     private static final TimeEventSlotDTOConverter converter = new TimeEventSlotDTOConverter();
     private static final Logger logger = LoggerFactory.getLogger(TimeEventSlotService.class);
+    private static final String AUTH_USER_NOT_FOUND_ERROR = "Authenticated user with id: {} was not found in the database";
+    private static final String USER_NOT_ORGANIZER_ERROR = "User with id: {} is not the organizer of the event with id: {}";
+    private static final String EVENT_SLOT_NOT_FOUND_MSG = "Time event slot not found with id: ";
 
     /*
         For every time event slot, we convert the start/end time to UTC according to their respective timezones. All
@@ -71,8 +74,8 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
             }
             case MONTHLY -> {
                 if (event.getMonthlyRepetitionType().equals(MonthlyRepetitionType.SAME_WEEKDAY)) {
-                    createUntilDateMonthlySameWeekDayEventSlots(eventRequest, event);
-                    createNRepetitionsMonthlySameWeekDayEventSlots(eventRequest, event);
+                    createUntilDateMonthlySameWeekdayEventSlots(eventRequest, event);
+                    createNRepetitionsMonthlySameWeekdayEventSlots(eventRequest, event);
                 } else {
                     // For events that are repeating Monthly, over N Months, Annually, or over N years we will use the
                     // same method to take into consideration things like leap years for events at 29 February and
@@ -89,24 +92,18 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
     }
 
     @Override
-    public void inviteGuests(Jwt jwt, UUID slotId, InviteGuestRequest inviteGuestRequest) {
-        TimeEventSlot timeEventSlot = this.timeEventSlotRepository.findBySlotId(slotId).orElseThrow(() ->
-                new ResourceNotFoundException("Time event slot not found with id: " + slotId));
-        User user = this.userRepository.findById(Long.valueOf(jwt.getSubject())).orElseThrow(() -> {
-            logger.info("Authenticated user with id: {} was not found in the database", jwt.getSubject());
-            return new ServerErrorException("Internal Server Error");
-        });
-
-
-        if (inviteGuestRequest.guestEmails().contains(user.getEmail())) {
-            throw new ConflictException("Organizer of the event can't be added as guest");
+    public void inviteGuests(Long userId, UUID slotId, InviteGuestsRequest inviteGuestsRequest) {
+        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByIdOrThrow(slotId);
+        if (!this.timeEventRepository.existsByEventIdAndUserId(eventSlot.getTimeEvent().getId(), userId)) {
+            throw new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId);
         }
 
-        // We filter out emails that don't contain @ and exclude emails that are already invited
-        Set<String> guestEmails = inviteGuestRequest.guestEmails().stream()
-                .filter(email -> email.contains("@"))
-                .filter(email -> timeEventSlot.getGuestEmails().contains(email))
-                .collect(Collectors.toSet());
+        User user = this.userRepository.findAuthUserByIdOrThrow(userId);
+        Set<String> guestEmails = EventUtils.processGuestEmails(user, inviteGuestsRequest, eventSlot.getGuestEmails());
+        eventSlot.getGuestEmails().addAll(guestEmails);
+
+        // The method is @Transactional, but we explicitly call save() to know that we update the guest list
+        this.timeEventSlotRepository.save(eventSlot);
     }
 
     @Override
@@ -115,6 +112,17 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
                 .stream()
                 .map(converter::convert)
                 .toList();
+    }
+
+    @Override
+    public TimeEventSlotDTO findByUserAndSlotId(Long userId, UUID slotId) {
+        User user = this.userRepository.findAuthUserByIdOrThrow(userId);
+        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByUserAndSlotId(
+                user.getId(),
+                user.getEmail(),
+                slotId).orElseThrow(() -> new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId));
+
+        return converter.convert(eventSlot);
     }
 
     public List<TimeEventSlotDTO> findEventSlotsByUserInDateRange(User user,
@@ -250,7 +258,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
     }
 
     // Monthly events that repeat the same week day until a certain date(2nd Tuesday of the month)
-    private void createUntilDateMonthlySameWeekDayEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+    private void createUntilDateMonthlySameWeekdayEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -275,7 +283,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
     }
 
     // Monthly events that repeat the same week day until a number of repetitions(2nd Tuesday of the month)
-    private void createNRepetitionsMonthlySameWeekDayEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+    private void createNRepetitionsMonthlySameWeekdayEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }

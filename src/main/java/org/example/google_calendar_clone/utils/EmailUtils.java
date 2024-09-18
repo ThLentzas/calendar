@@ -9,12 +9,12 @@ import java.util.stream.Collectors;
 import java.time.Year;
 import java.time.format.TextStyle;
 
-import org.example.google_calendar_clone.calendar.event.AbstractEventInvitationEmailRequest;
-import org.example.google_calendar_clone.calendar.event.day.dto.DayEventInvitationEmailRequest;
+import org.example.google_calendar_clone.calendar.event.AbstractEventInvitationRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventInvitationRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationEmailRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationRequest;
 import org.example.google_calendar_clone.exception.ServerErrorException;
 
 public final class EmailUtils {
@@ -32,7 +32,7 @@ public final class EmailUtils {
         throw new UnsupportedOperationException("EmailUtils is a utility class and cannot be instantiated");
     }
 
-    public static String formatFrequencyText(DayEventInvitationEmailRequest emailRequest) {
+    public static String formatFrequencyText(DayEventInvitationRequest emailRequest) {
         StringBuilder frequencyText = new StringBuilder();
         if (emailRequest.getRepetitionFrequency().equals(RepetitionFrequency.NEVER)) {
             return frequencyText.append(emailRequest.getStartDate().getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
@@ -52,7 +52,7 @@ public final class EmailUtils {
         return frequencyText.append(dateDescription(emailRequest, emailRequest.getStartDate())).toString();
     }
 
-    public static String formatFrequencyText(TimeEventInvitationEmailRequest emailRequest) {
+    public static String formatFrequencyText(TimeEventInvitationRequest emailRequest) {
         LocalDateTime utcStartTime = DateUtils.convertToUTC(emailRequest.getStartTime(), emailRequest.getStartTimeZoneId());
         LocalDateTime utcEndTime = DateUtils.convertToUTC(emailRequest.getEndTime(), emailRequest.getEndTimeZoneId());
         String formatedTimeRange = DateUtils.formatTimeRange(utcStartTime, utcEndTime);
@@ -81,7 +81,7 @@ public final class EmailUtils {
                 .toString();
     }
 
-    private static String frequencyDescription(AbstractEventInvitationEmailRequest emailRequest, LocalDate startDate) {
+    private static String frequencyDescription(AbstractEventInvitationRequest emailRequest, LocalDate startDate) {
         StringBuilder prefix = new StringBuilder();
 
         switch (emailRequest.getRepetitionFrequency()) {
@@ -119,7 +119,7 @@ public final class EmailUtils {
     }
 
     // In the description, we include the start date and the repetition end date
-    private static String dateDescription(AbstractEventInvitationEmailRequest emailRequest, LocalDate startDate) {
+    private static String dateDescription(AbstractEventInvitationRequest emailRequest, LocalDate startDate) {
         StringBuilder dateDescription = new StringBuilder();
         switch (emailRequest.getRepetitionDuration()) {
             case FOREVER -> {

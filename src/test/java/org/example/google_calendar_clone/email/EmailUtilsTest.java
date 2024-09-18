@@ -1,10 +1,10 @@
 package org.example.google_calendar_clone.email;
 
-import org.example.google_calendar_clone.calendar.event.day.dto.DayEventInvitationEmailRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventInvitationRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationEmailRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationRequest;
 import org.example.google_calendar_clone.utils.EmailUtils;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +20,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextForNonRepeatingDayEvent() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-01-09"))
                 .repetitionFrequency(RepetitionFrequency.NEVER)
                 .build();
@@ -33,7 +33,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingDailyUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-09-12"))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
                 .repetitionStep(1)
@@ -50,7 +50,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingDailyForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-12-10"))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
                 .repetitionStep(1)
@@ -66,7 +66,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingDailyForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-09-12"))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
                 .repetitionStep(1)
@@ -82,7 +82,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNDaysUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-10-23"))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
                 .repetitionStep(4)
@@ -99,7 +99,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNDaysForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-10-15"))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
                 .repetitionStep(3)
@@ -115,7 +115,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNDaysForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-10-23"))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
                 .repetitionStep(8)
@@ -131,7 +131,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingWeeklyUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-05-12"))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .repetitionStep(1)
@@ -148,7 +148,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingWeeklyForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-10-27"))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .repetitionStep(1)
@@ -165,7 +165,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingWeeklyForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-10-27"))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .repetitionStep(1)
@@ -181,7 +181,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNWeeksUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-06-14"))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .repetitionStep(3)
@@ -198,7 +198,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNWeeksForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-08-27"))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .repetitionStep(2)
@@ -215,7 +215,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNWeeksForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-08-27"))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .repetitionStep(2)
@@ -231,7 +231,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingMonthlyOnTheSameDayUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-12-09"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(1)
@@ -248,7 +248,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingMonthlyOnTheSameDayForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-01-14"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(1)
@@ -265,7 +265,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingMonthlyOnTheSameDayForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-01-14"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(1)
@@ -281,7 +281,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingMonthlyOnTheSameWeekDayUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-03-20"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(1)
@@ -298,7 +298,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingMonthlyOnTheSameWeekDayForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-06-28"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(1)
@@ -315,7 +315,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingMonthlyOnTheSameWeekDayForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-06-28"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(1)
@@ -331,7 +331,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNMonthsOnTheSameDayUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2024-11-06"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(3)
@@ -348,7 +348,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNMonthsOnTheSameDayForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-02-03"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(2)
@@ -365,7 +365,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNMonthsOnTheSameDayForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-02-03"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(2)
@@ -381,7 +381,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNMonthsOnTheSameWeekDayUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-04-08"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(3)
@@ -398,7 +398,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNMonthsOnTheSameWeekDayForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-07-27"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(5)
@@ -415,7 +415,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNMonthsOnTheSameWeekDayForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-07-27"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(5)
@@ -431,7 +431,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingAnnuallyUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-04-28"))
                 .repetitionFrequency(RepetitionFrequency.ANNUALLY)
                 .repetitionStep(1)
@@ -447,7 +447,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingAnnuallyForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-07-18"))
                 .repetitionFrequency(RepetitionFrequency.ANNUALLY)
                 .repetitionStep(1)
@@ -463,7 +463,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingAnnuallyForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-07-18"))
                 .repetitionFrequency(RepetitionFrequency.ANNUALLY)
                 .repetitionStep(1)
@@ -478,7 +478,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNYearsUntilDate() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-09-18"))
                 .repetitionFrequency(RepetitionFrequency.ANNUALLY)
                 .repetitionStep(2)
@@ -494,7 +494,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNYearsForNRepetitions() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-11-11"))
                 .repetitionFrequency(RepetitionFrequency.ANNUALLY)
                 .repetitionStep(3)
@@ -510,7 +510,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenDayEventIsRepeatingEveryNYearsForForever() {
-        DayEventInvitationEmailRequest emailRequest  = DayEventInvitationEmailRequest.builder()
+        DayEventInvitationRequest emailRequest  = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-11-11"))
                 .repetitionFrequency(RepetitionFrequency.ANNUALLY)
                 .repetitionStep(3)
@@ -525,7 +525,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextForNonRepeatingTimeEvent() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-14T19:30"))
                 .endTime(LocalDateTime.parse("2024-09-14T20:30"))
                 .startTimeZoneId(ZoneId.of("Africa/Nairobi"))
@@ -541,7 +541,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingDailyUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-10-31T15:00"))
                 .endTime(LocalDateTime.parse("2024-10-31T15:30"))
                 .startTimeZoneId(ZoneId.of("Europe/Berlin"))
@@ -561,7 +561,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingDailyForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-08-10T13:30"))
                 .endTime(LocalDateTime.parse("2024-08-10T14:30"))
                 .startTimeZoneId(ZoneId.of("Europe/Berlin"))
@@ -581,7 +581,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingDailyForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-08-10T13:30"))
                 .endTime(LocalDateTime.parse("2024-08-10T14:30"))
                 .startTimeZoneId(ZoneId.of("Europe/Berlin"))
@@ -600,7 +600,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNDaysUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-08-10T20:30"))
                 .endTime(LocalDateTime.parse("2024-08-10T22:00"))
                 .startTimeZoneId(ZoneId.of("Europe/Helsinki"))
@@ -624,7 +624,7 @@ class EmailUtilsTest {
      */
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNDaysForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-16T23:00"))
                 .endTime(LocalDateTime.parse("2024-09-17T08:00"))
                 .startTimeZoneId(ZoneId.of("Europe/Berlin"))
@@ -643,7 +643,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNDaysForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-16T23:00"))
                 .endTime(LocalDateTime.parse("2024-09-17T08:00"))
                 .startTimeZoneId(ZoneId.of("Europe/Berlin"))
@@ -662,7 +662,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingWeeklyUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-11-17T16:30"))
                 .endTime(LocalDateTime.parse("2024-11-17T18:30"))
                 .startTimeZoneId(ZoneId.of("Europe/Helsinki"))
@@ -683,7 +683,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingWeeklyForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-10-31T04:00"))
                 .endTime(LocalDateTime.parse("2024-10-31T07:00"))
                 .startTimeZoneId(ZoneId.of("America/New_York"))
@@ -704,7 +704,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingWeeklyForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-10-31T04:00"))
                 .endTime(LocalDateTime.parse("2024-10-31T07:00"))
                 .startTimeZoneId(ZoneId.of("America/New_York"))
@@ -724,7 +724,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNWeeksUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-04T10:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T15:00"))
                 .startTimeZoneId(ZoneId.of("Asia/Singapore"))
@@ -744,7 +744,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNWeeksForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-04T10:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T15:00"))
                 .startTimeZoneId(ZoneId.of("Asia/Singapore"))
@@ -764,7 +764,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNWeeksForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-04T10:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T15:00"))
                 .startTimeZoneId(ZoneId.of("Asia/Singapore"))
@@ -783,7 +783,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingMonthlyOnTheSameDayUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-10-25T10:00"))
                 .endTime(LocalDateTime.parse("2024-10-25T10:30"))
                 .startTimeZoneId(ZoneId.of("Europe/Oslo"))
@@ -805,7 +805,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingMonthlyOnTheSameDayForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-05-18T10:00"))
                 .endTime(LocalDateTime.parse("2024-05-18T14:00"))
                 .startTimeZoneId(ZoneId.of("America/Sao_Paulo"))
@@ -826,7 +826,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingMonthlyOnTheSameDayForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-10-25T10:00"))
                 .endTime(LocalDateTime.parse("2024-10-25T10:30"))
                 .startTimeZoneId(ZoneId.of("Europe/Oslo"))
@@ -846,7 +846,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingMonthlyOnTheSameWeekDayUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T11:00"))
                 .startTimeZoneId(ZoneId.of("Africa/Nairobi"))
@@ -867,7 +867,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingMonthlyOnTheSameWeekDayForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-30T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-30T10:30"))
                 .startTimeZoneId(ZoneId.of("Europe/London"))
@@ -888,7 +888,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingMonthlyOnTheSameWeekDayForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-30T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-30T10:30"))
                 .startTimeZoneId(ZoneId.of("Europe/London"))
@@ -908,7 +908,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNMonthsOnTheSameDayUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-10-25T10:00"))
                 .endTime(LocalDateTime.parse("2024-10-25T10:30"))
                 .startTimeZoneId(ZoneId.of("Europe/Oslo"))
@@ -929,7 +929,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNMonthsOnTheSameDayForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-05-18T10:00"))
                 .endTime(LocalDateTime.parse("2024-05-18T14:00"))
                 .startTimeZoneId(ZoneId.of("America/Sao_Paulo"))
@@ -950,7 +950,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNMonthsOnTheSameDayForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-05-18T10:00"))
                 .endTime(LocalDateTime.parse("2024-05-18T14:00"))
                 .startTimeZoneId(ZoneId.of("America/Sao_Paulo"))
@@ -970,7 +970,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNMonthsOnTheSameWeekDayUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T11:00"))
                 .startTimeZoneId(ZoneId.of("Africa/Nairobi"))
@@ -991,7 +991,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNMonthsOnTheSameWeekForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-30T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-30T10:30"))
                 .startTimeZoneId(ZoneId.of("Europe/London"))
@@ -1012,7 +1012,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNMonthsOnTheSameWeekForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-30T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-30T10:30"))
                 .startTimeZoneId(ZoneId.of("Europe/London"))
@@ -1032,7 +1032,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingAnnuallyUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2025-03-22T15:00"))
                 .endTime(LocalDateTime.parse("2025-03-22T16:00"))
                 .startTimeZoneId(ZoneId.of("America/Chicago"))
@@ -1056,7 +1056,7 @@ class EmailUtilsTest {
      */
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingAnnuallyForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-06-18T18:00"))
                 .endTime(LocalDateTime.parse("2024-06-18T20:00"))
                 .startTimeZoneId(ZoneId.of("America/Chicago"))
@@ -1076,7 +1076,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingAnnuallyForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-06-18T18:00"))
                 .endTime(LocalDateTime.parse("2024-06-18T20:00"))
                 .startTimeZoneId(ZoneId.of("America/Chicago"))
@@ -1095,7 +1095,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNYearsUntilDate() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2025-03-22T15:00"))
                 .endTime(LocalDateTime.parse("2025-03-22T16:00"))
                 .startTimeZoneId(ZoneId.of("America/Chicago"))
@@ -1115,7 +1115,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNYearsForNRepetitions() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-06-18T18:00"))
                 .endTime(LocalDateTime.parse("2024-06-18T20:00"))
                 .startTimeZoneId(ZoneId.of("America/Chicago"))
@@ -1134,7 +1134,7 @@ class EmailUtilsTest {
 
     @Test
     void shouldFormatFrequencyTextWhenTimeEventIsRepeatingEveryNYearsForForever() {
-        TimeEventInvitationEmailRequest emailRequest  = TimeEventInvitationEmailRequest.builder()
+        TimeEventInvitationRequest emailRequest  = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-06-18T18:00"))
                 .endTime(LocalDateTime.parse("2024-06-18T20:00"))
                 .startTimeZoneId(ZoneId.of("America/Chicago"))

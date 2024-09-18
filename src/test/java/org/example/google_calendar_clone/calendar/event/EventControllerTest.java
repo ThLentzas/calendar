@@ -2,12 +2,14 @@ package org.example.google_calendar_clone.calendar.event;
 
 import org.example.google_calendar_clone.calendar.event.day.DayEventService;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.slot.DayEventSlotService;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.TimeEventService;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotService;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.config.SecurityConfig;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
@@ -17,8 +19,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.junit.jupiter.api.Test;
@@ -31,12 +31,12 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.hamcrest.Matchers.containsString;
 
 import java.time.LocalDate;
@@ -65,6 +65,10 @@ class EventControllerTest {
     private TimeEventService timeEventService;
     @MockBean
     private DayEventService dayEventService;
+    @MockBean
+    private TimeEventSlotService timeEventSlotService;
+    @MockBean
+    private DayEventSlotService dayEventSlotService;
     private static final String DAY_EVENT_PATH = "/api/v1/events/day-events";
     private static final String TIME_EVENT_PATH = "/api/v1/events/time-events";
 
@@ -74,7 +78,7 @@ class EventControllerTest {
         DayEventRequest dayEventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         UUID eventId = UUID.randomUUID();
 
-        when(this.dayEventService.create(any(Jwt.class), eq(dayEventRequest))).thenReturn(eventId);
+        when(this.dayEventService.create(1L, dayEventRequest)).thenReturn(eventId);
 
         this.mockMvc.perform(post(DAY_EVENT_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -192,9 +196,9 @@ class EventControllerTest {
         UUID eventId = UUID.randomUUID();
         DayEventSlotDTO dayEventSlotDTO = createDayEventSlotDTO(eventId);
 
-        when(this.dayEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenReturn(List.of(dayEventSlotDTO));
+        when(this.dayEventService.findEventSlotsByEventId(1L, eventId)).thenReturn(List.of(dayEventSlotDTO));
 
-        this.mockMvc.perform(get(DAY_EVENT_PATH + "/{eventId}", eventId)
+        this.mockMvc.perform(get(DAY_EVENT_PATH + "/{eventId}/day-event-slots", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpectAll(
@@ -212,14 +216,14 @@ class EventControllerTest {
                     "status": 404,
                     "type": "NOT_FOUND",
                     "message": "Day event not found with id: %s",
-                    "path": "%s/%s"
+                    "path": "%s/%s/day-event-slots"
                 }
                 """, eventId, DAY_EVENT_PATH, eventId);
 
-        when(this.dayEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenThrow(
-                new ResourceNotFoundException("Day event not found with id: " + eventId));
+        when(this.dayEventService.findEventSlotsByEventId(1L, eventId)).thenThrow(new ResourceNotFoundException(
+                "Day event not found with id: " + eventId));
 
-        this.mockMvc.perform(get(DAY_EVENT_PATH + "/{eventId}", eventId)
+        this.mockMvc.perform(get(DAY_EVENT_PATH + "/{eventId}/day-event-slots", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpectAll(
@@ -230,25 +234,25 @@ class EventControllerTest {
 
     // findDayEventSlotsByEventId()
     @Test
-    void should403WhenUserIsNotOrganizerOfDayEventForFindDayEventSlotsByEventId() throws Exception {
+    void should404WhenUserIsNotOrganizerOfDayEventForFindDayEventSlotsByEventId() throws Exception {
         UUID eventId = UUID.randomUUID();
         String responseBody = String.format("""
                 {
-                    "status": 403,
-                    "type": "FORBIDDEN",
-                    "message": "Access Denied",
-                    "path": "%s/%s"
+                    "status": 404,
+                    "type": "NOT_FOUND",
+                    "message": "Day event not found with id: %s",
+                    "path": "%s/%s/day-event-slots"
                 }
-                """, DAY_EVENT_PATH, eventId);
+                """, eventId, DAY_EVENT_PATH, eventId);
 
-        when(this.dayEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenThrow(
-                new AccessDeniedException("Access Denied"));
+        when(this.dayEventService.findEventSlotsByEventId(1L, eventId)).thenThrow(new ResourceNotFoundException(
+                "Day event not found with id: " + eventId));
 
-        this.mockMvc.perform(get(DAY_EVENT_PATH + "/{eventId}", eventId)
+        this.mockMvc.perform(get(DAY_EVENT_PATH + "/{eventId}/day-event-slots", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpectAll(
-                        status().isForbidden(),
+                        status().isNotFound(),
                         content().json(responseBody, false)
                 );
     }
@@ -279,13 +283,13 @@ class EventControllerTest {
     @Test
     void should204WhenDayEventIsDeletedSuccessfully() throws Exception {
         UUID eventId = UUID.randomUUID();
-        doNothing().when(this.dayEventService).deleteById(any(Jwt.class), eq(eventId));
+        doNothing().when(this.dayEventService).deleteById(1L, (eventId));
 
         this.mockMvc.perform(delete(DAY_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
-        verify(this.dayEventService, times(1)).deleteById(any(Jwt.class), eq(eventId));
+        verify(this.dayEventService, times(1)).deleteById(1L, eventId);
     }
 
     // deleteDayEventById()
@@ -302,7 +306,7 @@ class EventControllerTest {
                 """, eventId, DAY_EVENT_PATH, eventId);
 
         doThrow(new ResourceNotFoundException("Day event not found with id: " + eventId))
-                .when(this.dayEventService).deleteById(any(Jwt.class), eq(eventId));
+                .when(this.dayEventService).deleteById(1L, eventId);
 
         this.mockMvc.perform(delete(DAY_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
                         .with(authentication(AuthUtils.getAuthentication())))
@@ -314,26 +318,24 @@ class EventControllerTest {
 
     // deleteDayEventById()
     @Test
-    void should403WhenUserIsNotOrganizerOfDayEventForDeleteDayEventById() throws Exception {
+    void should404WhenUserIsNotOrganizerOfDayEventForDeleteDayEventById() throws Exception {
         UUID eventId = UUID.randomUUID();
         String responseBody = String.format("""
                 {
-                    "status": 403,
-                    "type": "FORBIDDEN",
-                    "message": "Access Denied",
+                    "status": 404,
+                    "type": "NOT_FOUND",
+                    "message": "Day event not found with id: %s",
                     "path": "%s/%s"
                 }
-                """, DAY_EVENT_PATH, eventId);
+                """, eventId, DAY_EVENT_PATH, eventId);
 
-        doThrow(new AccessDeniedException("Access Denied")).when(this.dayEventService).deleteById(
-                any(Jwt.class),
-                eq(eventId)
-        );
+        doThrow(new ResourceNotFoundException("Day event not found with id: " + eventId)).when(this.dayEventService)
+                .deleteById(1L, eventId);
 
         this.mockMvc.perform(delete(DAY_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpectAll(
-                        status().isForbidden(),
+                        status().isNotFound(),
                         content().json(responseBody, false)
                 );
     }
@@ -410,10 +412,13 @@ class EventControllerTest {
     // createTimeEvent()
     @Test
     void should201WhenTimeEventIsCreatedSuccessfully() throws Exception {
-        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(1).plusMinutes(30));
+        TimeEventRequest timeEventRequest = createTimeEventRequest(
+                LocalDateTime.now().plusDays(1),
+                LocalDateTime.now().plusDays(1).plusMinutes(30)
+        );
         UUID eventId = UUID.randomUUID();
 
-        when(this.timeEventService.create(any(Jwt.class), eq(timeEventRequest))).thenReturn(eventId);
+        when(this.timeEventService.create(1L, timeEventRequest)).thenReturn(eventId);
 
         this.mockMvc.perform(post(TIME_EVENT_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
@@ -534,10 +539,10 @@ class EventControllerTest {
         UUID eventId = UUID.randomUUID();
         TimeEventSlotDTO timeEventSlotDTO = createTimeEventSlotDTO(eventId);
 
-        when(this.timeEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenReturn(List.of(
+        when(this.timeEventService.findEventSlotsByEventId(1L, eventId)).thenReturn(List.of(
                 timeEventSlotDTO));
 
-        this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}", eventId)
+        this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}/time-event-slots", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpectAll(
@@ -555,14 +560,14 @@ class EventControllerTest {
                     "status": 404,
                     "type": "NOT_FOUND",
                     "message": "Time event not found with id: %s",
-                    "path": "%s/%s"
+                    "path": "%s/%s/time-event-slots"
                 }
                 """, eventId, TIME_EVENT_PATH, eventId);
 
-        when(this.timeEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenThrow(
-                new ResourceNotFoundException("Time event not found with id: " + eventId));
+        when(this.timeEventService.findEventSlotsByEventId(1L, eventId)).thenThrow(new ResourceNotFoundException(
+                "Time event not found with id: " + eventId));
 
-        this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}", eventId)
+        this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}/time-event-slots", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpectAll(
@@ -573,25 +578,25 @@ class EventControllerTest {
 
     // findTimeEventSlotsByEventId()
     @Test
-    void should403WhenUserIsNotOrganizerOfTimeEventForFindTimeEventSlotsByEventId() throws Exception {
+    void should404WhenUserIsNotOrganizerOfTimeEventForFindTimeEventSlotsByEventId() throws Exception {
         UUID eventId = UUID.randomUUID();
         String responseBody = String.format("""
                 {
-                    "status": 403,
-                    "type": "FORBIDDEN",
-                    "message": "Access Denied",
-                    "path": "%s/%s"
+                    "status": 404,
+                    "type": "NOT_FOUND",
+                    "message": "Time event not found with id: %s",
+                    "path": "%s/%s/time-event-slots"
                 }
-                """, TIME_EVENT_PATH, eventId);
+                """, eventId, TIME_EVENT_PATH, eventId);
 
-        when(this.timeEventService.findEventSlotsByEventId(any(Jwt.class), eq(eventId))).thenThrow(
-                new AccessDeniedException("Access Denied"));
+        when(this.timeEventService.findEventSlotsByEventId(1L, eventId)).thenThrow(new ResourceNotFoundException(
+                "Time event not found with id: " + eventId));
 
-        this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}", eventId)
+        this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}/time-event-slots", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpectAll(
-                        status().isForbidden(),
+                        status().isNotFound(),
                         content().json(responseBody, false)
                 );
     }
@@ -622,13 +627,13 @@ class EventControllerTest {
     @Test
     void should204WhenTimeEventIsDeletedSuccessfully() throws Exception {
         UUID eventId = UUID.randomUUID();
-        doNothing().when(this.timeEventService).deleteById(any(Jwt.class), eq(eventId));
+        doNothing().when(this.timeEventService).deleteById(1L, eventId);
 
         this.mockMvc.perform(delete(TIME_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
-        verify(this.timeEventService, times(1)).deleteById(any(Jwt.class), eq(eventId));
+        verify(this.timeEventService, times(1)).deleteById(1L, eventId);
     }
 
     // deleteTimeEventById()
@@ -645,7 +650,7 @@ class EventControllerTest {
                 """, eventId, TIME_EVENT_PATH, eventId);
 
         doThrow(new ResourceNotFoundException("Time event not found with id: " + eventId))
-                .when(this.timeEventService).deleteById(any(Jwt.class), eq(eventId));
+                .when(this.timeEventService).deleteById(1L, eventId);
 
         this.mockMvc.perform(delete(TIME_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
                         .with(authentication(AuthUtils.getAuthentication())))
@@ -657,26 +662,24 @@ class EventControllerTest {
 
     // deleteTimeEventById()
     @Test
-    void should403WhenUserIsNotOrganizerOfTimeEventForDeleteDayEventById() throws Exception {
+    void should404WhenUserIsNotOrganizerOfTimeEventForDeleteDayEventById() throws Exception {
         UUID eventId = UUID.randomUUID();
         String responseBody = String.format("""
                 {
-                    "status": 403,
-                    "type": "FORBIDDEN",
-                    "message": "Access Denied",
+                    "status": 404,
+                    "type": "NOT_FOUND",
+                    "message": "Time event not found with id: %s",
                     "path": "%s/%s"
                 }
-                """, TIME_EVENT_PATH, eventId);
+                """, eventId, TIME_EVENT_PATH, eventId);
 
-        doThrow(new AccessDeniedException("Access Denied")).when(this.timeEventService).deleteById(
-                any(Jwt.class),
-                eq(eventId)
-        );
+        doThrow(new ResourceNotFoundException("Time event not found with id: " + eventId)).when(this.timeEventService)
+                .deleteById(1L, eventId);
 
         this.mockMvc.perform(delete(TIME_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpectAll(
-                        status().isForbidden(),
+                        status().isNotFound(),
                         content().json(responseBody, false)
                 );
     }
@@ -757,10 +760,11 @@ class EventControllerTest {
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = LocalDate.now().plusDays(4);
 
-        when(this.dayEventService.findEventSlotsByUserInDateRange(any(Jwt.class), eq(startDate), eq(endDate)))
-                .thenReturn(List.of(dayEventSlotDTO));
-        when(this.timeEventService.findEventSlotsByUserInDateRange(any(Jwt.class), eq(startDate.atStartOfDay()),
-                eq(endDate.atStartOfDay()))).thenReturn(List.of(timeEventSlotDTO));
+        when(this.dayEventService.findEventSlotsByUserInDateRange(1L, startDate, endDate)).thenReturn(
+                List.of(dayEventSlotDTO));
+        when(this.timeEventService.findEventSlotsByUserInDateRange(1L,
+                startDate.atStartOfDay(),
+                endDate.atStartOfDay())).thenReturn(List.of(timeEventSlotDTO));
 
         this.mockMvc.perform(get("/api/v1/events?start={start}&end={end}", LocalDate.now(), LocalDate.now().plusDays(4))
                         .accept(MediaType.APPLICATION_JSON)

@@ -1,5 +1,6 @@
 package org.example.google_calendar_clone.calendar.event.time.slot;
 
+import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -48,8 +49,24 @@ interface TimeEventSlotRepository extends JpaRepository<TimeEventSlot, UUID> {
     @Query("""
                 SELECT tes
                 FROM TimeEventSlot tes
+                JOIN FETCH tes.timeEvent te
+                JOIN FETCH te.user
+                LEFT JOIN FETCH tes.guestEmails
+                WHERE (te.user.id = :userId OR :email MEMBER OF tes.guestEmails) AND tes.id = :slotId
+            """)
+    Optional<TimeEventSlot> findByUserAndSlotId(@Param("userId") Long userId,
+                                                @Param("email") String email,
+                                                @Param("slotId") UUID slotId);
+
+    @Query("""
+                SELECT tes
+                FROM TimeEventSlot tes
                 LEFT JOIN FETCH tes.guestEmails
                 WHERE tes.id = :id
             """)
     Optional<TimeEventSlot> findBySlotId(@Param("id") UUID id);
+
+    default TimeEventSlot findByIdOrThrow(UUID id) {
+        return findBySlotId(id).orElseThrow(() -> new ResourceNotFoundException("Time event slot not found with id: " + id));
+    }
 }

@@ -4,12 +4,15 @@ import org.example.google_calendar_clone.AbstractRepositoryTest;
 import org.example.google_calendar_clone.calendar.event.day.DayEventRepository;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.entity.DayEventSlot;
 import org.example.google_calendar_clone.entity.User;
+import org.example.google_calendar_clone.exception.ConflictException;
+import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.example.google_calendar_clone.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
@@ -20,14 +23,17 @@ import org.junit.jupiter.api.Test;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-
-import net.datafaker.Faker;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.tuple;
+
+import net.datafaker.Faker;
 
 /*
     Typically when we test our services we mock the repository because it is already tested. In this case, creating
@@ -36,7 +42,7 @@ import static org.assertj.core.api.Assertions.tuple;
     repository and let it hit the database and fetch all the day event slots for a given day event. We can assert on the
     response.
 
-    The findByEventId() method of the DayEventSlotRepository is also tested in this case indirectly.
+    All the repository methods(our custom queries) are tested via services
 
     For events that are set to be repeated for FOREVER we choose an arbitrary number like 100 years and set the
     repetition End Date to plus 100 years. We treat the event then as UNTIL_DATE but now the repetitionEndDate will be
@@ -57,7 +63,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @BeforeEach
     void setup() {
-        underTest = new DayEventSlotService(dayEventSlotRepository, userRepository);
+        underTest = new DayEventSlotService(dayEventSlotRepository, dayEventRepository, userRepository);
     }
 
     @Test
@@ -359,7 +365,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         Monday of October is at 28, the last Monday of November is at 25 and December has 5 Mondays.
      */
     @Test
-    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekDayUntilDate() {
+    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekdayUntilDate() {
         DayEventRequest request = DayEventRequest.builder()
                 .name("Event name")
                 .startDate(LocalDate.parse("2024-09-30"))
@@ -401,7 +407,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         inclusive)
      */
     @Test
-    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekDayForNRepetitions() {
+    void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekdayForNRepetitions() {
         DayEventRequest request = DayEventRequest.builder()
                 .name("Event name")
                 .startDate(LocalDate.parse("2024-09-04"))
@@ -447,7 +453,6 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                 .guestEmails(Set.of(FAKER.internet().emailAddress()))
                 .repetitionFrequency(RepetitionFrequency.ANNUALLY)
                 .repetitionStep(1)
-                .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2028-12-04"))
                 .build();
@@ -515,8 +520,100 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
     @Test
+    void shouldInviteGuests() {
+        UUID slotId = UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa");
+        String guestEmail = FAKER.internet().emailAddress();
+        InviteGuestsRequest inviteGuestsRequest = new InviteGuestsRequest(Set.of(guestEmail));
+
+        this.underTest.inviteGuests(3L, slotId, inviteGuestsRequest);
+        // flush() the changes to the db so the findById() does not fetch from the cache(1st level)
+        this.testEntityManager.flush();
+
+        DayEventSlot actual = this.dayEventSlotRepository.findByIdOrThrow(slotId);
+        DayEventSlotAssert.assertThat(actual)
+                .hasGuests(Set.of("ericka.ankunding@hotmail.com", guestEmail));
+    }
+
+    /*
+        In this case, the event slot exists the user that made the request is not the organizer
+     */
+    @Test
+    void shouldThrowResourceNotFoundExceptionForInviteGuests() {
+        UUID slotId = UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa");
+        String guestEmail = FAKER.internet().emailAddress();
+        InviteGuestsRequest inviteGuestsRequest = new InviteGuestsRequest(Set.of(guestEmail));
+
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.inviteGuests(
+                        2L, slotId, inviteGuestsRequest))
+                .withMessage("Day event slot not found with id: " + slotId);
+    }
+
+    @Test
+    void shouldThrowConflictExceptionWhenOrganizerEmailIsInGuestList() {
+        UUID slotId = UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa");
+        String guestEmail = FAKER.internet().emailAddress();
+        // 2nd email is the email of the organizer(from the sql script)
+        InviteGuestsRequest inviteGuestsRequest = new InviteGuestsRequest(Set.of(guestEmail, "waltraud.roberts@gmail.com"));
+
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.inviteGuests(
+                        3L, slotId, inviteGuestsRequest))
+                .withMessage("Organizer of the event can't be added as guest");
+    }
+
+    // The method returns the events slots in ASC order and for the given eventId we expect 4 event slots.
+    @Test
+    void shouldFindEventSlotsByEventId() {
+        List<DayEventSlotDTO> eventSlots = this.underTest.findEventSlotsByEventId(
+                UUID.fromString("4472d36c-2051-40e3-a2cf-00c6497807b5"));
+
+        assertThat(eventSlots).hasSize(4)
+                .isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate))
+                .extracting(DayEventSlotDTO::getId)
+                .containsExactly(
+                        UUID.fromString("5ff9cedf-ee36-4ec2-aa2e-5b6a16708ab0"),
+                        UUID.fromString("009d1441-ab86-411a-baeb-77a1d976868f"),
+                        UUID.fromString("35bdbe9f-9c5b-4907-8ae9-a983dacbda43"),
+                        UUID.fromString("e2985eda-5c5a-40a0-851e-6dc088081afa")
+                );
+    }
+
+    // User with id 3L is the organizer of the event
+    @Test
+    void shouldFindEventSlotByIdWhereUserIsEitherOrganizerOrInvitedGuest() {
+        UUID slotId = UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa");
+        DayEventSlotDTO expected = DayEventSlotDTO.builder()
+                .id(slotId)
+                .name("Event name")
+                .startDate(LocalDate.parse("2024-10-29"))
+                .endDate(LocalDate.parse("2024-10-30"))
+                .location("Location")
+                .organizer("ellyn.roberts")
+                .guestEmails(Set.of("ericka.ankunding@hotmail.com"))
+                .dayEventId(UUID.fromString("6b9b32f2-3c2a-4420-9d52-781c09f320ce"))
+                .build();
+
+        DayEventSlotDTO actual = this.underTest.findByUserAndSlotId(3L, slotId);
+
+        assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
+    }
+
+    /*
+        In this case, the event slot does not exist.
+     */
+    @Test
+    void shouldThrowResourceNotFoundExceptionForFindByUserAndSlotId() {
+        UUID slotId = UUID.randomUUID();
+
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.findByUserAndSlotId(
+                        3L, slotId))
+                .withMessage("Day event slot not found with id: " + slotId);
+    }
+
+    @Test
     void shouldFindDayEventSlotsInDateRangeWhereUserIsOrganizerOrInvitedAsGuest() {
-        User user = this.userRepository.getReferenceById(2L);
+        // We need both the id and the email, we can not call getReferenceById(). The proxy will not have the email,
+        // and when we call user.getEmail() it will initialize the proxy by querying the db.
+        User user = this.userRepository.findAuthUserByIdOrThrow(2L);
 
         List<DayEventSlotDTO> eventSlots = this.underTest.findEventSlotsByUserInDateRange(user,
                 LocalDate.parse("2024-10-10"),
@@ -527,17 +624,25 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             According to the sql script, the user has username = "clement.gulgowski" and email = "ericka.ankunding@hotmail.com"
             In the 1st event, they are the organizer(username) and in the 2nd, they are invited as guest
 
-            We could also assertThat(eventSlots).isSortedAccordingTo(Comparator.comparing(DayEventSlot::getStartDate))
+            We could also assertThat(eventSlots).isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate))
          */
         assertThat(eventSlots).hasSize(2)
                 .extracting(
+                        DayEventSlotDTO::getId,
                         DayEventSlotDTO::getStartDate,
                         DayEventSlotDTO::getGuestEmails,
                         DayEventSlotDTO::getOrganizer)
                 .containsExactly(
-                        tuple(LocalDate.parse("2024-10-12"), Set.of(), "clement.gulgowski"),
-                        tuple(LocalDate.parse("2024-10-29"), Set.of("ericka.ankunding@hotmail.com"), "ellyn.roberts"));
+                        tuple(UUID.fromString("e2985eda-5c5a-40a0-851e-6dc088081afa"),
+                                LocalDate.parse("2024-10-12"),
+                                Set.of(),
+                                "clement.gulgowski"),
+                        tuple(UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa"),
+                                LocalDate.parse("2024-10-29"),
+                                Set.of("ericka.ankunding@hotmail.com"),
+                                "ellyn.roberts"));
     }
+
 
     private DayEvent createDayEvent(DayEventRequest dayEventRequest) {
         // We know the id from the sql script

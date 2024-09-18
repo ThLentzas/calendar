@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -106,17 +106,16 @@
 <div class="event-container">
     <div class="calendar-section">
         <div class="calendar-icon">
-            <div class="month" th:text="${month}"></div>
-            <div class="day" th:text="${dayOfMonth}"></div>
-            <div class="weekday" th:text="${dayOfWeek}">Fri</div>
+            <div class="month">Jan</div>
+            <div class="day">9</div>
+            <div class="weekday">Thu</div>
         </div>
     </div>
     <div class="event-details">
-        <h3 th:text="${eventName}"></h3>
-        <p th:text="'Frequency: ' + ${frequency}"></p>
-        <p th:text="'Organizer: ' + ${organizer}"></p>
-        <p th:if="${location != null}" th:text="'Location: ' + ${location}"></p>
-        <p th:if="${description != null}" th:text="'Description: ' + ${description}"></p>
+        <h3>Event name</h3>
+        <p>Frequency: Thu Jan 9, 2025</p>
+        <p>Organizer: Organizer</p>
+        <p>Description: Description</p>
     </div>
 </div>
 
