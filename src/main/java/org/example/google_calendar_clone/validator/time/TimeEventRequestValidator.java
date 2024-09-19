@@ -1,12 +1,11 @@
-package org.example.google_calendar_clone.calendar.event.time.dto.validator;
+package org.example.google_calendar_clone.validator.time;
 
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.example.google_calendar_clone.utils.RepetitionUtils;
-
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -15,7 +14,7 @@ import java.time.temporal.ChronoUnit;
     According to Google Calendar time events can have a duration of more than 1 day.
     September 30, 2024, 3:30pm – October 2, 2024, 4:30pm is a valid time event
  */
-public class TimeEventRequestValidator implements ConstraintValidator<ValidTimeEventRequest, TimeEventRequest> {
+public final class TimeEventRequestValidator implements ConstraintValidator<ValidTimeEventRequest, TimeEventRequest> {
 
     @Override
     public boolean isValid(TimeEventRequest value, ConstraintValidatorContext context) {

@@ -1,13 +1,12 @@
-package org.example.google_calendar_clone.calendar.event.day.dto.validator;
+package org.example.google_calendar_clone.validator.day;
 
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.utils.DateUtils;
+import org.example.google_calendar_clone.utils.RepetitionUtils;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-
-import org.example.google_calendar_clone.utils.DateUtils;
-import org.example.google_calendar_clone.utils.RepetitionUtils;
 
 /*
     According to google calendar, if an event that has a duration of 3 days, like March 15 - March 18 can be repeated
@@ -15,7 +14,7 @@ import org.example.google_calendar_clone.utils.RepetitionUtils;
     allows it so, we follow the same logic and, we don't perform validation for those cases. Same logic applies for
     events with a duration of 3 months can be repeated while the event is still going.
  */
-public class DayEventRequestValidator implements ConstraintValidator<ValidDayEventRequest, DayEventRequest> {
+public final class DayEventRequestValidator implements ConstraintValidator<ValidDayEventRequest, DayEventRequest> {
 
     @Override
     public boolean isValid(DayEventRequest value, ConstraintValidatorContext context) {

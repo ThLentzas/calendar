@@ -8,13 +8,13 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
-import org.example.google_calendar_clone.validation.OnCreate;
-import org.example.google_calendar_clone.calendar.event.time.dto.validator.ValidTimeEventRequest;
+import org.example.google_calendar_clone.validator.groups.OnCreate;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 import jakarta.validation.constraints.NotNull;
+import org.example.google_calendar_clone.validator.time.ValidTimeEventRequest;
 
 /*
     We can not use @FutureOrPresent() on the date times because according to the annotation:

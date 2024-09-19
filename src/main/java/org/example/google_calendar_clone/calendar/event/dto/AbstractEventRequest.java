@@ -10,7 +10,7 @@ import lombok.experimental.SuperBuilder;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-import org.example.google_calendar_clone.validation.OnCreate;
+import org.example.google_calendar_clone.validator.groups.OnCreate;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;

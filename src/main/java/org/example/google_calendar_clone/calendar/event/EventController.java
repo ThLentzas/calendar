@@ -25,7 +25,7 @@ import org.example.google_calendar_clone.calendar.event.time.TimeEventService;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.slot.EventSlotComparator;
 import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
-import org.example.google_calendar_clone.validation.OnCreate;
+import org.example.google_calendar_clone.validator.groups.OnCreate;
 import org.example.google_calendar_clone.calendar.event.day.slot.DayEventSlotService;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotService;
@@ -159,6 +159,12 @@ class EventController {
         responseHeaders.setLocation(location);
 
         return new ResponseEntity<>(responseHeaders, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/day-events/{eventId}")
+    ResponseEntity<Void> updateDayEvent(@PathVariable("eventId") UUID eventId,
+                                        @AuthenticationPrincipal Jwt jwt) {
+        return null;
     }
 
     @GetMapping("/day-events/{eventId}/day-event-slots")

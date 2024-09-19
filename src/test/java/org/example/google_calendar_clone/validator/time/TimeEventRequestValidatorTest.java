@@ -1,23 +1,21 @@
-package org.example.google_calendar_clone.calendar.event.time.dto.validator;
-
-import org.example.google_calendar_clone.validation.OnCreate;
-import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
-import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
-import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+package org.example.google_calendar_clone.validator.time;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
+import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
+import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+import org.example.google_calendar_clone.validator.groups.OnCreate;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Set;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

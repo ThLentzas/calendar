@@ -119,7 +119,8 @@ class UserServiceTest {
         // When the project was created datafaker did not support creating strings of given length, so we use RandomStringUtils
         return User.builder()
                 .id(FAKER.number().numberBetween(1L, 150L))
-                .username(FAKER.internet().username())
+                // Faker may generate a username with length > 20
+                .username("username")
                 .password(FAKER.internet().password(12, 128, true, true, true))
                 .email(FAKER.internet().emailAddress())
                 .build();

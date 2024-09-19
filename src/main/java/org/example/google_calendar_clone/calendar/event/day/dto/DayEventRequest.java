@@ -8,12 +8,12 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
-import org.example.google_calendar_clone.validation.OnCreate;
-import org.example.google_calendar_clone.calendar.event.day.dto.validator.ValidDayEventRequest;
+import org.example.google_calendar_clone.validator.day.ValidDayEventRequest;
+import org.example.google_calendar_clone.validator.groups.OnCreate;
 
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
-import org.example.google_calendar_clone.validation.OnUpdate;
+import org.example.google_calendar_clone.validator.groups.OnUpdate;
 
 import java.time.LocalDate;
 
