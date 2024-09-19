@@ -5,18 +5,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.example.google_calendar_clone.entity.User;
 
 import java.util.Set;
+import java.util.UUID;
 
 @Getter
 @Setter
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public abstract class AbstractEventSlotReminderEmailRequest {
+public abstract class AbstractEventSlotReminderRequest {
+    protected UUID id;
     protected String eventName;
-    protected String location;
-    protected String organizer;
-    protected String description;
+    protected User organizer;
     protected Set<String> guestEmails;
 }

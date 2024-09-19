@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-interface TimeEventSlotRepository extends JpaRepository<TimeEventSlot, UUID> {
+public interface TimeEventSlotRepository extends JpaRepository<TimeEventSlot, UUID> {
     // LEFT JOIN on guestEmails because we might not have invited anyone when we initially created the event
     @Query("""
                 SELECT tes
@@ -57,6 +57,16 @@ interface TimeEventSlotRepository extends JpaRepository<TimeEventSlot, UUID> {
     Optional<TimeEventSlot> findByUserAndSlotId(@Param("userId") Long userId,
                                                 @Param("email") String email,
                                                 @Param("slotId") UUID slotId);
+
+    @Query("""
+                SELECT tes
+                FROM TimeEventSlot tes
+                JOIN FETCH tes.timeEvent te
+                JOIN FETCH te.user
+                LEFT JOIN FETCH tes.guestEmails
+                WHERE tes.startTime = :startTime
+            """)
+    List<TimeEventSlot> findByStartTime(@Param("startTime") LocalDateTime startTime);
 
     @Query("""
                 SELECT tes

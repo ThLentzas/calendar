@@ -155,7 +155,7 @@ class EventIT extends AbstractIntegrationTest {
 
         assertThat(messages).hasSize(1);
         assertThat(message.getAllRecipients()[0]).hasToString(guestEmail);
-        assertThat(message.getSubject()).isEqualTo("Event Invitation");
+        assertThat(message.getSubject()).isEqualTo("Invitation");
     }
 
     @Test
@@ -331,7 +331,7 @@ class EventIT extends AbstractIntegrationTest {
 
         assertThat(messages).hasSize(1);
         assertThat(message.getAllRecipients()[0]).hasToString(guestEmail);
-        assertThat(message.getSubject()).isEqualTo("Event Invitation");
+        assertThat(message.getSubject()).isEqualTo("Invitation");
     }
 
     @Test

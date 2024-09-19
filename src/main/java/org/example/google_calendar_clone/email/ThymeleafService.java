@@ -1,12 +1,13 @@
 package org.example.google_calendar_clone.email;
 
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.context.Context;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.time.format.TextStyle;
 import java.util.Locale;
+import java.util.Set;
+
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +33,21 @@ class ThymeleafService {
         context.setVariable("description", description);
 
         return this.templateEngine.process("invitation_email", context);
+    }
+
+    String setReminderEmailContext(String dateDescription,
+                                   String eventName,
+                                   String organizer,
+                                   Set<String> guestEmails,
+                                   String eventDetails) {
+        Context context = new Context();
+        context.setVariable("date", dateDescription);
+        context.setVariable("eventName", eventName);
+        context.setVariable("organizer", organizer);
+        context.setVariable("guests", guestEmails);
+        context.setVariable("eventSlotDetails", eventDetails);
+
+        return this.templateEngine.process("reminder_email", context);
     }
 }
 

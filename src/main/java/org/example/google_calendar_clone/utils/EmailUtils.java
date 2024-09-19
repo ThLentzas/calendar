@@ -32,53 +32,61 @@ public final class EmailUtils {
         throw new UnsupportedOperationException("EmailUtils is a utility class and cannot be instantiated");
     }
 
-    public static String formatFrequencyText(DayEventInvitationRequest emailRequest) {
-        StringBuilder frequencyText = new StringBuilder();
+    public static String buildFrequencyDescription(DayEventInvitationRequest emailRequest) {
+        StringBuilder description = new StringBuilder();
         if (emailRequest.getRepetitionFrequency().equals(RepetitionFrequency.NEVER)) {
-            return frequencyText.append(emailRequest.getStartDate().getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
-                    .append(" ")
-                    .append(emailRequest.getStartDate().getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
-                    .append(" ")
-                    .append(emailRequest.getStartDate().getDayOfMonth())
-                    .append(", ")
-                    .append(emailRequest.getStartDate().getYear())
+            return description.append(dateDescription(
+                            emailRequest.getStartDate(),
+                            TextStyle.SHORT,
+                            TextStyle.SHORT,
+                            true))
                     .toString();
         }
 
-        frequencyText.append(frequencyDescription(emailRequest, emailRequest.getStartDate()));
+        description.append(frequencyDescription(emailRequest, emailRequest.getStartDate()));
         if (!emailRequest.getRepetitionDuration().equals(RepetitionDuration.FOREVER)) {
-            frequencyText.append(", ");
+            description.append(", ");
         }
-        return frequencyText.append(dateDescription(emailRequest, emailRequest.getStartDate())).toString();
+        return description.append(dateDescription(emailRequest, emailRequest.getStartDate())).toString();
     }
 
-    public static String formatFrequencyText(TimeEventInvitationRequest emailRequest) {
+    public static String buildFrequencyDescription(TimeEventInvitationRequest emailRequest) {
         LocalDateTime utcStartTime = DateUtils.convertToUTC(emailRequest.getStartTime(), emailRequest.getStartTimeZoneId());
         LocalDateTime utcEndTime = DateUtils.convertToUTC(emailRequest.getEndTime(), emailRequest.getEndTimeZoneId());
         String formatedTimeRange = DateUtils.formatTimeRange(utcStartTime, utcEndTime);
-        StringBuilder frequencyText = new StringBuilder();
+        StringBuilder description = new StringBuilder();
 
         if (emailRequest.getRepetitionFrequency().equals(RepetitionFrequency.NEVER)) {
-            return frequencyText.append(utcStartTime.toLocalDate().getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
-                    .append(" ")
-                    .append(utcStartTime.toLocalDate().getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
-                    .append(" ")
-                    .append(utcStartTime.toLocalDate().getDayOfMonth())
-                    .append(", ")
-                    .append(utcStartTime.toLocalDate().getYear())
+            return description.append(dateDescription(
+                            emailRequest.getStartTime().toLocalDate(),
+                            TextStyle.SHORT,
+                            TextStyle.SHORT,
+                            true))
                     .append(" ")
                     .append(formatedTimeRange)
                     .toString();
         }
 
-        frequencyText.append(frequencyDescription(emailRequest, emailRequest.getStartTime().toLocalDate()))
+        description.append(frequencyDescription(emailRequest, emailRequest.getStartTime().toLocalDate()))
                 .append(", ")
                 .append(formatedTimeRange);
         if (!emailRequest.getRepetitionDuration().equals(RepetitionDuration.FOREVER)) {
-            frequencyText.append(", ");
+            description.append(", ");
         }
-        return frequencyText.append(dateDescription(emailRequest, emailRequest.getStartTime().toLocalDate()))
+        return description.append(dateDescription(emailRequest, emailRequest.getStartTime().toLocalDate()))
                 .toString();
+    }
+
+    public static String buildDateDescription(LocalDate startDate) {
+        return dateDescription(startDate, TextStyle.FULL, TextStyle.SHORT, true);
+    }
+
+    public static String buildDateTimeDescription(LocalDateTime startTime,
+                                             LocalDateTime endTime) {
+        String formatedTimeRange = DateUtils.formatTimeRange(startTime, endTime);
+
+        return dateDescription(startTime.toLocalDate(), TextStyle.FULL, TextStyle.SHORT, true) + " " +
+                formatedTimeRange;
     }
 
     private static String frequencyDescription(AbstractEventInvitationRequest emailRequest, LocalDate startDate) {
@@ -126,22 +134,12 @@ public final class EmailUtils {
                 return dateDescription.toString();
             }
             case UNTIL_DATE -> {
-                return dateDescription.append("from ")
-                        .append(startDate.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
-                        .append(" ")
-                        .append(startDate.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
-                        .append(" ")
-                        .append(startDate.getDayOfMonth())
-                        .append(Year.now().getValue() == startDate.getYear() ? " " : ", " + startDate.getYear() + " ")
-                        .append("to ")
-                        .append(emailRequest.getRepetitionEndDate().getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
-                        .append(" ")
-                        .append(emailRequest.getRepetitionEndDate().getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
-                        .append(" ")
-                        .append(Year.now().getValue() == emailRequest.getRepetitionEndDate().getYear()
-                                ? emailRequest.getRepetitionEndDate().getDayOfMonth()
-                                : emailRequest.getRepetitionEndDate().getDayOfMonth() + ", "
-                                + emailRequest.getRepetitionEndDate().getYear())
+                boolean includeYear = Year.now().getValue() != startDate.getYear();
+                dateDescription.append("from ")
+                        .append(dateDescription(startDate, TextStyle.SHORT, TextStyle.SHORT, includeYear));
+                includeYear = Year.now().getValue() != emailRequest.getRepetitionEndDate().getYear();
+                return dateDescription.append(" to ")
+                        .append(dateDescription(emailRequest.getRepetitionEndDate(), TextStyle.SHORT, TextStyle.SHORT, includeYear))
                         .toString();
             }
             case N_REPETITIONS -> {
@@ -150,5 +148,25 @@ public final class EmailUtils {
             }
             default -> throw new ServerErrorException("Internal server error");
         }
+    }
+
+    private static String dateDescription(LocalDate date,
+                                               TextStyle dayTextStyle,
+                                               TextStyle monthTextStyle,
+                                               boolean includeYear) {
+        StringBuilder dateDescription = new StringBuilder();
+        dateDescription.append(date.getDayOfWeek().getDisplayName(dayTextStyle, Locale.ENGLISH))
+                .append(" ")
+                .append(date.getMonth().getDisplayName(monthTextStyle, Locale.ENGLISH))
+                .append(" ");
+        if (includeYear) {
+            dateDescription.append(date.getDayOfMonth())
+                    .append(", ")
+                    .append(date.getYear());
+        } else {
+            dateDescription.append(date.getDayOfMonth());
+        }
+
+        return dateDescription.toString();
     }
 }

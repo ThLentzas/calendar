@@ -4,7 +4,12 @@ import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlo
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 
 import java.util.Comparator;
-
+/*
+    Both the DayEventSlots and TimeEventSlots are sorted but when we add them in 1 list, we need to make sure
+    that they are also sorted based on their starting date. We need a comparator so that we can compare the
+    starting date of DayEventSlot with the starting dateTime of the TimeEventSlot. If we have 2 DayEventSlots
+    we compare their starting date, if we have 2 TimeEventSlots we compare their starting time.
+ */
 public class EventSlotComparator implements Comparator<EventSlotDTO> {
 
     @Override

@@ -2,7 +2,9 @@ package org.example.google_calendar_clone.utils;
 
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotReminderRequest;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
+import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotReminderRequest;
 import org.example.google_calendar_clone.entity.DayEventSlot;
+import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.exception.ConflictException;
 
@@ -28,13 +30,24 @@ public final class EventUtils {
                 .collect(Collectors.toSet());
     }
 
-    public static DayEventSlotReminderRequest mapToReminderRequest(DayEventSlot dayEventSlot) {
+    public static DayEventSlotReminderRequest mapToReminderRequest(DayEventSlot eventSlot) {
         return DayEventSlotReminderRequest.builder()
-                .eventName(dayEventSlot.getName())
-                .location(dayEventSlot.getLocation())
-                .description(dayEventSlot.getDescription())
-                .startDate(dayEventSlot.getStartDate())
-                .endDate(dayEventSlot.getEndDate())
+                .id(eventSlot.getId())
+                .eventName(eventSlot.getName())
+                .startDate(eventSlot.getStartDate())
+                .organizer(eventSlot.getDayEvent().getUser())
+                .guestEmails(eventSlot.getGuestEmails())
+                .build();
+    }
+
+    public static TimeEventSlotReminderRequest mapToReminderRequest(TimeEventSlot eventSlot) {
+        return TimeEventSlotReminderRequest.builder()
+                .id(eventSlot.getId())
+                .eventName(eventSlot.getName())
+                .startTime(eventSlot.getStartTime())
+                .endTime(eventSlot.getEndTime())
+                .organizer(eventSlot.getTimeEvent().getUser())
+                .guestEmails(eventSlot.getGuestEmails())
                 .build();
     }
 }

@@ -26,7 +26,7 @@ import java.util.List;
 
 import io.restassured.RestAssured;
 
-@SpringBootTest(webEnvironment = RANDOM_PORT)
+@SpringBootTest(webEnvironment = RANDOM_PORT, properties = "scheduling.enabled: false")
 public abstract class AbstractIntegrationTest {
     @Autowired
     private UserRepository userRepository;

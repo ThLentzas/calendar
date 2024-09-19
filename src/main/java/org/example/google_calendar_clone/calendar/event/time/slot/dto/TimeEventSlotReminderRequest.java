@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.day.slot.dto;
+package org.example.google_calendar_clone.calendar.event.time.slot.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -8,13 +8,14 @@ import lombok.experimental.SuperBuilder;
 
 import org.example.google_calendar_clone.calendar.event.slot.AbstractEventSlotReminderRequest;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-public class DayEventSlotReminderRequest extends AbstractEventSlotReminderRequest {
-    private LocalDate startDate;
+public class TimeEventSlotReminderRequest extends AbstractEventSlotReminderRequest {
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
 }

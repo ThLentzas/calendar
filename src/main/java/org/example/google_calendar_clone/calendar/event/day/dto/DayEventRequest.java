@@ -13,6 +13,7 @@ import org.example.google_calendar_clone.calendar.event.day.dto.validator.ValidD
 
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
+import org.example.google_calendar_clone.validation.OnUpdate;
 
 import java.time.LocalDate;
 
@@ -34,15 +35,15 @@ import java.time.LocalDate;
     Default has to be specified, when we pass at least 1 argument, {OnCreate.class, Default.class}. If we don't specify
     anything it will default to Default.class
  */
-@ValidDayEventRequest(groups = OnCreate.class)
+@ValidDayEventRequest(groups = {OnCreate.class, OnUpdate.class})
 // Will include all fields
 @EqualsAndHashCode(callSuper = true)
 public class DayEventRequest extends AbstractEventRequest {
     @NotNull(message = "The start date of the event is required. Please provide one", groups = OnCreate.class)
     // null will return true
-    @FutureOrPresent(message = "The start date must be today or a future date", groups = OnCreate.class)
+    @FutureOrPresent(message = "The start date must be today or a future date", groups = {OnCreate.class, OnUpdate.class})
     private LocalDate startDate;
     @NotNull(message = "The end date of the event is required. Please provide one", groups = OnCreate.class)
-    @FutureOrPresent(message = "The end date must be today or a future date", groups = OnCreate.class)
+    @FutureOrPresent(message = "The end date must be today or a future date", groups = {OnCreate.class, OnUpdate.class})
     private LocalDate endDate;
 }

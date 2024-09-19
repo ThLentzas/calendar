@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+
+        .email-wrapper {
+            max-width: 600px;
+            background-color: #ffffff;
+            padding: 5px;
+            display: flex;
+        }
+
+        .blue-bar {
+            background-color: #e8f0fe;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #1a73e8;
+            padding: 15px;
+            text-align: left;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 5px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            margin-top: 5px;
+            width: 100%;
+        }
+
+        .event-title {
+            font-size: 20px;
+            color: #333333;
+            font-weight: 400;
+            margin: 10px 0;
+        }
+
+        .event-details {
+            margin-bottom: 10px;
+        }
+
+        .guest-list {
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .guest-list h2 {
+            font-weight: 400;
+            color: #333333;
+            margin-top: 15px;
+        }
+
+        .bullets {
+            list-style-type: none;
+            padding-left: 0;
+            margin-top: 5px;
+        }
+
+        .organizer {
+            color: #777;
+        }
+
+        .guest-list li {
+            margin: 0;
+        }
+
+        .guest-list h2 {
+            font-size: 14px;
+            color: #3c4043;
+            text-decoration: none;
+            font-weight: 700;
+            margin: 0;
+            padding: 0;
+        }
+
+        .guest-list a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .guest-list a:hover {
+            text-decoration: underline;
+        }
+
+        .view-details {
+            margin-top: 15px;
+        }
+
+        .view-details a {
+            font-size: 14px;
+            color: #1a73e8;
+            text-decoration: none;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="email-wrapper">
+    <div class="blue-bar">
+        You have an upcoming event
+    </div>
+</div>
+
+<div class="email-wrapper">
+    <div class="email-container">
+        <div class="event-title">Team Meeting</div>
+        <div class="event-details">
+            Thursday Sep 19, 2024
+        </div>
+
+        <div class="guest-list">
+            <h2>Guests</h2>
+            <ul class="bullets">
+                <li>
+                    user <span class="organizer">- organizer</span>
+                </li>
+                <li>example2@example.com</li>
+                <li>example1@example.com</li>
+                <li>example3@example.com</li>
+            </ul>
+        </div>
+
+        <div class="view-details">
+            <a href="api/v1/events/day-event-slots/3075c6eb-8028-4f99-8c6c-27db1bb5cc43">View event details</a>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

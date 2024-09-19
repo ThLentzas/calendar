@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -56,8 +57,8 @@ class ThymeleafServiceTest {
     }
 
     @Test
-    void shouldSetContextForEvent() throws IOException {
-        String path = "src/test/resources/templates/event.html";
+    void shouldSetContextForEventInvitationEmail() throws IOException {
+        String path = "src/test/resources/templates/invitation_email.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
                 LocalDate.parse("2025-01-09"),
@@ -66,6 +67,21 @@ class ThymeleafServiceTest {
                 null,
                 "Description",
                 "Thu Jan 9, 2025"
+        );
+
+        assertThat(actual.replaceAll("\\s+", " ").trim()).isEqualTo(expected.replaceAll("\\s+", " ").trim());
+    }
+
+    @Test
+    void shouldSetContextForEventReminderEmail() throws IOException {
+        String path = "src/test/resources/templates/reminder_email.html";
+        String expected = new String(Files.readAllBytes(Paths.get(path)));
+        String actual = this.underTest.setReminderEmailContext(
+                "Thursday Sep 19, 2024",
+                "Event name",
+                "Organizer",
+                Set.of("example2@example.com", "example1@example.com", "example3@example.com"),
+                "api/v1/events/day-event-slots/3075c6eb-8028-4f99-8c6c-27db1bb5cc43"
         );
 
         assertThat(actual.replaceAll("\\s+", " ").trim()).isEqualTo(expected.replaceAll("\\s+", " ").trim());

@@ -63,7 +63,7 @@ public interface DayEventSlotRepository extends JpaRepository<DayEventSlot, UUID
                 JOIN FETCH des.dayEvent de
                 JOIN FETCH de.user
                 LEFT JOIN FETCH des.guestEmails
-                WHERE de.startDate = :startDate
+                WHERE des.startDate = :startDate
             """)
     List<DayEventSlot> findByStartDate(@Param("startDate") LocalDate startDate);
 
