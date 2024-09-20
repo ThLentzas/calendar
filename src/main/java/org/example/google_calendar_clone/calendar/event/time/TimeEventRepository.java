@@ -25,6 +25,15 @@ public interface TimeEventRepository extends JpaRepository<TimeEvent, UUID> {
             """)
     boolean existsByEventIdAndUserId(@Param("eventId") UUID eventId, @Param("userId") Long userId);
 
+    @Query("""
+                SELECT te
+                FROM TimeEvent te
+                JOIN FETCH te.timeEventSlots tes
+                LEFT JOIN FETCH tes.guestEmails
+                WHERE te.id = :eventId AND te.user.id = :userId
+            """)
+    Optional<TimeEvent> findByEventIdAndUserId(@Param("eventId") UUID eventId, @Param("userId") Long userId);
+
     default TimeEvent findByIdOrThrow(UUID id) {
         return findByIdFetchingUser(id).orElseThrow(() -> new ResourceNotFoundException("Time event not found with id: " + id));
     }

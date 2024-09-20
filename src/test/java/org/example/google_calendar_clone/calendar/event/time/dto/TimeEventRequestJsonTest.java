@@ -16,13 +16,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @JsonTest
 class TimeEventRequestJsonTest {
     @Autowired
-    private JacksonTester<TimeEventRequest> jacksonTester;
+    private JacksonTester<CreateTimeEventRequest> jacksonTester;
 
     @Test
     void shouldDeserializeTimeEventRequest() throws IOException {
         String json = """
                 {
-                     "name": "Event name",
+                     "title": "Event title",
                      "location": "Location",
                      "description": "Description",
                      "startTime": "2024-10-11T10:00",
@@ -36,8 +36,8 @@ class TimeEventRequestJsonTest {
                 }
                 """;
 
-        TimeEventRequest expected = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest expected = CreateTimeEventRequest.builder()
+                .title("Event title")
                 .location("Location")
                 .description("Description")
                 .startTime(LocalDateTime.parse("2024-10-11T10:00"))
@@ -50,7 +50,7 @@ class TimeEventRequestJsonTest {
                 .repetitionOccurrences(5)
                 .build();
 
-        TimeEventRequest actual = this.jacksonTester.parseObject(json);
+        CreateTimeEventRequest actual = this.jacksonTester.parseObject(json);
 
         assertThat(actual).isEqualTo(expected);
     }

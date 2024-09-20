@@ -10,14 +10,12 @@ import lombok.experimental.SuperBuilder;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-import org.example.google_calendar_clone.validator.groups.OnCreate;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.Set;
 
-import jakarta.validation.constraints.NotBlank;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -26,8 +24,7 @@ import jakarta.validation.constraints.NotBlank;
 @SuperBuilder
 @EqualsAndHashCode
 public abstract class AbstractEventRequest {
-    @NotBlank(message = "Event name is required and cannot be blank. Please provide one", groups = OnCreate.class)
-    protected String name;
+    protected String title;
     protected String location;
     protected String description;
     protected Set<String> guestEmails;

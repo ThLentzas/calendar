@@ -1,12 +1,13 @@
 package org.example.google_calendar_clone.validator.day;
 
-import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.CreateDayEventRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.utils.DateUtils;
-import org.example.google_calendar_clone.utils.RepetitionUtils;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+
+import org.example.google_calendar_clone.utils.EventUtils;
 
 /*
     According to google calendar, if an event that has a duration of 3 days, like March 15 - March 18 can be repeated
@@ -14,16 +15,16 @@ import jakarta.validation.ConstraintValidatorContext;
     allows it so, we follow the same logic and, we don't perform validation for those cases. Same logic applies for
     events with a duration of 3 months can be repeated while the event is still going.
  */
-public final class DayEventRequestValidator implements ConstraintValidator<ValidDayEventRequest, DayEventRequest> {
+public final class CreateDayEventRequestValidator
+        implements ConstraintValidator<ValidCreateDayEventRequest, CreateDayEventRequest> {
 
     @Override
-    public boolean isValid(DayEventRequest value, ConstraintValidatorContext context) {
-        /*
-            When the user did not provide a repetition frequency we default to NEVER . An alternative would
-            be to consider the request invalid.
-        */
+    public boolean isValid(CreateDayEventRequest value, ConstraintValidatorContext context) {
         if (value.getRepetitionFrequency() == null) {
-            value.setRepetitionFrequency(RepetitionFrequency.NEVER);
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Provide a frequency. NEVER if it does not repeat")
+                    .addConstraintViolation();
+            return false;
         }
 
         /*
@@ -33,22 +34,19 @@ public final class DayEventRequestValidator implements ConstraintValidator<Valid
             When we update an event since startDate and endDate are optional, they can be null, but if they are not we
             still need to make sure that the endDate is after startDate.
          */
-        if (value.getStartDate() != null
-                && value.getEndDate() != null
-                && DateUtils.isAfter(value.getStartDate(), value.getEndDate())) {
+        if (DateUtils.isAfter(value.getStartDate(), value.getEndDate())) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Start date must be before end date")
                     .addConstraintViolation();
             return false;
         }
 
-        if (!RepetitionUtils.isValid(value, context)) {
+        if (!EventUtils.hasValidFrequencyProperties(value, context)) {
             return false;
         }
 
         // If the date is 2024-09-10 (a Tuesday), the weeklyRecurrenceDays set must contain TUESDAY
-        if (value.getStartDate() != null
-                && value.getRepetitionFrequency().equals(RepetitionFrequency.WEEKLY)
+        if (value.getRepetitionFrequency().equals(RepetitionFrequency.WEEKLY)
                 && !value.getWeeklyRecurrenceDays().contains(value.getStartDate().getDayOfWeek())) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(
@@ -66,7 +64,6 @@ public final class DayEventRequestValidator implements ConstraintValidator<Valid
             repetitionEndDate is after endDate.
          */
         if (value.getRepetitionEndDate() != null
-                && value.getEndDate() != null
                 && DateUtils.isBefore(value.getRepetitionEndDate(), value.getEndDate())) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Repetition end date must be after end date")
@@ -76,12 +73,16 @@ public final class DayEventRequestValidator implements ConstraintValidator<Valid
 
         /*
             If we have a frequency value other than NEVER and the user did not provide a repetition step, meaning how
-            often that event will be repeated with the given frequency, we default to 1. An example would be, when the
-            frequency is DAILY and repetition step is null, we set it to 1. It means that the event will be repeated
-            every day until the repetitionEndDate
+            often that event will be repeated with the given frequency, we could also default to 1. An example would be,
+            when the frequency is DAILY and repetition step is null, we set it to 1. It means that the event will be
+            repeated every day until the repetitionEndDate
          */
-        if (value.getRepetitionStep() == null) {
-            value.setRepetitionStep(1);
+        if (!value.getRepetitionFrequency().equals(RepetitionFrequency.NEVER) &&
+                (value.getRepetitionStep() == null || value.getRepetitionStep() == 0)) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Specify how often you want the event to be repeated")
+                    .addConstraintViolation();
+            return false;
         }
 
         return true;

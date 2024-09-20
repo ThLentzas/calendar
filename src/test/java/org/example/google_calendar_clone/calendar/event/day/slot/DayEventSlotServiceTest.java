@@ -2,7 +2,7 @@ package org.example.google_calendar_clone.calendar.event.day.slot;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
 import org.example.google_calendar_clone.calendar.event.day.DayEventRepository;
-import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.CreateDayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
@@ -68,8 +68,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotForNonRepeatingEvent() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-08-12"))
                 .endDate(LocalDate.parse("2024-08-15"))
                 .location("Location")
@@ -89,7 +89,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         DayEventSlotAssert.assertThat(dayEventSlots.get(0))
                 .hasStartDate(request.getStartDate())
                 .hasEndDate(request.getEndDate())
-                .hasName(request.getName())
+                .hasName(request.getTitle())
                 .hasLocation(request.getLocation())
                 .hasDescription(request.getDescription())
                 .hasGuests(request.getGuestEmails())
@@ -98,8 +98,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNDaysUntilDate() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-08-12"))
                 .endDate(LocalDate.parse("2024-08-15"))
                 .location("Location")
@@ -124,7 +124,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -134,8 +134,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNDaysForNRepetitions() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-09-04"))
                 .endDate(LocalDate.parse("2024-09-04"))
                 .location("Location")
@@ -159,7 +159,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -177,8 +177,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNWeeksUntilDate() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-08-12"))
                 .endDate(LocalDate.parse("2024-08-15"))
                 .location("Location")
@@ -203,7 +203,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -221,8 +221,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-09-04"))
                 .endDate(LocalDate.parse("2024-09-04"))
                 .location("Location")
@@ -247,7 +247,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -273,8 +273,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameDayUntilDate() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2023-01-31"))
                 .endDate(LocalDate.parse("2023-01-31"))
                 .location("Location")
@@ -307,7 +307,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -324,8 +324,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameDayForNRepetitions() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2023-01-29"))
                 .endDate(LocalDate.parse("2023-01-29"))
                 .location("Location")
@@ -351,7 +351,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -366,8 +366,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekdayUntilDate() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-09-30"))
                 .endDate(LocalDate.parse("2024-09-30"))
                 .location("Location")
@@ -392,7 +392,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -408,8 +408,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekdayForNRepetitions() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-09-04"))
                 .endDate(LocalDate.parse("2024-09-04"))
                 .location("Location")
@@ -434,7 +434,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -444,8 +444,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNYearsAtUntilDate() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-02-29"))
                 .endDate(LocalDate.parse("2024-02-29"))
                 .location("Location")
@@ -475,7 +475,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -485,8 +485,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNYearsForNRepetitions() {
-        DayEventRequest request = DayEventRequest.builder()
-                .name("Event name")
+        CreateDayEventRequest request = CreateDayEventRequest.builder()
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-05-18"))
                 .endDate(LocalDate.parse("2024-05-19"))
                 .location("Location")
@@ -511,7 +511,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             DayEventSlotAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -583,7 +583,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         UUID slotId = UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa");
         DayEventSlotDTO expected = DayEventSlotDTO.builder()
                 .id(slotId)
-                .name("Event name")
+                .title("Event title")
                 .startDate(LocalDate.parse("2024-10-29"))
                 .endDate(LocalDate.parse("2024-10-30"))
                 .location("Location")
@@ -643,20 +643,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                                 "ellyn.roberts"));
     }
 
-
-    private DayEvent createDayEvent(DayEventRequest dayEventRequest) {
+    private DayEvent createDayEvent(CreateDayEventRequest createDayEventRequest) {
         // We know the id from the sql script
         User user = this.userRepository.getReferenceById(1L);
         DayEvent dayEvent = new DayEvent();
-        dayEvent.setStartDate(dayEventRequest.getStartDate());
-        dayEvent.setEndDate(dayEventRequest.getEndDate());
-        dayEvent.setRepetitionFrequency(dayEventRequest.getRepetitionFrequency());
-        dayEvent.setRepetitionStep(dayEventRequest.getRepetitionStep());
-        dayEvent.setWeeklyRecurrenceDays(dayEventRequest.getWeeklyRecurrenceDays());
-        dayEvent.setMonthlyRepetitionType(dayEventRequest.getMonthlyRepetitionType());
-        dayEvent.setRepetitionDuration(dayEventRequest.getRepetitionDuration());
-        dayEvent.setRepetitionEndDate(dayEventRequest.getRepetitionEndDate());
-        dayEvent.setRepetitionOccurrences(dayEventRequest.getRepetitionOccurrences());
+        dayEvent.setStartDate(createDayEventRequest.getStartDate());
+        dayEvent.setEndDate(createDayEventRequest.getEndDate());
+        dayEvent.setRepetitionFrequency(createDayEventRequest.getRepetitionFrequency());
+        dayEvent.setRepetitionStep(createDayEventRequest.getRepetitionStep());
+        dayEvent.setWeeklyRecurrenceDays(createDayEventRequest.getWeeklyRecurrenceDays());
+        dayEvent.setMonthlyRepetitionType(createDayEventRequest.getMonthlyRepetitionType());
+        dayEvent.setRepetitionDuration(createDayEventRequest.getRepetitionDuration());
+        dayEvent.setRepetitionEndDate(createDayEventRequest.getRepetitionEndDate());
+        dayEvent.setRepetitionOccurrences(createDayEventRequest.getRepetitionOccurrences());
         dayEvent.setUser(user);
 
         this.dayEventRepository.save(dayEvent);

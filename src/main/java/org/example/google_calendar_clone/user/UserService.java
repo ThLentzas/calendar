@@ -13,7 +13,6 @@ import org.example.google_calendar_clone.user.dto.UserProfile;
 import org.example.google_calendar_clone.user.dto.UserProfileConverter;
 import org.example.google_calendar_clone.utils.PasswordUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,8 +45,8 @@ public class UserService {
         The current user(sender) makes a request to add another registered user to their contacts
      */
     @Transactional
-    void sendContactRequest(CreateContactRequest contactRequest, Jwt jwt) {
-        User sender = this.userRepository.getReferenceById(Long.valueOf(jwt.getSubject()));
+    void sendContactRequest(CreateContactRequest contactRequest, Long senderId) {
+        User sender = this.userRepository.getReferenceById(senderId);
         User receiver = this.userRepository.findById(contactRequest.receiverId()).orElseThrow(() ->
                 new ResourceNotFoundException("User not found with id: " + contactRequest.receiverId()));
 
@@ -57,8 +56,7 @@ public class UserService {
     /*
         The current user(receiver) received a contact request and either accepts or rejects the request
      */
-    void updateContactRequest(UpdateContactRequest contactRequest, Jwt jwt) {
-        Long receiverId = Long.valueOf(jwt.getSubject());
+    void updateContactRequest(UpdateContactRequest contactRequest, Long receiverId) {
         Long senderId = contactRequest.senderId();
         this.contactRequestService.updateContactRequest(senderId, receiverId, contactRequest.action());
     }
@@ -68,16 +66,16 @@ public class UserService {
                 new ResourceNotFoundException("User not found with id: " + userId));
     }
 
-    List<PendingContactRequest> findPendingContactsRequests(Jwt jwt) {
-        List<ContactRequest> contactRequests = this.contactRequestService.findPendingContacts(Long.valueOf(jwt.getSubject()));
+    List<PendingContactRequest> findPendingContactRequests(Long receiverId) {
+        List<ContactRequest> contactRequests = this.contactRequestService.findPendingContacts(receiverId);
         return contactRequests.stream()
                 .map(contactRequest -> new PendingContactRequest(
                         this.profileConverter.convert(contactRequest.getSender()), contactRequest.getStatus()))
                 .toList();
     }
 
-    List<UserProfile> findContacts(Jwt jwt) {
-        List<User> users = this.contactService.findContacts(Long.valueOf(jwt.getSubject()));
+    List<UserProfile> findContacts(Long userId) {
+        List<User> users = this.contactService.findContacts(userId);
 
         return users.stream()
                 .map(this.profileConverter::convert)

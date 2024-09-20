@@ -25,6 +25,15 @@ public interface DayEventRepository extends JpaRepository<DayEvent, UUID> {
             """)
     boolean existsByEventIdAndUserId(@Param("eventId") UUID eventId, @Param("userId") Long userId);
 
+    @Query("""
+                SELECT de
+                FROM DayEvent de
+                JOIN FETCH de.dayEventSlots des
+                LEFT JOIN FETCH des.guestEmails
+                WHERE de.id = :eventId AND de.user.id = :userId
+            """)
+    Optional<DayEvent> findByEventIdAndUserId(@Param("eventId") UUID eventId, @Param("userId") Long userId);
+
     default DayEvent findByIdOrThrow(UUID id) {
         return findByIdFetchingUser(id).orElseThrow(() -> new ResourceNotFoundException("Day event not found with id: " + id));
     }

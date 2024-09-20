@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS day_events (
 CREATE TABLE IF NOT EXISTS day_event_slots(
     id uuid,
     day_event_id uuid NOT NULL,
-    name VARCHAR(50) NOT NULL,
+    title VARCHAR(50) NULL,
     location VARCHAR(50) NULL,
     description TEXT NULL,
     start_date DATE NOT NULL,

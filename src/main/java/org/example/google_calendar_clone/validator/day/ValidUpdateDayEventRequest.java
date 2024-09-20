@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.validator.time;
+package org.example.google_calendar_clone.validator.day;
 
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
@@ -10,9 +10,9 @@ import java.lang.annotation.Target;
 
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@Constraint(validatedBy = TimeEventRequestValidator.class)
-public @interface ValidTimeEventRequest {
-    String message() default "Invalid TimeEventRequest configuration";
+@Constraint(validatedBy = UpdateDayEventRequestValidator.class)
+public @interface ValidUpdateDayEventRequest {
+    String message() default "Invalid UpdateDayEventRequest configuration";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
 }

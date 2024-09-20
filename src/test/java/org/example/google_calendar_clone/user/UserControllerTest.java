@@ -5,7 +5,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.example.google_calendar_clone.config.SecurityConfig;
@@ -18,8 +17,6 @@ import org.example.google_calendar_clone.user.dto.UserProfile;
 import org.example.google_calendar_clone.utils.AuthUtils;
 import org.junit.jupiter.api.Test;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -118,7 +115,7 @@ class UserControllerTest {
     void should200WhenSendContactRequestIsSuccessful() throws Exception {
         CreateContactRequest contactRequest = new CreateContactRequest(FAKER.number().numberBetween(1L, 1000L));
 
-        doNothing().when(this.userService).sendContactRequest(eq(contactRequest), any(Jwt.class));
+        doNothing().when(this.userService).sendContactRequest(contactRequest, 1L);
 
         this.mockMvc.perform(post(USER_PATH + "/contacts").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -132,7 +129,7 @@ class UserControllerTest {
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpect(status().isOk());
 
-        verify(this.userService, times(1)).sendContactRequest(eq(contactRequest), any(Jwt.class));
+        verify(this.userService, times(1)).sendContactRequest(contactRequest, 1L);
     }
 
     // sendContactRequest() @Valid
@@ -280,7 +277,7 @@ class UserControllerTest {
                 ContactRequestStatus.PENDING
         );
 
-        when(this.userService.findPendingContactsRequests(any(Jwt.class))).thenReturn(List.of(request1, request2));
+        when(this.userService.findPendingContactRequests(1L)).thenReturn(List.of(request1, request2));
 
         this.mockMvc.perform(get(USER_PATH + "/contact-requests")
                         .accept(MediaType.APPLICATION_JSON)
@@ -324,7 +321,7 @@ class UserControllerTest {
                 ContactRequestAction.ACCEPT
         );
 
-        doNothing().when(this.userService).updateContactRequest(eq(request), any(Jwt.class));
+        doNothing().when(this.userService).updateContactRequest(request, 1L);
 
         this.mockMvc.perform(put(USER_PATH + "/contact-requests").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -332,7 +329,7 @@ class UserControllerTest {
                         .with(authentication(AuthUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
-        verify(this.userService, times(1)).updateContactRequest(eq(request), any(Jwt.class));
+        verify(this.userService, times(1)).updateContactRequest(request, 1L);
     }
 
     // updateContactRequest() @Valid
@@ -463,7 +460,7 @@ class UserControllerTest {
         UserProfile userProfile2 = new UserProfile(FAKER.number().numberBetween(1L, 1000L), FAKER.internet().username());
         List<UserProfile> contacts = List.of(userProfile1, userProfile2);
 
-        when(this.userService.findContacts(any(Jwt.class))).thenReturn(contacts);
+        when(this.userService.findContacts(1L)).thenReturn(contacts);
 
         this.mockMvc.perform(get(USER_PATH + "/contacts")
                         .accept(MediaType.APPLICATION_JSON)

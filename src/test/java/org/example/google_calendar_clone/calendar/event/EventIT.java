@@ -86,7 +86,7 @@ class EventIT extends AbstractIntegrationTest {
 
         String requestBody = String.format("""
                 {
-                     "name": "Event name",
+                     "title": "Event title",
                      "location": "Location",
                      "description": "Description",
                      "guestEmails": ["%s"],
@@ -134,7 +134,7 @@ class EventIT extends AbstractIntegrationTest {
             values provided
          */
         assertThat(dayEventSlots).hasSize(2)
-                .allMatch(slot -> slot.getName().equals("Event name")
+                .allMatch(slot -> slot.getTitle().equals("Event title")
                         && slot.getLocation().equals("Location")
                         && slot.getDescription().equals("Description")
                         && slot.getOrganizer().equals("ellyn.roberts")
@@ -156,6 +156,84 @@ class EventIT extends AbstractIntegrationTest {
         assertThat(messages).hasSize(1);
         assertThat(message.getAllRecipients()[0]).hasToString(guestEmail);
         assertThat(message.getSubject()).isEqualTo("Invitation");
+    }
+
+    @Test
+    @Sql({"/scripts/INIT_USERS.sql", "/scripts/INIT_EVENTS.sql"})
+    void shouldUpdateDayEvent() {
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .extract()
+                .response();
+
+        Map<String, String> cookies = response.getCookies();
+
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(2).getFirst())
+                .formParam("password", userCredentials().get(2).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
+        // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
+        cookies = response.getCookies();
+
+        String requestBody = String.format("""
+                {
+                     "title": "Updated title",
+                     "location": "Updated location",
+                     "description": "Updated description",
+                     "startDate": "%s",
+                     "endDate": "%s",
+                     "repetitionFrequency": "DAILY",
+                     "repetitionStep": 4,
+                     "repetitionDuration": "N_REPETITIONS",
+                     "repetitionOccurrences": 3
+                }
+                """, LocalDate.now().plusDays(1), LocalDate.now().plusDays(2));
+        UUID eventId = UUID.fromString("6b9b32f2-3c2a-4420-9d52-781c09f320ce");
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .when()
+                .put(DAY_EVENT_PATH + "/{eventId}", eventId)
+                .then()
+                .statusCode(204);
+
+        List<DayEventSlotDTO> dayEventSlots = given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .accept(ContentType.JSON)
+                .when()
+                .get(DAY_EVENT_PATH + "/{eventId}/day-event-slots", eventId)
+                .then().statusCode(200)
+                .extract()
+                .response().as(new TypeRef<>() {
+                });
+
+        /*
+            The differences between the day event slots are in the start/end date. The remaining properties upon creating
+            an event will be the same for all. We can not assert on the stat/end date but, we can make sure that they
+            are sorted based on the start date and the list of event slots has the expected size based on the repetition
+            values provided.
+
+            With the frequency details that we passed in the update request we assert on the new values.
+         */
+        assertThat(dayEventSlots).hasSize(3)
+                .allMatch(slot -> slot.getTitle().equals("Updated title")
+                        && slot.getLocation().equals("Updated location")
+                        && slot.getDescription().equals("Updated description")
+                        && slot.getOrganizer().equals("ellyn.roberts"))
+                .isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate));
     }
 
     @Test
@@ -253,7 +331,7 @@ class EventIT extends AbstractIntegrationTest {
         */
         String requestBody = String.format("""
                         {
-                            "name": "Event name",
+                            "title": "Event title",
                             "location": "Location",
                             "description": "Description",
                             "guestEmails": ["%s"],
@@ -309,7 +387,7 @@ class EventIT extends AbstractIntegrationTest {
             values provided
          */
         assertThat(timeEventSlots).hasSize(5)
-                .allMatch(slot -> slot.getName().equals("Event name")
+                .allMatch(slot -> slot.getTitle().equals("Event title")
                         && slot.getLocation().equals("Location")
                         && slot.getDescription().equals("Description")
                         && slot.getOrganizer().equals("ellyn.roberts")
@@ -332,6 +410,78 @@ class EventIT extends AbstractIntegrationTest {
         assertThat(messages).hasSize(1);
         assertThat(message.getAllRecipients()[0]).hasToString(guestEmail);
         assertThat(message.getSubject()).isEqualTo("Invitation");
+    }
+
+    @Test
+    @Sql({"/scripts/INIT_USERS.sql", "/scripts/INIT_EVENTS.sql"})
+    void shouldUpdateTimeEvent() {
+        Response response = given()
+                .when()
+                .get(AUTH_PATH + "/token/csrf")
+                .then()
+                .extract()
+                .response();
+
+        Map<String, String> cookies = response.getCookies();
+
+        // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
+        response = given()
+                .contentType(ContentType.URLENC)
+                .formParam("username", userCredentials().get(2).getFirst())
+                .formParam("password", userCredentials().get(2).getSecond())
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .when()
+                .post("/login")
+                .then()
+                .extract()
+                .response();
+        // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
+        cookies = response.getCookies();
+
+        String requestBody = """
+                {
+                     "title": "Updated title",
+                     "location": "Updated location",
+                     "description": "Updated description"
+                }
+                """;
+        UUID eventId = UUID.fromString("0c9d6398-a6de-47f0-8328-04a2f3c0511c");
+        given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
+                .contentType(ContentType.JSON)
+                .body(requestBody)
+                .when()
+                .put(TIME_EVENT_PATH + "/{eventId}", eventId)
+                .then()
+                .statusCode(204);
+
+        List<TimeEventSlotDTO> eventSlots = given()
+                .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
+                .accept(ContentType.JSON)
+                .when()
+                .get(DAY_EVENT_PATH + "/{eventId}/time-event-slots", eventId)
+                .then().statusCode(200)
+                .extract()
+                .response().as(new TypeRef<>() {
+                });
+
+        /*
+            The differences between the day event slots are in the start/end date. The remaining properties upon creating
+            an event will be the same for all. We can not assert on the stat/end date but, we can make sure that they
+            are sorted based on the start date and the list of event slots has the expected size based on the repetition
+            values provided.
+
+            With the frequency details that we passed in the update request we assert on the new values.
+         */
+        assertThat(eventSlots).hasSize(4)
+                .allMatch(slot -> slot.getTitle().equals("Updated title")
+                        && slot.getLocation().equals("Updated location")
+                        && slot.getDescription().equals("Updated description")
+                        && slot.getOrganizer().equals("kris.hudson"))
+                .isSortedAccordingTo(Comparator.comparing(TimeEventSlotDTO::getStartTime));
     }
 
     @Test
@@ -499,7 +649,7 @@ class EventIT extends AbstractIntegrationTest {
                 .statusCode(200)
                 .log().all()
                 .body("id", equalTo(dayEventSlotId.toString()))
-                .body("name", equalTo("Event name"))
+                .body("title", equalTo("Event title"))
                 .body("location", equalTo("Location"))
                 .body("organizer", equalTo("ellyn.roberts"))
                 .body("guestEmails", hasItems(
@@ -569,7 +719,7 @@ class EventIT extends AbstractIntegrationTest {
                 .statusCode(200)
                 .log().all()
                 .body("id", equalTo(timeEventSlotId.toString()))
-                .body("name", equalTo("Event name"))
+                .body("title", equalTo("Event title"))
                 .body("startTime", equalTo("2024-10-11T10:00:00"))
                 .body("endTime", equalTo("2024-10-15T15:00:00"))
                 .body("startTimeZoneId", equalTo("Europe/London"))

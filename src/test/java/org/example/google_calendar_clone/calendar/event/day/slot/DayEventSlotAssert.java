@@ -38,8 +38,8 @@ class DayEventSlotAssert extends AbstractAssert<DayEventSlotAssert, DayEventSlot
     DayEventSlotAssert hasName(String eventName) {
         isNotNull();
 
-        if(!actual.getName().equals(eventName)) {
-            failWithMessage("Expected eventName to be <%s> but was <%s>", eventName, actual.getName());
+        if(!actual.getTitle().equals(eventName)) {
+            failWithMessage("Expected eventName to be <%s> but was <%s>", eventName, actual.getTitle());
         }
         return this;
     }

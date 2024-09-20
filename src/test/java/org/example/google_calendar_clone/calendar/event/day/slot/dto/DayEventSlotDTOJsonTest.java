@@ -23,7 +23,7 @@ class DayEventSlotDTOJsonTest {
     void shouldSerializeDayEventSlotList() throws IOException {
         DayEventSlotDTO dayEventSlotDTO1 = DayEventSlotDTO.builder()
                 .id(UUID.fromString("eede21d1-c2f1-4dc8-9913-a173c491f07d"))
-                .name("Event name")
+                .title("Event title")
                 .startDate(LocalDate.parse("2024-10-11"))
                 .endDate(LocalDate.parse("2024-10-15"))
                 .location("Location")
@@ -35,7 +35,7 @@ class DayEventSlotDTOJsonTest {
 
         DayEventSlotDTO dayEventSlotDTO2 = DayEventSlotDTO.builder()
                 .id(UUID.fromString("0ad2f73a-a0bb-406f-9803-4db554beb345"))
-                .name("Event name")
+                .title("Event title")
                 .startDate(LocalDate.parse("2025-01-10"))
                 .endDate(LocalDate.parse("2025-01-14"))
                 .location("Location")
@@ -51,7 +51,7 @@ class DayEventSlotDTOJsonTest {
                 [
                     {
                         "id": "eede21d1-c2f1-4dc8-9913-a173c491f07d",
-                        "name": "Event name",
+                        "title": "Event title",
                         "location": "Location",
                         "description": "Description",
                         "organizer": "ellyn.roberts",
@@ -61,7 +61,7 @@ class DayEventSlotDTOJsonTest {
                     },
                     {
                         "id": "0ad2f73a-a0bb-406f-9803-4db554beb345",
-                        "name": "Event name",
+                        "title": "Event title",
                         "location": "Location",
                         "description": "Description",
                         "organizer": "ellyn.roberts",

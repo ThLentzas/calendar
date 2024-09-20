@@ -193,11 +193,11 @@ public final class DateUtils {
             case. If both are converted to UTC, the difference is 0, both are 14:00 UTC. This is why we need to consider
             timezones for the event duration
      */
-    public static long calculateTimeZoneAwareDifference(LocalDateTime startTime,
-                                                        ZoneId startTimeZoneId,
-                                                        LocalDateTime endTime,
-                                                        ZoneId endTimeZoneId,
-                                                        TemporalUnit unit) {
+    public static long timeZoneAwareDifference(LocalDateTime startTime,
+                                               ZoneId startTimeZoneId,
+                                               LocalDateTime endTime,
+                                               ZoneId endTimeZoneId,
+                                               TemporalUnit unit) {
         LocalDateTime utcStartTime = convertToUTC(startTime, startTimeZoneId);
         LocalDateTime utcEndTime = convertToUTC(endTime, endTimeZoneId);
         return unit.between(utcStartTime, utcEndTime);

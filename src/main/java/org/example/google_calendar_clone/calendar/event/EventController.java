@@ -1,5 +1,6 @@
 package org.example.google_calendar_clone.calendar.event;
 
+import org.example.google_calendar_clone.calendar.event.time.dto.UpdateTimeEventRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,15 +19,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.example.google_calendar_clone.calendar.event.day.DayEventService;
-import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
-import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
-import org.example.google_calendar_clone.calendar.event.time.TimeEventService;
-import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
-import org.example.google_calendar_clone.calendar.event.slot.EventSlotComparator;
-import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
-import org.example.google_calendar_clone.validator.groups.OnCreate;
+import org.example.google_calendar_clone.calendar.event.day.dto.CreateDayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.UpdateDayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.DayEventSlotService;
+import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.TimeEventService;
+import org.example.google_calendar_clone.calendar.event.slot.EventSlotComparator;
+import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotService;
 
@@ -147,9 +148,9 @@ class EventController {
     // toDo: indexing
     @PostMapping("/day-events")
     ResponseEntity<Void> createDayEvent(@AuthenticationPrincipal Jwt jwt,
-                                        @Validated(OnCreate.class) @RequestBody DayEventRequest dayEventRequest) {
+                                        @Validated @RequestBody CreateDayEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
-        UUID eventId = this.dayEventService.create(userId, dayEventRequest);
+        UUID eventId = this.dayEventService.create(userId, eventRequest);
         /*
             https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-uri-building.html
             https://docs.spring.io/spring-framework/docs/4.1.2.RELEASE_to_4.1.3.RELEASE/Spring%20Framework%204.1.3.RELEASE/org/springframework/http/ResponseEntity.html
@@ -161,10 +162,20 @@ class EventController {
         return new ResponseEntity<>(responseHeaders, HttpStatus.CREATED);
     }
 
+    /*
+        For the given day event, updates its day event slots. If new frequency details are provided, we create new
+        day event slots based on the new details and delete the old ones. If properties like title, location, guests
+        etc. are also provided, we update those properties for every event slot. For the given event, the frequency
+        details are also updated.
+     */
     @PutMapping("/day-events/{eventId}")
     ResponseEntity<Void> updateDayEvent(@PathVariable("eventId") UUID eventId,
-                                        @AuthenticationPrincipal Jwt jwt) {
-        return null;
+                                        @AuthenticationPrincipal Jwt jwt,
+                                        @Validated @RequestBody UpdateDayEventRequest eventRequest) {
+        Long userId = Long.valueOf(jwt.getSubject());
+        this.dayEventService.update(userId, eventId, eventRequest);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/day-events/{eventId}/day-event-slots")
@@ -188,14 +199,30 @@ class EventController {
 
     @PostMapping("/time-events")
     ResponseEntity<Void> createTimeEvent(@AuthenticationPrincipal Jwt jwt,
-                                         @Validated(OnCreate.class) @RequestBody TimeEventRequest timeEventRequest) {
+                                         @Validated @RequestBody CreateTimeEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
-        UUID eventId = this.timeEventService.create(userId, timeEventRequest);
+        UUID eventId = this.timeEventService.create(userId, eventRequest);
         URI location = UriComponentsBuilder.fromUriString("/api/v1/events/time-events/{eventId}").build(eventId);
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setLocation(location);
 
         return new ResponseEntity<>(responseHeaders, HttpStatus.CREATED);
+    }
+
+    /*
+        For the given day event, updates its day event slots. If new frequency details are provided, we create new
+        day event slots based on the new details and delete the old ones. If properties like title, location, guests
+        etc. are also provided, we update those properties for every event slot. For the given event, the frequency
+        details are also updated.
+     */
+    @PutMapping("/time-events/{eventId}")
+    ResponseEntity<Void> updateTimeEvent(@PathVariable("eventId") UUID eventId,
+                                         @AuthenticationPrincipal Jwt jwt,
+                                         @Validated @RequestBody UpdateTimeEventRequest eventRequest) {
+        Long userId = Long.valueOf(jwt.getSubject());
+        this.timeEventService.update(userId, eventId, eventRequest);
+
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/time-events/{eventId}/time-event-slots")

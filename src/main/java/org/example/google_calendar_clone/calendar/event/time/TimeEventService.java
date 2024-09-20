@@ -4,7 +4,8 @@ import org.example.google_calendar_clone.calendar.event.IEventService;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationRequest;
-import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.UpdateTimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotService;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.email.EmailService;
@@ -23,7 +24,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class TimeEventService implements IEventService<TimeEventRequest, TimeEventSlotDTO> {
+public class TimeEventService implements IEventService<CreateTimeEventRequest, UpdateTimeEventRequest, TimeEventSlotDTO> {
     private final UserRepository userRepository;
     private final TimeEventRepository timeEventRepository;
     private final TimeEventSlotService timeEventSlotService;
@@ -31,7 +32,7 @@ public class TimeEventService implements IEventService<TimeEventRequest, TimeEve
     private static final String EVENT_NOT_FOUND_MSG = "Time event not found with id: ";
 
     @Override
-    public UUID create(Long userId, TimeEventRequest eventRequest) {
+    public UUID create(Long userId, CreateTimeEventRequest eventRequest) {
         /*
             The current authenticated user is the organizer of the event. We can't call getReferenceById(), we need the
             username of the user to set it as the organizer in the invitation email template
@@ -65,7 +66,7 @@ public class TimeEventService implements IEventService<TimeEventRequest, TimeEve
         this.timeEventRepository.save(event);
         this.timeEventSlotService.create(eventRequest, event);
         TimeEventInvitationRequest emailRequest = TimeEventInvitationRequest.builder()
-                .eventName(eventRequest.getName())
+                .eventName(eventRequest.getTitle())
                 .location(eventRequest.getLocation())
                 .organizer(user.getUsername())
                 .guestEmails(eventRequest.getGuestEmails())
@@ -120,6 +121,15 @@ public class TimeEventService implements IEventService<TimeEventRequest, TimeEve
         }
 
         this.timeEventRepository.deleteById(eventId);
+    }
+
+    @Override
+    public void update(Long userId, UUID eventId, UpdateTimeEventRequest eventRequest) {
+        TimeEvent event = this.timeEventRepository.findByEventIdAndUserId(eventId, userId).orElseThrow(() ->
+                new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + eventId));
+
+        this.timeEventSlotService.update(eventRequest, event);
+        this.timeEventRepository.save(event);
     }
 
     public List<TimeEventSlotDTO> findEventSlotsByUserInDateRange(Long userId, LocalDateTime startTime, LocalDateTime endTime) {

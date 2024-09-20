@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS time_events (
 CREATE TABLE IF NOT EXISTS time_event_slots(
     id uuid,
     time_event_id uuid NOT NULL,
-    name VARCHAR(50) NOT NULL,
+    title VARCHAR(50) NULL,
     location VARCHAR(50) NULL,
     description TEXT NULL,
     start_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,

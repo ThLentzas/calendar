@@ -16,7 +16,7 @@ import java.util.UUID;
 @SuperBuilder
 public abstract class EventSlotDTO {
     protected UUID id;
-    protected String name;
+    protected String title;
     protected String location;
     protected String description;
     protected String organizer;

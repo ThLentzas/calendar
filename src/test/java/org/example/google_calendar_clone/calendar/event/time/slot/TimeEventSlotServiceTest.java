@@ -6,7 +6,7 @@ import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepeti
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.TimeEventRepository;
-import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
@@ -71,8 +71,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotForNonRepeatingEvent() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-10-11T10:00"))
                 .endTime(LocalDateTime.parse("2024-10-15T15:00"))
                 .startTimeZoneId(ZoneId.of("Europe/London"))
@@ -94,7 +94,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         assertThat(eventSlots).hasSize(1);
         TimeEventSlotAssert.assertThat(eventSlots.get(0))
                 .hasStartTime(dateTimes.get(0))
-                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                         event.getStartTime(),
                         event.getStartTimeZoneId(),
                         event.getEndTime(),
@@ -102,7 +102,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                         ChronoUnit.MINUTES)))
                 .hasStartTimeZoneId(event.getStartTimeZoneId())
                 .hasEndTimeZoneId(event.getEndTimeZoneId())
-                .hasName(request.getName())
+                .hasName(request.getTitle())
                 .hasLocation(request.getLocation())
                 .hasDescription(request.getDescription())
                 .hasGuests(request.getGuestEmails())
@@ -119,8 +119,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     @Test
     void shouldCreateTimeEventSlotForNonRepeatingEventDuringDSTGap() {
         // This time falls within the DST gap in New York on March 10, 2024
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-03-10T02:30"))
                 .endTime(LocalDateTime.parse("2024-03-10T03:30"))
                 .startTimeZoneId(ZoneId.of("America/New_York"))
@@ -141,7 +141,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         assertThat(eventSlots).hasSize(1);
         TimeEventSlotAssert.assertThat(eventSlots.get(0))
                 .hasStartTime(dateTimes.get(0))
-                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                         event.getStartTime(),
                         event.getStartTimeZoneId(),
                         event.getEndTime(),
@@ -149,7 +149,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                         ChronoUnit.MINUTES)))
                 .hasStartTimeZoneId(event.getStartTimeZoneId())
                 .hasEndTimeZoneId(event.getEndTimeZoneId())
-                .hasName(request.getName())
+                .hasName(request.getTitle())
                 .hasLocation(request.getLocation())
                 .hasDescription(request.getDescription())
                 .hasGuests(request.getGuestEmails())
@@ -165,8 +165,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     @Test
     void shouldCreateTimeEventSlotForNonRepeatingEventDuringDSTOverlap() {
         // This time falls within the DST overlap in New York on November 3, 2024
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-11-03T01:30"))
                 .endTime(LocalDateTime.parse("2024-11-03T02:30"))
                 .startTimeZoneId(ZoneId.of("America/New_York"))
@@ -188,7 +188,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         assertThat(eventSlots).hasSize(1);
         TimeEventSlotAssert.assertThat(eventSlots.get(0))
                 .hasStartTime(dateTimes.get(0))
-                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                .hasEndTime(eventSlots.get(0).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                         event.getStartTime(),
                         event.getStartTimeZoneId(),
                         event.getEndTime(),
@@ -196,7 +196,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                         ChronoUnit.MINUTES)))
                 .hasStartTimeZoneId(event.getStartTimeZoneId())
                 .hasEndTimeZoneId(event.getEndTimeZoneId())
-                .hasName(request.getName())
+                .hasName(request.getTitle())
                 .hasLocation(request.getLocation())
                 .hasDescription(request.getDescription())
                 .hasGuests(request.getGuestEmails())
@@ -211,8 +211,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNDaysUntilDate() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-10-11T10:00"))
                 .endTime(LocalDateTime.parse("2024-10-11T15:00"))
                 .startTimeZoneId(ZoneId.of("America/Chicago"))
@@ -242,7 +242,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -250,7 +250,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -265,8 +265,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNDaysForNRepetitions() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 // Local Oslo time before DST ends
                 .startTime(LocalDateTime.parse("2024-10-25T10:00"))
                 // Local Oslo time before DST ends
@@ -301,7 +301,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -309,7 +309,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -326,8 +326,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksUntilDate() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-08-20T10:00"))
                 .endTime(LocalDateTime.parse("2024-08-20T12:00"))
                 .startTimeZoneId(ZoneId.of("Asia/Tokyo")) // UTC + 9. No DST in Japan +9 all year round
@@ -357,7 +357,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -365,7 +365,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -382,8 +382,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-09-06T10:00"))
                 .endTime(LocalDateTime.parse("2024-09-06T12:00"))
                 .startTimeZoneId(ZoneId.of("Europe/Madrid")) // UTC + 2
@@ -414,7 +414,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -422,7 +422,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -432,8 +432,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayUntilDate() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T10:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T15:00"))
                 .startTimeZoneId(ZoneId.of("Asia/Singapore")) // UTC + 8, no DST
@@ -464,7 +464,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -472,7 +472,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -488,8 +488,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayForNRepetitions() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-10-31T08:00"))
                 .endTime(LocalDateTime.parse("2024-10-31T15:00"))
                 .startTimeZoneId(ZoneId.of("America/New_York"))
@@ -521,7 +521,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -529,7 +529,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -539,8 +539,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekdayUntilDate() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T11:00"))
                 .startTimeZoneId(ZoneId.of("Africa/Nairobi")) // UTC + 3, no DST
@@ -570,7 +570,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -578,7 +578,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -588,8 +588,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekdayForNRepetitions() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T11:00"))
                 .startTimeZoneId(ZoneId.of("Africa/Nairobi")) // UTC + 3, no DST
@@ -620,7 +620,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -628,7 +628,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -638,8 +638,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNYearsUntilDate() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-05-18T10:00"))
                 .endTime(LocalDateTime.parse("2024-05-18T14:00"))
                 .startTimeZoneId(ZoneId.of("America/Sao_Paulo")) // UTC - 3, no DST
@@ -668,7 +668,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -676,7 +676,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -688,8 +688,8 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     // leap years.
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNYearsForNRepetitions() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .name("Event name")
+        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+                .title("Event name")
                 .startTime(LocalDateTime.parse("2024-02-29T07:00"))
                 .endTime(LocalDateTime.parse("2024-02-29T09:00"))
                 .startTimeZoneId(ZoneId.of("America/Sao_Paulo")) // UTC - 3, no DST
@@ -720,7 +720,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         for (int i = 0; i < eventSlots.size(); i++) {
             TimeEventSlotAssert.assertThat(eventSlots.get(i))
                     .hasStartTime(dateTimes.get(i))
-                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+                    .hasEndTime(eventSlots.get(i).getStartTime().plusMinutes(DateUtils.timeZoneAwareDifference(
                             event.getStartTime(),
                             event.getStartTimeZoneId(),
                             event.getEndTime(),
@@ -728,7 +728,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
                             ChronoUnit.MINUTES)))
                     .hasStartTimeZoneId(event.getStartTimeZoneId())
                     .hasEndTimeZoneId(event.getEndTimeZoneId())
-                    .hasName(request.getName())
+                    .hasName(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
@@ -800,7 +800,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
         UUID slotId = UUID.fromString("3075c6eb-8028-4f99-8c6c-27db1bb5cc43");
         TimeEventSlotDTO expected = TimeEventSlotDTO.builder()
                 .id(slotId)
-                .name("Event name")
+                .title("Event title")
                 .startTime(LocalDateTime.parse("2024-10-11T10:00:00"))
                 .endTime(LocalDateTime.parse("2024-10-15T15:00:00"))
                 .startTimeZoneId(ZoneId.of("Europe/London"))
@@ -856,7 +856,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
 
-    private TimeEvent createTimeEvent(TimeEventRequest eventRequest) {
+    private TimeEvent createTimeEvent(CreateTimeEventRequest eventRequest) {
         // We know the id from the sql script
         User user = this.userRepository.getReferenceById(1L);
         TimeEvent timeEvent = new TimeEvent();

@@ -9,7 +9,7 @@ public class DayEventSlotDTOConverter implements Converter<DayEventSlot, DayEven
     public DayEventSlotDTO convert(DayEventSlot dayEventSlot) {
         return DayEventSlotDTO.builder()
                 .id(dayEventSlot.getId())
-                .name(dayEventSlot.getName())
+                .title(dayEventSlot.getTitle())
                 .startDate(dayEventSlot.getStartDate())
                 .endDate(dayEventSlot.getEndDate())
                 .location(dayEventSlot.getLocation())

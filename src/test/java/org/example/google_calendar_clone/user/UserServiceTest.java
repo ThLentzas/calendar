@@ -12,11 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import net.datafaker.Faker;
@@ -103,15 +101,13 @@ class UserServiceTest {
         User sender = createUser();
         Long receiverId = FAKER.number().numberBetween(1L, 150L);
         CreateContactRequest contactRequest = new CreateContactRequest(receiverId);
-        Jwt mockJwt = mock(Jwt.class);
 
-        when(mockJwt.getSubject()).thenReturn(String.valueOf(sender.getId()));
         when(this.userRepository.getReferenceById(sender.getId())).thenReturn(sender);
         when(this.userRepository.findById(contactRequest.receiverId())).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.sendContactRequest(
                         contactRequest,
-                        mockJwt))
+                        sender.getId()))
                 .withMessage("User not found with id: " + contactRequest.receiverId());
     }
 

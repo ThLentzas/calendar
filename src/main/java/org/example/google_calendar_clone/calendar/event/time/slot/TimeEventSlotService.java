@@ -5,7 +5,8 @@ import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.time.TimeEventRepository;
-import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.UpdateTimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTOConverter;
 import org.example.google_calendar_clone.entity.TimeEvent;
@@ -15,8 +16,6 @@ import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.example.google_calendar_clone.user.UserRepository;
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.example.google_calendar_clone.utils.EventUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -35,14 +34,11 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class TimeEventSlotService implements IEventSlotService<TimeEventRequest, TimeEvent, TimeEventSlotDTO> {
+public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRequest, UpdateTimeEventRequest, TimeEvent, TimeEventSlotDTO> {
     private final TimeEventSlotRepository timeEventSlotRepository;
     private final TimeEventRepository timeEventRepository;
     private final UserRepository userRepository;
     private static final TimeEventSlotDTOConverter converter = new TimeEventSlotDTOConverter();
-    private static final Logger logger = LoggerFactory.getLogger(TimeEventSlotService.class);
-    private static final String AUTH_USER_NOT_FOUND_ERROR = "Authenticated user with id: {} was not found in the database";
-    private static final String USER_NOT_ORGANIZER_ERROR = "User with id: {} is not the organizer of the event with id: {}";
     private static final String EVENT_SLOT_NOT_FOUND_MSG = "Time event slot not found with id: ";
 
     /*
@@ -51,7 +47,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         back to their local time according to the timezones we stored alongside them. This happens in the converter
      */
     @Override
-    public void create(TimeEventRequest eventRequest, TimeEvent event) {
+    public void create(CreateTimeEventRequest eventRequest, TimeEvent event) {
         // We want to send invitation emails only to emails that at least contain @
         Set<String> guestEmails = new HashSet<>();
         if (eventRequest.getGuestEmails() != null) {
@@ -88,6 +84,61 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
                 createUntilDateSameDayEventSlots(eventRequest, event, ChronoUnit.YEARS);
                 createNRepetitionsSameDayEventSlots(eventRequest, event, ChronoUnit.YEARS);
             }
+        }
+    }
+
+    /*
+        This method will be tested via an Integration test, because EventUtils.hasSameFrequencyDetails() is already
+        tested and the remaining code is just calling delete() and save(). No logic to be tested in the
+        TimeEventSlotServiceTest class, create is already fully tested.
+     */
+    @Override
+    public void update(UpdateTimeEventRequest eventRequest, TimeEvent event) {
+        if (eventRequest.getRepetitionFrequency() != null && !EventUtils.hasSameFrequencyDetails(eventRequest, event)) {
+            CreateTimeEventRequest createTimeEventRequest = CreateTimeEventRequest.builder()
+                    .title(eventRequest.getTitle())
+                    .location(eventRequest.getLocation())
+                    .description(eventRequest.getDescription())
+                    .guestEmails(eventRequest.getGuestEmails())
+                    .startTime(eventRequest.getStartTime())
+                    .endTime(eventRequest.getEndTime())
+                    .startTimeZoneId(eventRequest.getStartTimeZoneId())
+                    .endTimeZoneId(eventRequest.getEndTimeZoneId())
+                    .repetitionFrequency(eventRequest.getRepetitionFrequency())
+                    .repetitionStep(eventRequest.getRepetitionStep())
+                    .weeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays())
+                    .monthlyRepetitionType(eventRequest.getMonthlyRepetitionType())
+                    .repetitionDuration(eventRequest.getRepetitionDuration())
+                    .repetitionEndDate(eventRequest.getRepetitionEndDate())
+                    .repetitionOccurrences(eventRequest.getRepetitionOccurrences())
+                    .build();
+
+            event.setStartTime(eventRequest.getStartTime());
+            event.setEndTime(eventRequest.getEndTime());
+            event.setStartTimeZoneId(eventRequest.getStartTimeZoneId());
+            event.setEndTimeZoneId(eventRequest.getEndTimeZoneId());
+            EventUtils.setFrequencyDetails(eventRequest, event);
+
+            this.timeEventSlotRepository.deleteAll(event.getTimeEventSlots());
+
+            // Maybe this is bad practise to self invoke public methods, but we need to create the event slots for the different frequency
+            create(createTimeEventRequest, event);
+        } else {
+            event.getTimeEventSlots().forEach(eventSlot -> {
+                eventSlot.setTitle(eventRequest.getTitle() != null
+                        && !eventRequest.getTitle().isBlank() ? eventRequest.getTitle() : eventSlot.getTitle());
+                eventSlot.setLocation(eventRequest.getLocation() != null
+                        && !eventRequest.getLocation().isBlank() ? eventRequest.getLocation()
+                        : eventSlot.getLocation());
+                eventSlot.setDescription(eventRequest.getDescription() != null
+                        && !eventRequest.getDescription().isBlank() ? eventRequest.getDescription()
+                        : eventSlot.getDescription());
+                eventSlot.setGuestEmails(eventRequest.getGuestEmails() != null
+                        && !eventRequest.getGuestEmails().isEmpty() ? eventRequest.getGuestEmails()
+                        : eventSlot.getGuestEmails());
+
+                this.timeEventSlotRepository.save(eventSlot);
+            });
         }
     }
 
@@ -140,7 +191,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
 
         date = date.plusDays(), date = date.plusWeeks() etc
      */
-    private void createUntilDateDailyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+    private void createUntilDateDailyEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -153,7 +204,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         }
     }
 
-    private void createNRepetitionsDailyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+    private void createNRepetitionsDailyEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -190,7 +241,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
             @Test
             void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksUntilACertainDate(), TimeEventSlotServiceTest
      */
-    private void createUntilDateWeeklyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+    private void createUntilDateWeeklyEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -225,7 +276,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
             @Test
             void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions(), TimeEventSlotServiceTest
      */
-    private void createNRepetitionsWeeklyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+    private void createNRepetitionsWeeklyEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -258,7 +309,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
     }
 
     // Monthly events that repeat the same week day until a certain date(2nd Tuesday of the month)
-    private void createUntilDateMonthlySameWeekdayEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+    private void createUntilDateMonthlySameWeekdayEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -283,7 +334,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
     }
 
     // Monthly events that repeat the same week day until a number of repetitions(2nd Tuesday of the month)
-    private void createNRepetitionsMonthlySameWeekdayEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
+    private void createNRepetitionsMonthlySameWeekdayEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -304,7 +355,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         }
     }
 
-    private void createUntilDateSameDayEventSlots(TimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
+    private void createUntilDateSameDayEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -321,7 +372,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         }
     }
 
-    private void createNRepetitionsSameDayEventSlots(TimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
+    private void createNRepetitionsSameDayEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -352,9 +403,9 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
             case. If both are converted to UTC, the difference is 0, both are 14:00 UTC. This is why we need to consider
             timezones for the event duration
      */
-    private void createTimeEventSlot(TimeEventRequest eventRequest, TimeEvent event, LocalDateTime startTime) {
+    private void createTimeEventSlot(CreateTimeEventRequest eventRequest, TimeEvent event, LocalDateTime startTime) {
         startTime = DateUtils.convertToUTC(startTime, eventRequest.getStartTimeZoneId());
-        LocalDateTime endTime = startTime.plusMinutes(DateUtils.calculateTimeZoneAwareDifference(
+        LocalDateTime endTime = startTime.plusMinutes(DateUtils.timeZoneAwareDifference(
                 event.getStartTime(),
                 event.getStartTimeZoneId(),
                 event.getEndTime(),
@@ -366,7 +417,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         timeEventSlot.setEndTime(endTime);
         timeEventSlot.setStartTimeZoneId(event.getStartTimeZoneId());
         timeEventSlot.setEndTimeZoneId(event.getEndTimeZoneId());
-        timeEventSlot.setName(eventRequest.getName());
+        timeEventSlot.setTitle(eventRequest.getTitle());
         timeEventSlot.setDescription(eventRequest.getDescription());
         timeEventSlot.setLocation(eventRequest.getLocation());
         timeEventSlot.setGuestEmails(eventRequest.getGuestEmails());

@@ -20,7 +20,7 @@ public abstract class AbstractEventSlot {
     @GeneratedValue(strategy = GenerationType.UUID)
     @EqualsAndHashCode.Include
     protected UUID id;
-    protected String name;
+    protected String title;
     protected String location;
     protected String description;
 }

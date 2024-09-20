@@ -12,10 +12,16 @@ import java.util.UUID;
     Why we need both the event request and the event? Because the event slot needs information from the request that we
     do not persist for the event, but we need to event for the Hibernate relationship
  */
-public interface IEventSlotService <T extends AbstractEventRequest, U extends AbstractEvent, K extends EventSlotDTO> {
+public interface IEventSlotService<T extends AbstractEventRequest,
+        V extends AbstractEventRequest,
+        U extends AbstractEvent,
+        K extends EventSlotDTO> {
 
     @Transactional
     void create(T eventRequest, U event);
+
+    @Transactional
+    void update(V eventRequest, U event);
 
     @Transactional
     void inviteGuests(Long userId, UUID slotId, InviteGuestsRequest inviteGuestsRequest);

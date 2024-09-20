@@ -1,9 +1,10 @@
 package org.example.google_calendar_clone.calendar.event.day.slot;
 
 import org.example.google_calendar_clone.calendar.event.day.DayEventRepository;
+import org.example.google_calendar_clone.calendar.event.day.dto.UpdateDayEventRequest;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
-import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.CreateDayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTOConverter;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
@@ -28,10 +29,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class DayEventSlotService implements IEventSlotService<DayEventRequest, DayEvent, DayEventSlotDTO> {
+public class DayEventSlotService implements IEventSlotService<CreateDayEventRequest, UpdateDayEventRequest, DayEvent, DayEventSlotDTO> {
     private final DayEventSlotRepository dayEventSlotRepository;
     private final DayEventRepository dayEventRepository;
     private final UserRepository userRepository;
@@ -51,7 +53,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         and not like dayEventRequest.getStartDate(). The values are the same. That was my thought process
     */
     @Override
-    public void create(DayEventRequest eventRequest, DayEvent event) {
+    public void create(CreateDayEventRequest eventRequest, DayEvent event) {
         // We want to send invitation emails only to emails that at least contain @
         Set<String> guestEmails = new HashSet<>();
         if (eventRequest.getGuestEmails() != null) {
@@ -111,6 +113,57 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
     }
 
     /*
+        This method will be tested via an Integration test, because EventUtils.hasSameFrequencyDetails() is already
+        tested and the remaining code is just calling delete() and save(). No logic to be tested in the
+        DayEventSlotServiceTest class, create is already fully tested.
+     */
+    @Transactional
+    public void update(UpdateDayEventRequest eventRequest, DayEvent event) {
+        if (eventRequest.getRepetitionFrequency() != null && !EventUtils.hasSameFrequencyDetails(eventRequest, event)) {
+            CreateDayEventRequest createDayEventRequest = CreateDayEventRequest.builder()
+                    .title(eventRequest.getTitle())
+                    .location(eventRequest.getLocation())
+                    .description(eventRequest.getDescription())
+                    .guestEmails(eventRequest.getGuestEmails())
+                    .startDate(eventRequest.getStartDate())
+                    .endDate(eventRequest.getEndDate())
+                    .repetitionFrequency(eventRequest.getRepetitionFrequency())
+                    .repetitionStep(eventRequest.getRepetitionStep())
+                    .weeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays())
+                    .monthlyRepetitionType(eventRequest.getMonthlyRepetitionType())
+                    .repetitionDuration(eventRequest.getRepetitionDuration())
+                    .repetitionEndDate(eventRequest.getRepetitionEndDate())
+                    .repetitionOccurrences(eventRequest.getRepetitionOccurrences())
+                    .build();
+
+            event.setStartDate(eventRequest.getStartDate());
+            event.setEndDate(eventRequest.getEndDate());
+            EventUtils.setFrequencyDetails(eventRequest, event);
+
+            this.dayEventSlotRepository.deleteAll(event.getDayEventSlots());
+
+            // Maybe this is bad practise to self invoke public methods, but we need to create the event slots for the different frequency
+            create(createDayEventRequest, event);
+        } else {
+            event.getDayEventSlots().forEach(eventSlot -> {
+                eventSlot.setTitle(eventRequest.getTitle() != null
+                        && !eventRequest.getTitle().isBlank() ? eventRequest.getTitle() : eventSlot.getTitle());
+                eventSlot.setLocation(eventRequest.getLocation() != null
+                        && !eventRequest.getLocation().isBlank() ? eventRequest.getLocation()
+                        : eventSlot.getLocation());
+                eventSlot.setDescription(eventRequest.getDescription() != null
+                        && !eventRequest.getDescription().isBlank() ? eventRequest.getDescription()
+                        : eventSlot.getDescription());
+                eventSlot.setGuestEmails(eventRequest.getGuestEmails() != null
+                        && !eventRequest.getGuestEmails().isEmpty() ? eventRequest.getGuestEmails()
+                        : eventSlot.getGuestEmails());
+
+                this.dayEventSlotRepository.save(eventSlot);
+            });
+        }
+    }
+
+    /*
         We can not call getReferenceById(), we need the email.
 
         There are 2 cases where the existsByEventIdAndUserId() could throw ResourceNotFoundException.
@@ -165,7 +218,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
                 .toList();
     }
 
-    private void createUntilDateDailyEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent) {
+    private void createUntilDateDailyEventSlots(CreateDayEventRequest createDayEventRequest, DayEvent dayEvent) {
         if (dayEvent.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && dayEvent.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -173,19 +226,19 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
 
         LocalDate date = dayEvent.getStartDate();
         while (!date.isAfter(dayEvent.getRepetitionEndDate())) {
-            createDayEventSlot(dayEventRequest, dayEvent, date);
+            createDayEventSlot(createDayEventRequest, dayEvent, date);
             date = date.plusDays(dayEvent.getRepetitionStep());
         }
     }
 
-    private void createNRepetitionsDailyEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent) {
+    private void createNRepetitionsDailyEventSlots(CreateDayEventRequest createDayEventRequest, DayEvent dayEvent) {
         if (dayEvent.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
 
         LocalDate startDate = dayEvent.getStartDate();
         for (int i = 0; i < dayEvent.getRepetitionOccurrences(); i++) {
-            createDayEventSlot(dayEventRequest, dayEvent, startDate);
+            createDayEventSlot(createDayEventRequest, dayEvent, startDate);
            /*
                 The starDate is updated to the previous value plus the number of the repetition step which
                 can be 1, 2 etc, meaning the event is to be repeated every 1,2, days until we reach
@@ -215,7 +268,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
             @Test
             void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNWeeksUntilACertainDate(), DayEventSlotServiceTest
      */
-    private void createUntilDateWeeklyEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent) {
+    private void createUntilDateWeeklyEventSlots(CreateDayEventRequest eventRequest, DayEvent dayEvent) {
         if (dayEvent.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && dayEvent.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -235,7 +288,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
 
                 // The start date is within the repetition end date
                 if (!startDate.isBefore(dayEvent.getStartDate()) && !startDate.isAfter(dayEvent.getRepetitionEndDate())) {
-                    createDayEventSlot(dayEventRequest, dayEvent, startDate);
+                    createDayEventSlot(eventRequest, dayEvent, startDate);
                 }
             }
             date = date.plusWeeks(dayEvent.getRepetitionStep());
@@ -248,7 +301,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
             @Test
             void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions(), DayEventSlotServiceTest
      */
-    private void createNRepetitionsWeeklyEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent) {
+    private void createNRepetitionsWeeklyEventSlots(CreateDayEventRequest createDayEventRequest, DayEvent dayEvent) {
         if (dayEvent.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -266,7 +319,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
                     startDate = date.plusDays(-differenceInDays);
                 }
                 if (!startDate.isBefore(dayEvent.getStartDate())) {
-                    createDayEventSlot(dayEventRequest, dayEvent, startDate);
+                    createDayEventSlot(createDayEventRequest, dayEvent, startDate);
                     count++;
                     // During the inner loop the count might be equal or greater than the occurrences
                     if (count == dayEvent.getRepetitionOccurrences()) {
@@ -279,7 +332,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
     }
 
     // Monthly events that repeat the same week day until a certain date(2nd Tuesday of the month)
-    private void createUntilDateMonthlySameWeekDayEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent) {
+    private void createUntilDateMonthlySameWeekDayEventSlots(CreateDayEventRequest createDayEventRequest, DayEvent dayEvent) {
         if (dayEvent.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && dayEvent.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -294,20 +347,20 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
                     dayEvent.getStartDate().getDayOfWeek(),
                     occurrences
             );
-            createDayEventSlot(dayEventRequest, dayEvent, startDate);
+            createDayEventSlot(createDayEventRequest, dayEvent, startDate);
             date = date.plusMonths(dayEvent.getRepetitionStep());
         }
     }
 
     // Monthly events that repeat the same week day until a number of repetitions(2nd Tuesday of the month)
-    private void createNRepetitionsMonthlySameWeekDayEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent) {
+    private void createNRepetitionsMonthlySameWeekDayEventSlots(CreateDayEventRequest createDayEventRequest, DayEvent dayEvent) {
         if (dayEvent.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
         int occurrences = DateUtils.findDayOfMonthOccurrence(dayEvent.getStartDate());
         LocalDate startDate = dayEvent.getStartDate();
         for (int i = 0; i < dayEvent.getRepetitionOccurrences(); i++) {
-            createDayEventSlot(dayEventRequest, dayEvent, startDate);
+            createDayEventSlot(createDayEventRequest, dayEvent, startDate);
             startDate = startDate.plusMonths(dayEvent.getRepetitionStep());
             startDate = DateUtils.findDateOfNthDayOfWeekInMonth(
                     YearMonth.of(startDate.getYear(), startDate.getMonth()),
@@ -327,7 +380,7 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         that scenario.
         Logic also explained to the DateUtils.adjustDateForMonth()
      */
-    private void createUntilDateSameDayEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent, ChronoUnit unit) {
+    private void createUntilDateSameDayEventSlots(CreateDayEventRequest createDayEventRequest, DayEvent dayEvent, ChronoUnit unit) {
         if (dayEvent.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && dayEvent.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -349,13 +402,13 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         LocalDate date = dayEvent.getStartDate();
         while (!date.isAfter(dayEvent.getRepetitionEndDate())) {
             LocalDate adjustedDate = DateUtils.adjustDateForMonth(dayOfMonth, date);
-            createDayEventSlot(dayEventRequest, dayEvent, adjustedDate);
+            createDayEventSlot(createDayEventRequest, dayEvent, adjustedDate);
             date = date.plus(dayEvent.getRepetitionStep(), unit);
         }
     }
 
     // Same logic as the above method. We have to handle last day of month case.
-    private void createNRepetitionsSameDayEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent, ChronoUnit unit) {
+    private void createNRepetitionsSameDayEventSlots(CreateDayEventRequest createDayEventRequest, DayEvent dayEvent, ChronoUnit unit) {
         if (dayEvent.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -364,20 +417,20 @@ public class DayEventSlotService implements IEventSlotService<DayEventRequest, D
         LocalDate startDate = dayEvent.getStartDate();
         for (int i = 0; i <= dayEvent.getRepetitionOccurrences(); i++) {
             startDate = DateUtils.adjustDateForMonth(dayOfMonth, startDate);
-            createDayEventSlot(dayEventRequest, dayEvent, startDate);
+            createDayEventSlot(createDayEventRequest, dayEvent, startDate);
             startDate = startDate.plus(dayEvent.getRepetitionStep(), unit);
         }
     }
 
-    private void createDayEventSlot(DayEventRequest dayEventRequest, DayEvent dayEvent, LocalDate startDate) {
+    private void createDayEventSlot(CreateDayEventRequest eventRequest, DayEvent dayEvent, LocalDate startDate) {
         LocalDate endDate = startDate.plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate()));
         DayEventSlot dayEventSlot = new DayEventSlot();
         dayEventSlot.setStartDate(startDate);
         dayEventSlot.setEndDate(endDate);
-        dayEventSlot.setName(dayEventRequest.getName());
-        dayEventSlot.setDescription(dayEventRequest.getDescription());
-        dayEventSlot.setLocation(dayEventRequest.getLocation());
-        dayEventSlot.setGuestEmails(dayEventRequest.getGuestEmails());
+        dayEventSlot.setTitle(eventRequest.getTitle());
+        dayEventSlot.setDescription(eventRequest.getDescription());
+        dayEventSlot.setLocation(eventRequest.getLocation());
+        dayEventSlot.setGuestEmails(eventRequest.getGuestEmails());
         dayEventSlot.setDayEvent(dayEvent);
         this.dayEventSlotRepository.save(dayEventSlot);
     }

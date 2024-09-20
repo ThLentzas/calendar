@@ -8,13 +8,10 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
-import org.example.google_calendar_clone.validator.groups.OnCreate;
+import org.example.google_calendar_clone.validator.time.ValidUpdateTimeEventRequest;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-
-import jakarta.validation.constraints.NotNull;
-import org.example.google_calendar_clone.validator.time.ValidTimeEventRequest;
 
 /*
     We can not use @FutureOrPresent() on the date times because according to the annotation:
@@ -32,17 +29,13 @@ import org.example.google_calendar_clone.validator.time.ValidTimeEventRequest;
 @Getter
 @Setter
 @SuperBuilder
-@ValidTimeEventRequest(groups = OnCreate.class)
+@ValidUpdateTimeEventRequest
 @EqualsAndHashCode(callSuper = true)
-public class TimeEventRequest extends AbstractEventRequest {
-    @NotNull(message = "The start time of the event is required. Please provide one", groups = OnCreate.class)
+public class UpdateTimeEventRequest extends AbstractEventRequest {
     // null will return true
     private LocalDateTime startTime;
-    @NotNull(message = "The end time of the event is required. Please provide one", groups = OnCreate.class)
     private LocalDateTime endTime;
     // It throws ZoneRulesException: Unknown time-zone ID, for invalid timezone during deserialization
-    @NotNull(message = "The time zone for the event's start time is required. Please provide one", groups = OnCreate.class)
     private ZoneId startTimeZoneId;
-    @NotNull(message = "The time zone for the event's end time is required. Please provide one", groups = OnCreate.class)
     private ZoneId endTimeZoneId;
 }

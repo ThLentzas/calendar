@@ -24,7 +24,7 @@ class DayEventSlotDTOConverterTest {
 
         DayEventSlot dayEventSlot = new DayEventSlot();
         dayEventSlot.setId(UUID.fromString("eede21d1-c2f1-4dc8-9913-a173c491f07d"));
-        dayEventSlot.setName("Event name");
+        dayEventSlot.setTitle("Event name");
         dayEventSlot.setStartDate(LocalDate.parse("2024-10-11"));
         dayEventSlot.setEndDate(LocalDate.parse("2024-10-15"));
         dayEventSlot.setLocation("Location");
@@ -34,7 +34,7 @@ class DayEventSlotDTOConverterTest {
 
         DayEventSlotDTO expected = DayEventSlotDTO.builder()
                 .id(UUID.fromString("eede21d1-c2f1-4dc8-9913-a173c491f07d"))
-                .name("Event name")
+                .title("Event name")
                 .startDate(LocalDate.parse("2024-10-11"))
                 .endDate(LocalDate.parse("2024-10-15"))
                 .location("Location")

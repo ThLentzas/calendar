@@ -10,7 +10,7 @@ public class TimeEventSlotDTOConverter implements Converter<TimeEventSlot, TimeE
     public TimeEventSlotDTO convert(TimeEventSlot timeEventSlot) {
         return TimeEventSlotDTO.builder()
                 .id(timeEventSlot.getId())
-                .name(timeEventSlot.getName())
+                .title(timeEventSlot.getTitle())
                 .startTime(DateUtils.convertFromUTC(timeEventSlot.getStartTime(), timeEventSlot.getStartTimeZoneId()))
                 .endTime(DateUtils.convertFromUTC(timeEventSlot.getEndTime(), timeEventSlot.getEndTimeZoneId()))
                 .startTimeZoneId(timeEventSlot.getStartTimeZoneId())

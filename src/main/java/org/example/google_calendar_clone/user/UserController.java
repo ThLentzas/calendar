@@ -22,8 +22,8 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 /*
-    We only give access to @PreAuthorize("hasRole('ROLE_VIEWER')") because to have any other role, the user has by default
-    the ROLE_VIEWER upon registration
+     IMPORTANT!!! We don't pass the Jwt in the service to extract the userId. Service layer should not know anything
+     about jwt/auth mechanism.
  */
 @RestController
 @RequestMapping("api/v1/user")
@@ -33,9 +33,9 @@ class UserController {
 
     @PostMapping("/contacts")
     ResponseEntity<Void> sendContactRequest(@Valid @RequestBody CreateContactRequest contactRequest,
-                                            // The principal of the JwtAuthenticationToken is a Jwt
                                             @AuthenticationPrincipal Jwt jwt) {
-        this.userService.sendContactRequest(contactRequest, jwt);
+        Long senderId = Long.valueOf(jwt.getSubject());
+        this.userService.sendContactRequest(contactRequest, senderId);
 
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -45,7 +45,8 @@ class UserController {
      */
     @GetMapping("/contact-requests")
     ResponseEntity<List<PendingContactRequest>> findPendingContactsRequests(@AuthenticationPrincipal Jwt jwt) {
-        List<PendingContactRequest> contactsRequests = this.userService.findPendingContactsRequests(jwt);
+        Long receiverId = Long.valueOf(jwt.getSubject());
+        List<PendingContactRequest> contactsRequests = this.userService.findPendingContactRequests(receiverId);
 
         return new ResponseEntity<>(contactsRequests, HttpStatus.OK);
     }
@@ -53,14 +54,16 @@ class UserController {
     @PutMapping("/contact-requests")
     ResponseEntity<Void> updateContactRequest(@Valid @RequestBody UpdateContactRequest contactRequest,
                                               @AuthenticationPrincipal Jwt jwt) {
-        this.userService.updateContactRequest(contactRequest, jwt);
+        Long receiverId = Long.valueOf(jwt.getSubject());
+        this.userService.updateContactRequest(contactRequest, receiverId);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/contacts")
     ResponseEntity<List<UserProfile>> findContacts(@AuthenticationPrincipal Jwt jwt) {
-        List<UserProfile> contacts = this.userService.findContacts(jwt);
+        Long userId = Long.valueOf(jwt.getSubject());
+        List<UserProfile> contacts = this.userService.findContacts(userId);
 
         return new ResponseEntity<>(contacts, HttpStatus.OK);
     }

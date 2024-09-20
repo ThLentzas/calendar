@@ -11,12 +11,15 @@ import java.util.UUID;
     If we don't use a Generic, we would have 2 implementations for the same interface, the DayEventService and the
     TimeEventService, so we would have to use @Qualifier() to specify which bean we need every time.
  */
-public interface IEventService <T extends AbstractEventRequest, U extends EventSlotDTO> {
+public interface IEventService <T extends AbstractEventRequest, K extends AbstractEventRequest, U extends EventSlotDTO> {
     @Transactional
     UUID create(Long userId, T eventRequest);
 
     @Transactional
-    void deleteById(Long userId, UUID id);
+    void deleteById(Long userId, UUID eventId);
+
+    @Transactional
+    void update(Long userId, UUID eventId, K eventRequest);
 
     List<U> findEventSlotsByEventId(Long userId, UUID eventId);
 }
