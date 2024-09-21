@@ -1,13 +1,14 @@
-package org.example.google_calendar_clone.calendar.event.day.slot;
+package org.example.google_calendar_clone.calendar.event.slot.day;
 
+import lombok.RequiredArgsConstructor;
 import org.example.google_calendar_clone.calendar.event.day.DayEventRepository;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
-import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
-import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTOConverter;
-import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
+import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
+import org.example.google_calendar_clone.calendar.event.slot.day.dto.DayEventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.day.dto.DayEventSlotDTOConverter;
 import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.entity.DayEventSlot;
 import org.example.google_calendar_clone.entity.User;
@@ -16,6 +17,7 @@ import org.example.google_calendar_clone.user.UserRepository;
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.example.google_calendar_clone.utils.EventUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -26,9 +28,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import lombok.RequiredArgsConstructor;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor

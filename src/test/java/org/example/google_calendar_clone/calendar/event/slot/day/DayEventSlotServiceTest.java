@@ -1,13 +1,13 @@
-package org.example.google_calendar_clone.calendar.event.day.slot;
+package org.example.google_calendar_clone.calendar.event.slot.day;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
 import org.example.google_calendar_clone.calendar.event.day.DayEventRepository;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.calendar.event.slot.day.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.entity.DayEventSlot;
 import org.example.google_calendar_clone.entity.User;

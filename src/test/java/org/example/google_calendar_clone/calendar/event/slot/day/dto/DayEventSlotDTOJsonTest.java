@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.day.slot.dto;
+package org.example.google_calendar_clone.calendar.event.slot.day.dto;
 
 import java.io.IOException;
 import java.time.LocalDate;

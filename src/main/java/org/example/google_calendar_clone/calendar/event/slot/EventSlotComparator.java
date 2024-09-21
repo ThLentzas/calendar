@@ -1,7 +1,7 @@
 package org.example.google_calendar_clone.calendar.event.slot;
 
-import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
-import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.day.dto.DayEventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.time.dto.TimeEventSlotDTO;
 
 import java.util.Comparator;
 /*

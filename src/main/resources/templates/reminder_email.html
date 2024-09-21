@@ -115,7 +115,8 @@
 
 <div class="email-wrapper">
     <div class="email-container">
-        <div class="event-title" th:text="${eventName}"></div>
+        <div class="event-title" th:if="${title != null}" th:text="${title}"></div>
+        <div class="event-title" th:unless="${title != null}" th:text="'(No Subject)'"></div>
         <div class="event-details">
             <span th:text="${date}"></span>
         </div>

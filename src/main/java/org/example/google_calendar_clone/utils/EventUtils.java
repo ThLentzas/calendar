@@ -1,15 +1,14 @@
 package org.example.google_calendar_clone.utils;
 
-import jakarta.validation.ConstraintValidatorContext;
 import org.example.google_calendar_clone.calendar.event.AbstractEvent;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotReminderRequest;
 import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.calendar.event.slot.day.dto.DayEventSlotReminderRequest;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
-import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotReminderRequest;
+import org.example.google_calendar_clone.calendar.event.slot.time.dto.TimeEventSlotReminderRequest;
 import org.example.google_calendar_clone.entity.DayEventSlot;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.entity.User;
@@ -20,6 +19,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import jakarta.validation.ConstraintValidatorContext;
 
 public final class EventUtils {
 
@@ -330,7 +331,7 @@ public final class EventUtils {
     public static DayEventSlotReminderRequest mapToReminderRequest(DayEventSlot eventSlot) {
         return DayEventSlotReminderRequest.builder()
                 .id(eventSlot.getId())
-                .eventName(eventSlot.getTitle())
+                .title(eventSlot.getTitle())
                 .startDate(eventSlot.getStartDate())
                 .organizer(eventSlot.getDayEvent().getUser())
                 .guestEmails(eventSlot.getGuestEmails())
@@ -340,7 +341,7 @@ public final class EventUtils {
     public static TimeEventSlotReminderRequest mapToReminderRequest(TimeEventSlot eventSlot) {
         return TimeEventSlotReminderRequest.builder()
                 .id(eventSlot.getId())
-                .eventName(eventSlot.getTitle())
+                .title(eventSlot.getTitle())
                 .startTime(eventSlot.getStartTime())
                 .endTime(eventSlot.getEndTime())
                 .organizer(eventSlot.getTimeEvent().getUser())

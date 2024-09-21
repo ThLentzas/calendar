@@ -108,11 +108,12 @@
         <div class="calendar-icon">
             <div class="month" th:text="${month}"></div>
             <div class="day" th:text="${dayOfMonth}"></div>
-            <div class="weekday" th:text="${dayOfWeek}">Fri</div>
+            <div class="weekday" th:text="${dayOfWeek}"></div>
         </div>
     </div>
     <div class="event-details">
-        <h3 th:text="${eventName}"></h3>
+        <h3 th:if="${title != null}" th:text="'Title: ' + ${title}"></h3>
+        <h3 th:unless="${title != null}" th:text="'(No Subject)'"></h3>
         <p th:text="'Frequency: ' + ${frequency}"></p>
         <p th:text="'Organizer: ' + ${organizer}"></p>
         <p th:if="${location != null}" th:text="'Location: ' + ${location}"></p>

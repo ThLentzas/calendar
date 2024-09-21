@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.time.slot.dto;
+package org.example.google_calendar_clone.calendar.event.slot.time.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

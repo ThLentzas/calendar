@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.time.slot;
+package org.example.google_calendar_clone.calendar.event.slot.time;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
@@ -7,7 +7,7 @@ import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDur
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.TimeEventRepository;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
-import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.time.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.entity.User;

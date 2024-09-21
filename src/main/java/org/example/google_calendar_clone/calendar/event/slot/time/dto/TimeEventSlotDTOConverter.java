@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.time.slot.dto;
+package org.example.google_calendar_clone.calendar.event.slot.time.dto;
 
 import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.utils.DateUtils;

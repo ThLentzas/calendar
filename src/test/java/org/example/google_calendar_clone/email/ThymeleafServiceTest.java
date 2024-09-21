@@ -42,6 +42,10 @@ class ThymeleafServiceTest {
 
         I ended up removing all the tests because what we were actually doing was to test the same thing over and over
         again with just different frequency text value
+
+        DO NOT I REPEAT DO NOT name your test templates as your templates in src/main/resources/templates. Tests will
+        pass and context values will be overwritten. To actually test the templates provide different names for your
+        test templates. invitation_email.html -> test_invitation_email.html
      */
     @BeforeEach
     void setup() {
@@ -58,11 +62,11 @@ class ThymeleafServiceTest {
 
     @Test
     void shouldSetContextForEventInvitationEmail() throws IOException {
-        String path = "src/test/resources/templates/invitation_email.html";
+        String path = "src/test/resources/templates/test_invitation_email.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setInvitationEmailContext(
                 LocalDate.parse("2025-01-09"),
-                "Event name",
+                null,
                 "Organizer",
                 null,
                 "Description",
@@ -74,11 +78,11 @@ class ThymeleafServiceTest {
 
     @Test
     void shouldSetContextForEventReminderEmail() throws IOException {
-        String path = "src/test/resources/templates/reminder_email.html";
+        String path = "src/test/resources/templates/test_reminder_email.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
         String actual = this.underTest.setReminderEmailContext(
                 "Thursday Sep 19, 2024",
-                "Event name",
+                "Event title",
                 "Organizer",
                 Set.of("example2@example.com", "example1@example.com", "example3@example.com"),
                 "api/v1/events/day-event-slots/3075c6eb-8028-4f99-8c6c-27db1bb5cc43"

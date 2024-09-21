@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.time.slot.dto;
+package org.example.google_calendar_clone.calendar.event.slot.time.dto;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import org.example.google_calendar_clone.calendar.event.slot.time.dto.TimeEventSlotDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.boot.test.json.JacksonTester;

@@ -1,7 +1,7 @@
 package org.example.google_calendar_clone.calendar.event.day;
 
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.slot.DayEventSlotService;
+import org.example.google_calendar_clone.calendar.event.slot.day.DayEventSlotService;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.example.google_calendar_clone.user.UserRepository;
 import org.mockito.InjectMocks;

@@ -1,15 +1,14 @@
-package org.example.google_calendar_clone.calendar.event.day.slot.dto;
+package org.example.google_calendar_clone.calendar.event.slot.day.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
 
 import java.time.LocalDate;
 import java.util.UUID;
-
-import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
 
 @Getter
 @Setter

@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.day.slot;
+package org.example.google_calendar_clone.calendar.event.slot.day;
 
 import org.example.google_calendar_clone.entity.DayEvent;
 import org.example.google_calendar_clone.entity.DayEventSlot;

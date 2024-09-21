@@ -46,6 +46,10 @@ class CreateDayEventRequestValidatorTest {
 
         It is very important to have 1 violation per test, because the set of constraints will have more than 1
         error message and, we can not be sure that iterator.next() will return the constraint we test
+
+        In this class we test every case on the CreateDayEventRequestValidator which includes all the cases for the
+        EventUtils.hasValidEventRequestProperties(eventRequest, context) method. This method is also called on the
+        UpdateDayEventRequestValidator. We don't have to repeat the tests.
      */
     @BeforeEach
     void setUp() {

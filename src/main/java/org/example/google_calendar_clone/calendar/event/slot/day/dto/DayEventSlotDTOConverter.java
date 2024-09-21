@@ -1,7 +1,7 @@
-package org.example.google_calendar_clone.calendar.event.day.slot.dto;
+package org.example.google_calendar_clone.calendar.event.slot.day.dto;
 
-import org.springframework.core.convert.converter.Converter;
 import org.example.google_calendar_clone.entity.DayEventSlot;
+import org.springframework.core.convert.converter.Converter;
 
 public class DayEventSlotDTOConverter implements Converter<DayEventSlot, DayEventSlotDTO> {
 

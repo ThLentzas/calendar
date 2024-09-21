@@ -4,13 +4,12 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
+
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.validator.groups.OnCreate;
-import org.example.google_calendar_clone.validator.groups.OnUpdate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,6 +47,10 @@ class CreateTimeEventRequestValidatorTest {
 
         It is very important to have 1 violation per test, because the set of constraints will have more than 1
         error message and, we can not be sure that iterator.next() will return the constraint we test
+
+        In this class we test every case on the CreateTimeEventRequestValidator which includes all the cases for the
+        EventUtils.hasValidEventRequestProperties(eventRequest, context) method. This method is also called on the
+        UpdateTimeEventRequestValidator. We don't have to repeat the tests.
      */
     @BeforeEach
     void setUp() {

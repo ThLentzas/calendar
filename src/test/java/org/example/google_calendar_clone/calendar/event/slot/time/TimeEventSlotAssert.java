@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.time.slot;
+package org.example.google_calendar_clone.calendar.event.slot.time;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;

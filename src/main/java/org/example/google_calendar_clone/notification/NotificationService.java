@@ -1,7 +1,7 @@
 package org.example.google_calendar_clone.notification;
 
-import org.example.google_calendar_clone.calendar.event.day.slot.DayEventSlotRepository;
-import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotRepository;
+import org.example.google_calendar_clone.calendar.event.slot.day.DayEventSlotRepository;
+import org.example.google_calendar_clone.calendar.event.slot.time.TimeEventSlotRepository;
 import org.example.google_calendar_clone.email.EmailService;
 import org.example.google_calendar_clone.entity.DayEventSlot;
 import org.example.google_calendar_clone.entity.TimeEventSlot;

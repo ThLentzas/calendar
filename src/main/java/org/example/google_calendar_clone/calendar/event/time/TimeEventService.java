@@ -5,8 +5,8 @@ import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDur
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationRequest;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
-import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotService;
-import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.time.TimeEventSlotService;
+import org.example.google_calendar_clone.calendar.event.slot.time.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.email.EmailService;
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.User;

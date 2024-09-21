@@ -17,7 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public abstract class AbstractEventSlotReminderRequest {
     protected UUID id;
-    protected String eventName;
+    protected String title;
     protected User organizer;
     protected Set<String> guestEmails;
 }

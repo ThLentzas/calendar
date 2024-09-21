@@ -17,7 +17,7 @@ class ThymeleafService {
     private final TemplateEngine templateEngine;
 
     String setInvitationEmailContext(LocalDate startDate,
-                                     String eventName,
+                                     String title,
                                      String organizer,
                                      String location,
                                      String description,
@@ -26,7 +26,7 @@ class ThymeleafService {
         context.setVariable("month", startDate.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
         context.setVariable("dayOfMonth", startDate.getDayOfMonth());
         context.setVariable("dayOfWeek", startDate.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
-        context.setVariable("eventName", eventName);
+        context.setVariable("title", title);
         context.setVariable("frequency", frequency);
         context.setVariable("organizer", organizer);
         context.setVariable("location", location);
@@ -36,13 +36,13 @@ class ThymeleafService {
     }
 
     String setReminderEmailContext(String dateDescription,
-                                   String eventName,
+                                   String title,
                                    String organizer,
                                    Set<String> guestEmails,
                                    String eventDetails) {
         Context context = new Context();
         context.setVariable("date", dateDescription);
-        context.setVariable("eventName", eventName);
+        context.setVariable("title", title);
         context.setVariable("organizer", organizer);
         context.setVariable("guests", guestEmails);
         context.setVariable("eventSlotDetails", eventDetails);

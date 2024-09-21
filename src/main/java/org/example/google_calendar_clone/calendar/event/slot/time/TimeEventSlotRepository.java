@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.calendar.event.time.slot;
+package org.example.google_calendar_clone.calendar.event.slot.time;
 
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.springframework.data.jpa.repository.JpaRepository;

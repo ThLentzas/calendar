@@ -1,10 +1,10 @@
-package org.example.google_calendar_clone.calendar.event.day.slot;
+package org.example.google_calendar_clone.calendar.event.slot.day;
 
+import org.example.google_calendar_clone.entity.DayEventSlot;
+import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.example.google_calendar_clone.exception.ResourceNotFoundException;
-import org.example.google_calendar_clone.entity.DayEventSlot;
 
 import java.time.LocalDate;
 import java.util.List;
