@@ -4,8 +4,7 @@ import org.example.google_calendar_clone.calendar.event.IEventService;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationRequest;
-import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
-import org.example.google_calendar_clone.calendar.event.time.dto.UpdateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotService;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.email.EmailService;
@@ -24,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class TimeEventService implements IEventService<CreateTimeEventRequest, UpdateTimeEventRequest, TimeEventSlotDTO> {
+public class TimeEventService implements IEventService<TimeEventRequest, TimeEventSlotDTO> {
     private final UserRepository userRepository;
     private final TimeEventRepository timeEventRepository;
     private final TimeEventSlotService timeEventSlotService;
@@ -32,7 +31,7 @@ public class TimeEventService implements IEventService<CreateTimeEventRequest, U
     private static final String EVENT_NOT_FOUND_MSG = "Time event not found with id: ";
 
     @Override
-    public UUID create(Long userId, CreateTimeEventRequest eventRequest) {
+    public UUID create(Long userId, TimeEventRequest eventRequest) {
         /*
             The current authenticated user is the organizer of the event. We can't call getReferenceById(), we need the
             username of the user to set it as the organizer in the invitation email template
@@ -124,7 +123,7 @@ public class TimeEventService implements IEventService<CreateTimeEventRequest, U
     }
 
     @Override
-    public void update(Long userId, UUID eventId, UpdateTimeEventRequest eventRequest) {
+    public void update(Long userId, UUID eventId, TimeEventRequest eventRequest) {
         TimeEvent event = this.timeEventRepository.findByEventIdAndUserId(eventId, userId).orElseThrow(() ->
                 new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + eventId));
 

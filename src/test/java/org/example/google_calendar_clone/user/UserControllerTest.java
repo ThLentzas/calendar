@@ -14,7 +14,7 @@ import org.example.google_calendar_clone.user.contact.request.ContactRequestStat
 import org.example.google_calendar_clone.user.contact.dto.PendingContactRequest;
 import org.example.google_calendar_clone.user.contact.dto.UpdateContactRequest;
 import org.example.google_calendar_clone.user.dto.UserProfile;
-import org.example.google_calendar_clone.utils.AuthUtils;
+import org.example.google_calendar_clone.AuthUtils;
 import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.doNothing;

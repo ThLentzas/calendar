@@ -2,7 +2,7 @@ package org.example.google_calendar_clone.calendar.event.day.slot;
 
 import org.example.google_calendar_clone.AbstractRepositoryTest;
 import org.example.google_calendar_clone.calendar.event.day.DayEventRepository;
-import org.example.google_calendar_clone.calendar.event.day.dto.CreateDayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
@@ -68,7 +68,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotForNonRepeatingEvent() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2024-08-12"))
                 .endDate(LocalDate.parse("2024-08-15"))
@@ -98,7 +98,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNDaysUntilDate() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2024-08-12"))
                 .endDate(LocalDate.parse("2024-08-15"))
@@ -134,7 +134,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNDaysForNRepetitions() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2024-09-04"))
                 .endDate(LocalDate.parse("2024-09-04"))
@@ -177,7 +177,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNWeeksUntilDate() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2024-08-12"))
                 .endDate(LocalDate.parse("2024-08-15"))
@@ -221,7 +221,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2024-09-04"))
                 .endDate(LocalDate.parse("2024-09-04"))
@@ -273,7 +273,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameDayUntilDate() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2023-01-31"))
                 .endDate(LocalDate.parse("2023-01-31"))
@@ -324,7 +324,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameDayForNRepetitions() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2023-01-29"))
                 .endDate(LocalDate.parse("2023-01-29"))
@@ -366,7 +366,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekdayUntilDate() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2024-09-30"))
                 .endDate(LocalDate.parse("2024-09-30"))
@@ -408,7 +408,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNMonthsOnTheSameWeekdayForNRepetitions() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2024-09-04"))
                 .endDate(LocalDate.parse("2024-09-04"))
@@ -444,7 +444,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNYearsAtUntilDate() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2024-02-29"))
                 .endDate(LocalDate.parse("2024-02-29"))
@@ -485,7 +485,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateDayEventSlotsWhenEventIsRepeatingEveryNYearsForNRepetitions() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
+        DayEventRequest request = DayEventRequest.builder()
                 .title("Event name")
                 .startDate(LocalDate.parse("2024-05-18"))
                 .endDate(LocalDate.parse("2024-05-19"))
@@ -643,19 +643,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                                 "ellyn.roberts"));
     }
 
-    private DayEvent createDayEvent(CreateDayEventRequest createDayEventRequest) {
+    private DayEvent createDayEvent(DayEventRequest dayEventRequest) {
         // We know the id from the sql script
         User user = this.userRepository.getReferenceById(1L);
         DayEvent dayEvent = new DayEvent();
-        dayEvent.setStartDate(createDayEventRequest.getStartDate());
-        dayEvent.setEndDate(createDayEventRequest.getEndDate());
-        dayEvent.setRepetitionFrequency(createDayEventRequest.getRepetitionFrequency());
-        dayEvent.setRepetitionStep(createDayEventRequest.getRepetitionStep());
-        dayEvent.setWeeklyRecurrenceDays(createDayEventRequest.getWeeklyRecurrenceDays());
-        dayEvent.setMonthlyRepetitionType(createDayEventRequest.getMonthlyRepetitionType());
-        dayEvent.setRepetitionDuration(createDayEventRequest.getRepetitionDuration());
-        dayEvent.setRepetitionEndDate(createDayEventRequest.getRepetitionEndDate());
-        dayEvent.setRepetitionOccurrences(createDayEventRequest.getRepetitionOccurrences());
+        dayEvent.setStartDate(dayEventRequest.getStartDate());
+        dayEvent.setEndDate(dayEventRequest.getEndDate());
+        dayEvent.setRepetitionFrequency(dayEventRequest.getRepetitionFrequency());
+        dayEvent.setRepetitionStep(dayEventRequest.getRepetitionStep());
+        dayEvent.setWeeklyRecurrenceDays(dayEventRequest.getWeeklyRecurrenceDays());
+        dayEvent.setMonthlyRepetitionType(dayEventRequest.getMonthlyRepetitionType());
+        dayEvent.setRepetitionDuration(dayEventRequest.getRepetitionDuration());
+        dayEvent.setRepetitionEndDate(dayEventRequest.getRepetitionEndDate());
+        dayEvent.setRepetitionOccurrences(dayEventRequest.getRepetitionOccurrences());
         dayEvent.setUser(user);
 
         this.dayEventRepository.save(dayEvent);

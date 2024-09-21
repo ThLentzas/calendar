@@ -1,6 +1,7 @@
 package org.example.google_calendar_clone.calendar.event;
 
-import org.example.google_calendar_clone.calendar.event.time.dto.UpdateTimeEventRequest;
+import org.example.google_calendar_clone.validator.groups.OnCreate;
+import org.example.google_calendar_clone.validator.groups.OnUpdate;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -19,11 +20,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.example.google_calendar_clone.calendar.event.day.DayEventService;
-import org.example.google_calendar_clone.calendar.event.day.dto.CreateDayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.dto.UpdateDayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.DayEventSlotService;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
-import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.TimeEventService;
 import org.example.google_calendar_clone.calendar.event.slot.EventSlotComparator;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
@@ -148,7 +148,7 @@ class EventController {
     // toDo: indexing
     @PostMapping("/day-events")
     ResponseEntity<Void> createDayEvent(@AuthenticationPrincipal Jwt jwt,
-                                        @Validated @RequestBody CreateDayEventRequest eventRequest) {
+                                        @Validated(OnCreate.class) @RequestBody DayEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
         UUID eventId = this.dayEventService.create(userId, eventRequest);
         /*
@@ -171,7 +171,7 @@ class EventController {
     @PutMapping("/day-events/{eventId}")
     ResponseEntity<Void> updateDayEvent(@PathVariable("eventId") UUID eventId,
                                         @AuthenticationPrincipal Jwt jwt,
-                                        @Validated @RequestBody UpdateDayEventRequest eventRequest) {
+                                        @Validated(OnUpdate.class) @RequestBody DayEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
         this.dayEventService.update(userId, eventId, eventRequest);
 
@@ -199,7 +199,7 @@ class EventController {
 
     @PostMapping("/time-events")
     ResponseEntity<Void> createTimeEvent(@AuthenticationPrincipal Jwt jwt,
-                                         @Validated @RequestBody CreateTimeEventRequest eventRequest) {
+                                         @Validated(OnCreate.class) @RequestBody TimeEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
         UUID eventId = this.timeEventService.create(userId, eventRequest);
         URI location = UriComponentsBuilder.fromUriString("/api/v1/events/time-events/{eventId}").build(eventId);
@@ -218,7 +218,7 @@ class EventController {
     @PutMapping("/time-events/{eventId}")
     ResponseEntity<Void> updateTimeEvent(@PathVariable("eventId") UUID eventId,
                                          @AuthenticationPrincipal Jwt jwt,
-                                         @Validated @RequestBody UpdateTimeEventRequest eventRequest) {
+                                         @Validated(OnUpdate.class) @RequestBody TimeEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
         this.timeEventService.update(userId, eventId, eventRequest);
 

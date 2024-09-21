@@ -6,7 +6,7 @@ import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepeti
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.TimeEventRepository;
-import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.entity.TimeEvent;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
@@ -71,7 +71,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotForNonRepeatingEvent() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-10-11T10:00"))
                 .endTime(LocalDateTime.parse("2024-10-15T15:00"))
@@ -119,7 +119,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     @Test
     void shouldCreateTimeEventSlotForNonRepeatingEventDuringDSTGap() {
         // This time falls within the DST gap in New York on March 10, 2024
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-03-10T02:30"))
                 .endTime(LocalDateTime.parse("2024-03-10T03:30"))
@@ -165,7 +165,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     @Test
     void shouldCreateTimeEventSlotForNonRepeatingEventDuringDSTOverlap() {
         // This time falls within the DST overlap in New York on November 3, 2024
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-11-03T01:30"))
                 .endTime(LocalDateTime.parse("2024-11-03T02:30"))
@@ -211,7 +211,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNDaysUntilDate() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-10-11T10:00"))
                 .endTime(LocalDateTime.parse("2024-10-11T15:00"))
@@ -265,7 +265,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNDaysForNRepetitions() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 // Local Oslo time before DST ends
                 .startTime(LocalDateTime.parse("2024-10-25T10:00"))
@@ -326,7 +326,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksUntilDate() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-08-20T10:00"))
                 .endTime(LocalDateTime.parse("2024-08-20T12:00"))
@@ -382,7 +382,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-09-06T10:00"))
                 .endTime(LocalDateTime.parse("2024-09-06T12:00"))
@@ -432,7 +432,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayUntilDate() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T10:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T15:00"))
@@ -488,7 +488,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
      */
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameDayForNRepetitions() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-10-31T08:00"))
                 .endTime(LocalDateTime.parse("2024-10-31T15:00"))
@@ -539,7 +539,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekdayUntilDate() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T11:00"))
@@ -588,7 +588,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNMonthsAtTheSameWeekdayForNRepetitions() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T11:00"))
@@ -638,7 +638,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNYearsUntilDate() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-05-18T10:00"))
                 .endTime(LocalDateTime.parse("2024-05-18T14:00"))
@@ -688,7 +688,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     // leap years.
     @Test
     void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNYearsForNRepetitions() {
-        CreateTimeEventRequest request = CreateTimeEventRequest.builder()
+        TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event name")
                 .startTime(LocalDateTime.parse("2024-02-29T07:00"))
                 .endTime(LocalDateTime.parse("2024-02-29T09:00"))
@@ -856,7 +856,7 @@ class TimeEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
 
-    private TimeEvent createTimeEvent(CreateTimeEventRequest eventRequest) {
+    private TimeEvent createTimeEvent(TimeEventRequest eventRequest) {
         // We know the id from the sql script
         User user = this.userRepository.getReferenceById(1L);
         TimeEvent timeEvent = new TimeEvent();

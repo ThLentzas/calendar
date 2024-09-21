@@ -5,8 +5,7 @@ import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.time.TimeEventRepository;
-import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
-import org.example.google_calendar_clone.calendar.event.time.dto.UpdateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTOConverter;
 import org.example.google_calendar_clone.entity.TimeEvent;
@@ -34,7 +33,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRequest, UpdateTimeEventRequest, TimeEvent, TimeEventSlotDTO> {
+public class TimeEventSlotService implements IEventSlotService<TimeEventRequest, TimeEvent, TimeEventSlotDTO> {
     private final TimeEventSlotRepository timeEventSlotRepository;
     private final TimeEventRepository timeEventRepository;
     private final UserRepository userRepository;
@@ -47,7 +46,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
         back to their local time according to the timezones we stored alongside them. This happens in the converter
      */
     @Override
-    public void create(CreateTimeEventRequest eventRequest, TimeEvent event) {
+    public void create(TimeEventRequest eventRequest, TimeEvent event) {
         // We want to send invitation emails only to emails that at least contain @
         Set<String> guestEmails = new HashSet<>();
         if (eventRequest.getGuestEmails() != null) {
@@ -93,9 +92,9 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
         TimeEventSlotServiceTest class, create is already fully tested.
      */
     @Override
-    public void update(UpdateTimeEventRequest eventRequest, TimeEvent event) {
+    public void update(TimeEventRequest eventRequest, TimeEvent event) {
         if (eventRequest.getRepetitionFrequency() != null && !EventUtils.hasSameFrequencyDetails(eventRequest, event)) {
-            CreateTimeEventRequest createTimeEventRequest = CreateTimeEventRequest.builder()
+            TimeEventRequest createTimeEventRequest = TimeEventRequest.builder()
                     .title(eventRequest.getTitle())
                     .location(eventRequest.getLocation())
                     .description(eventRequest.getDescription())
@@ -191,7 +190,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
 
         date = date.plusDays(), date = date.plusWeeks() etc
      */
-    private void createUntilDateDailyEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
+    private void createUntilDateDailyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -204,7 +203,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
         }
     }
 
-    private void createNRepetitionsDailyEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
+    private void createNRepetitionsDailyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -241,7 +240,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
             @Test
             void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksUntilACertainDate(), TimeEventSlotServiceTest
      */
-    private void createUntilDateWeeklyEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
+    private void createUntilDateWeeklyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -276,7 +275,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
             @Test
             void shouldCreateTimeEventSlotsWhenEventIsRepeatingEveryNWeeksForNRepetitions(), TimeEventSlotServiceTest
      */
-    private void createNRepetitionsWeeklyEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
+    private void createNRepetitionsWeeklyEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -309,7 +308,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
     }
 
     // Monthly events that repeat the same week day until a certain date(2nd Tuesday of the month)
-    private void createUntilDateMonthlySameWeekdayEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
+    private void createUntilDateMonthlySameWeekdayEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -334,7 +333,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
     }
 
     // Monthly events that repeat the same week day until a number of repetitions(2nd Tuesday of the month)
-    private void createNRepetitionsMonthlySameWeekdayEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event) {
+    private void createNRepetitionsMonthlySameWeekdayEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -355,7 +354,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
         }
     }
 
-    private void createUntilDateSameDayEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
+    private void createUntilDateSameDayEventSlots(TimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
         if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
                 && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
@@ -372,7 +371,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
         }
     }
 
-    private void createNRepetitionsSameDayEventSlots(CreateTimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
+    private void createNRepetitionsSameDayEventSlots(TimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
         if (event.getRepetitionDuration() != RepetitionDuration.N_REPETITIONS) {
             return;
         }
@@ -403,7 +402,7 @@ public class TimeEventSlotService implements IEventSlotService<CreateTimeEventRe
             case. If both are converted to UTC, the difference is 0, both are 14:00 UTC. This is why we need to consider
             timezones for the event duration
      */
-    private void createTimeEventSlot(CreateTimeEventRequest eventRequest, TimeEvent event, LocalDateTime startTime) {
+    private void createTimeEventSlot(TimeEventRequest eventRequest, TimeEvent event, LocalDateTime startTime) {
         startTime = DateUtils.convertToUTC(startTime, eventRequest.getStartTimeZoneId());
         LocalDateTime endTime = startTime.plusMinutes(DateUtils.timeZoneAwareDifference(
                 event.getStartTime(),

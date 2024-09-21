@@ -1,21 +1,19 @@
 package org.example.google_calendar_clone.calendar.event;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.example.google_calendar_clone.calendar.event.day.DayEventService;
-import org.example.google_calendar_clone.calendar.event.day.dto.CreateDayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.dto.UpdateDayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.DayEventSlotService;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.TimeEventService;
-import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotService;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.config.SecurityConfig;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
-import org.example.google_calendar_clone.utils.AuthUtils;
+import org.example.google_calendar_clone.AuthUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -75,7 +73,7 @@ class EventControllerTest {
     // createDayEvent()
     @Test
     void should201WhenDayEventIsCreatedSuccessfully() throws Exception {
-        CreateDayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         UUID eventId = UUID.randomUUID();
 
         when(this.dayEventService.create(1L, eventRequest)).thenReturn(eventId);
@@ -93,7 +91,7 @@ class EventControllerTest {
     // createDayEvent() @Valid
     @Test
     void should400WhenDayEventRequestStartDateIsAfterEndDate() throws Exception {
-        CreateDayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(3), LocalDate.now().plusDays(1));
+        DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(3), LocalDate.now().plusDays(1));
         String responseBody = String.format("""
                 {
                     "status": 400,
@@ -118,7 +116,7 @@ class EventControllerTest {
     // createDayEvent()
     @Test
     void should401WhenCreateDayEventIsCalledByUnauthenticatedUser() throws Exception {
-        CreateDayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         String responseBody = String.format("""
                 {
                     "status": 401,
@@ -143,7 +141,7 @@ class EventControllerTest {
     // createDayEvent()
     @Test
     void should403WhenCreateDayEventIsCalledWithNoCsrf() throws Exception {
-        CreateDayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         String responseBody = String.format("""
                 {
                     "status": 403,
@@ -168,7 +166,7 @@ class EventControllerTest {
     // createDayEvent()
     @Test
     void should403WhenCreateDayEventIsCalledWithInvalidCsrf() throws Exception {
-        CreateDayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         String responseBody = String.format("""
                 {
                     "status": 403,
@@ -193,7 +191,7 @@ class EventControllerTest {
     // updateDayEvent()
     @Test
     void should204WhenDayEventIsUpdatedSuccessfully() throws Exception {
-        UpdateDayEventRequest eventRequest = updateDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         UUID eventId = UUID.randomUUID();
 
         doNothing().when(this.dayEventService).update(1L, eventId, eventRequest);
@@ -210,7 +208,7 @@ class EventControllerTest {
     // updateDayEvent()
     @Test
     void should401WhenUpdateDayEventIsCalledByUnauthenticatedUser() throws Exception {
-        UpdateDayEventRequest eventRequest = updateDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         UUID eventId = UUID.randomUUID();
         String responseBody = String.format("""
                 {
@@ -234,7 +232,7 @@ class EventControllerTest {
     // updateDayEvent()
     @Test
     void should403WhenUpdateDayEventIsCalledWithNoCsrf() throws Exception {
-        UpdateDayEventRequest eventRequest = updateDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         UUID eventId = UUID.randomUUID();
         String responseBody = String.format("""
                 {
@@ -258,7 +256,7 @@ class EventControllerTest {
     // updateDayEvent()
     @Test
     void should403WhenUpdateDayEventIsCalledWithInvalidCsrf() throws Exception {
-        UpdateDayEventRequest eventRequest = updateDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
+        DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         UUID eventId = UUID.randomUUID();
         String responseBody = String.format("""
                 {
@@ -501,7 +499,7 @@ class EventControllerTest {
     // createTimeEvent()
     @Test
     void should201WhenTimeEventIsCreatedSuccessfully() throws Exception {
-        CreateTimeEventRequest timeEventRequest = createTimeEventRequest(
+        TimeEventRequest timeEventRequest = createTimeEventRequest(
                 LocalDateTime.now().plusDays(1),
                 LocalDateTime.now().plusDays(1).plusMinutes(30)
         );
@@ -522,7 +520,7 @@ class EventControllerTest {
     // createTimeEvent() @Valid
     @Test
     void should400WhenTimeEventRequestStartTimeIsAfterEndTime() throws Exception {
-        CreateTimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(2), LocalDateTime.now().plusDays(1));
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(2), LocalDateTime.now().plusDays(1));
         String responseBody = String.format("""
                 {
                     "status": 400,
@@ -548,7 +546,7 @@ class EventControllerTest {
     // createTimeEvent()
     @Test
     void should401WhenCreateTimeEventIsCalledByUnauthorizedUser() throws Exception {
-        CreateTimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
         String responseBody = String.format("""
                 {
                     "status": 401,
@@ -573,7 +571,7 @@ class EventControllerTest {
     // createTimeEvent()
     @Test
     void should403WhenCreateTimeEventIsCalledWithNoCsrf() throws Exception {
-        CreateTimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
         String responseBody = String.format("""
                 {
                     "status": 403,
@@ -599,7 +597,7 @@ class EventControllerTest {
     // createTimeEvent()
     @Test
     void should403WhenCreateTimeEventIsCalledWithInvalidCsrf() throws Exception {
-        CreateTimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
+        TimeEventRequest timeEventRequest = createTimeEventRequest(LocalDateTime.now().plusDays(1), LocalDateTime.now().plusDays(3));
         String responseBody = String.format("""
                 {
                     "status": 403,
@@ -886,8 +884,8 @@ class EventControllerTest {
         verifyNoInteractions(this.timeEventService);
     }
 
-    private CreateDayEventRequest createDayEventRequest(LocalDate startDate, LocalDate endDate) {
-        return CreateDayEventRequest.builder()
+    private DayEventRequest createDayEventRequest(LocalDate startDate, LocalDate endDate) {
+        return DayEventRequest.builder()
                 .title("Event name")
                 .location("Location")
                 .description("Description")
@@ -916,8 +914,8 @@ class EventControllerTest {
     }
 
 
-    private CreateTimeEventRequest createTimeEventRequest(LocalDateTime startTime, LocalDateTime endTime) {
-        return CreateTimeEventRequest.builder()
+    private TimeEventRequest createTimeEventRequest(LocalDateTime startTime, LocalDateTime endTime) {
+        return TimeEventRequest.builder()
                 .title("Event name")
                 .location("Location")
                 .description("Description")
@@ -925,21 +923,6 @@ class EventControllerTest {
                 .endTime(endTime)
                 .startTimeZoneId(ZoneId.of("Australia/Sydney"))
                 .endTimeZoneId(ZoneId.of("Australia/Sydney"))
-                .repetitionFrequency(RepetitionFrequency.MONTHLY)
-                .repetitionStep(3)
-                .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
-                .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionOccurrences(3)
-                .build();
-    }
-
-    private UpdateDayEventRequest updateDayEventRequest(LocalDate startDate, LocalDate endDate) {
-        return UpdateDayEventRequest.builder()
-                .title("Event name")
-                .location("Location")
-                .description("Description")
-                .startDate(startDate)
-                .endDate(endDate)
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(3)
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)

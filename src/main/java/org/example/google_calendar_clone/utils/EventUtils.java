@@ -2,19 +2,21 @@ package org.example.google_calendar_clone.utils;
 
 import jakarta.validation.ConstraintValidatorContext;
 import org.example.google_calendar_clone.calendar.event.AbstractEvent;
-import org.example.google_calendar_clone.calendar.event.day.dto.UpdateDayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotReminderRequest;
 import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-import org.example.google_calendar_clone.calendar.event.time.dto.UpdateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.dto.TimeEventSlotReminderRequest;
 import org.example.google_calendar_clone.entity.DayEventSlot;
 import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.entity.User;
 import org.example.google_calendar_clone.exception.ConflictException;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -26,7 +28,179 @@ public final class EventUtils {
         throw new UnsupportedOperationException("EventUtils is a utility class and cannot be instantiated");
     }
 
-    public static boolean hasValidFrequencyProperties(AbstractEventRequest eventRequest, ConstraintValidatorContext context) {
+    public static boolean hasValidEventRequestProperties(DayEventRequest eventRequest,
+                                                         ConstraintValidatorContext context) {
+        /*
+            Starting date is before Ending date
+
+            When we create an event startDate and endDate will never be null since the DayEventRequest has a @NotNull.
+            When we update an event since startDate and endDate are optional, they can be null, but if they are not we
+            still need to make sure that the endDate is after startDate.
+         */
+        if (DateUtils.isAfter(eventRequest.getStartDate(), eventRequest.getEndDate())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Start date must be before end date")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if (!hasValidFrequencyProperties(eventRequest, context)) {
+            return false;
+        }
+
+        // If the date is 2024-09-10 (a Tuesday), the weeklyRecurrenceDays set must contain TUESDAY
+        if (eventRequest.getRepetitionFrequency().equals(RepetitionFrequency.WEEKLY)
+                && !eventRequest.getWeeklyRecurrenceDays().contains(eventRequest.getStartDate().getDayOfWeek())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate(
+                            "The start date " + eventRequest.getStartDate() + " is a " + eventRequest.getStartDate().getDayOfWeek() +
+                                    ", but this day is not included in the weekly recurrence days: " +
+                                    eventRequest.getWeeklyRecurrenceDays())
+                    .addConstraintViolation();
+            return false;
+        }
+
+        /*
+            RepetitionOccurrences can only be null at this point. Repetition end date is before the end date
+         */
+        if (eventRequest.getRepetitionEndDate() != null
+                && DateUtils.isBefore(eventRequest.getRepetitionEndDate(), eventRequest.getEndDate())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Repetition end date must be after end date")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        /*
+            If we have a frequency value other than NEVER and the user did not provide a repetition step, meaning how
+            often that event will be repeated with the given frequency, we could also default to 1. An example would be,
+            when the frequency is DAILY and repetition step is null, we set it to 1. It means that the event will be
+            repeated every day until the repetitionEndDate
+         */
+        if (!eventRequest.getRepetitionFrequency().equals(RepetitionFrequency.NEVER) &&
+                (eventRequest.getRepetitionStep() == null || eventRequest.getRepetitionStep() == 0)) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Specify how often you want the event to be repeated")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        return true;
+    }
+
+    public static boolean hasValidEventRequestProperties(TimeEventRequest eventRequest,
+                                                         ConstraintValidatorContext context) {
+        if (DateUtils.futureOrPresent(eventRequest.getStartTime(), eventRequest.getStartTimeZoneId())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Start time must be in the future or present")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if (DateUtils.futureOrPresent(eventRequest.getEndTime(), eventRequest.getEndTimeZoneId())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("End time must be in the future or present")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        /*
+            Starting time is before Ending time
+
+            We support different timezones for start and end time. We have to consider the following case.
+                When user provided start time and end time in different time zones, initially it could be that
+                start time < end time without taking into consideration their time-zones, simply comparing the times.
+                We have to convert both to UTC and make sure that start time < end time
+         */
+        if (DateUtils.isAfter(eventRequest.getStartTime(),
+                eventRequest.getStartTimeZoneId(),
+                eventRequest.getEndTime(),
+                eventRequest.getEndTimeZoneId())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Start time must be before end time")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        /*
+            A time event can span between 2 days, but no more than 24 hours.
+
+            September 16, 2024, 23:00 (UTC+2, Central European Summer Time)
+            September 17, 2024, 03:00 (UTC+4, Dubai Time)
+
+            In UTC the event's duration is from 21:00 - 23:00, it is a 2-hour event that spans in 2 different days, this
+            is valid.
+
+            September 16, 2024, 18:00 (UTC+2, Central European Summer Time)
+            September 17, 2024, 21:00 (UTC+4, Dubai Time)
+
+            In UTC the event's duration is from September 16, 16:00 - to September 17, 17:00, it is more than 24 hours,
+            not a valid Time event
+
+         */
+        if (DateUtils.timeZoneAwareDifference(eventRequest.getStartTime(),
+                eventRequest.getStartTimeZoneId(),
+                eventRequest.getEndTime(),
+                eventRequest.getEndTimeZoneId(),
+                ChronoUnit.DAYS) > 0) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Time events can not span for more than 24 hours. Consider " +
+                            "creating a Day event instead")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if (!hasValidFrequencyProperties(eventRequest, context)) {
+            return false;
+        }
+
+        // If the date is 2024-09-10 (a Tuesday), the weeklyRecurrenceDays set must contain TUESDAY
+        if (eventRequest.getRepetitionFrequency().equals(RepetitionFrequency.WEEKLY)
+                && !eventRequest.getWeeklyRecurrenceDays().contains(eventRequest.getStartTime().getDayOfWeek())) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate(
+                            "The start date " + eventRequest.getStartTime() + " is a " + eventRequest.getStartTime().getDayOfWeek() +
+                                    ", but this day is not included in the weekly recurrence days: " +
+                                    eventRequest.getWeeklyRecurrenceDays())
+                    .addConstraintViolation();
+            return false;
+        }
+
+        /*
+            RepetitionCount can only be null at this point. Repetition end date is before the ending date. When we
+            create an event endDate will never be null since the TimeEventRequest has a @NotNull. When we update an event
+            since endTime is optional, it can be null, but if it is not we still need to make sure that the
+            repetitionEndDate is after endDate.
+
+            We have to extract the Date part of the DateTime before comparing
+         */
+        if (eventRequest.getRepetitionEndDate() != null
+                && DateUtils.isBefore(eventRequest.getRepetitionEndDate(), LocalDate.from(eventRequest.getEndTime()))) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Repetition end date must be after end date")
+                    .addConstraintViolation();
+            return false;
+
+        }
+
+        /*
+            If we have a frequency value other than NEVER and the user did not provide a repetition step, meaning how
+            often that event will be repeated with the given frequency, we could also default to 1. An example would be,
+            when the frequency is DAILY and repetition step is null, we set it to 1. It means that the event will be
+            repeated every day until the repetitionEndDate
+         */
+        if (!eventRequest.getRepetitionFrequency().equals(RepetitionFrequency.NEVER) &&
+                (eventRequest.getRepetitionStep() == null || eventRequest.getRepetitionStep() == 0)) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Specify how often you want the event to be repeated")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        return true;
+    }
+
+    private static boolean hasValidFrequencyProperties(AbstractEventRequest eventRequest, ConstraintValidatorContext context) {
         /*
             When the frequency is NEVER, we can ignore the values of the remaining fields(set them to null) and process
             the request. We also reduce the total checks.
@@ -184,7 +358,7 @@ public final class EventUtils {
                 && Objects.equals(eventRequest.getRepetitionOccurrences(), event.getRepetitionOccurrences());
     }
 
-    public static boolean emptyUpdateRequestProperties(UpdateTimeEventRequest eventRequest) {
+    public static boolean emptyUpdateRequestProperties(TimeEventRequest eventRequest) {
         return eventRequest.getStartTime() == null
                 && eventRequest.getEndTime() == null
                 && eventRequest.getStartTimeZoneId() == null
@@ -192,7 +366,7 @@ public final class EventUtils {
                 && emptyRequestProperties(eventRequest);
     }
 
-    public static boolean emptyUpdateRequestProperties(UpdateDayEventRequest eventRequest) {
+    public static boolean emptyUpdateRequestProperties(DayEventRequest eventRequest) {
         return eventRequest.getStartDate() == null
                 && eventRequest.getEndDate() == null
                 && emptyRequestProperties(eventRequest);

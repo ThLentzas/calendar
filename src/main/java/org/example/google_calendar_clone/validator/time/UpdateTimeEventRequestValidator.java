@@ -3,11 +3,9 @@ package org.example.google_calendar_clone.validator.time;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-import org.example.google_calendar_clone.calendar.event.time.dto.CreateTimeEventRequest;
-import org.example.google_calendar_clone.calendar.event.time.dto.UpdateTimeEventRequest;
-import org.example.google_calendar_clone.utils.DateUtils;
-import org.example.google_calendar_clone.utils.EventUtils;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 
+import org.example.google_calendar_clone.utils.EventUtils;
 
 /*
     The CreateTimeEventRequest and UpdateTimeEventRequest have the same properties. Initially, i thought i could use
@@ -21,78 +19,66 @@ import org.example.google_calendar_clone.utils.EventUtils;
     something that just avoids that. I am not sure of it is good or not.
  */
 public final class UpdateTimeEventRequestValidator
-        implements ConstraintValidator<ValidUpdateTimeEventRequest, UpdateTimeEventRequest> {
+        implements ConstraintValidator<ValidUpdateTimeEventRequest, TimeEventRequest> {
 
     @Override
-    public boolean isValid(UpdateTimeEventRequest value, ConstraintValidatorContext context) {
-        if (EventUtils.emptyUpdateRequestProperties(value)) {
+    public boolean isValid(TimeEventRequest eventRequest, ConstraintValidatorContext context) {
+        if (EventUtils.emptyUpdateRequestProperties(eventRequest)) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("At least one field must be provided for the update")
                     .addConstraintViolation();
             return false;
         }
 
-        if (value.getRepetitionFrequency() == null) {
-            value.setStartTime(null);
-            value.setEndTime(null);
-            value.setStartTimeZoneId(null);
-            value.setEndTimeZoneId(null);
-            value.setRepetitionStep(null);
-            value.setWeeklyRecurrenceDays(null);
-            value.setMonthlyRepetitionType(null);
-            value.setRepetitionDuration(null);
-            value.setRepetitionEndDate(null);
-            value.setRepetitionOccurrences(null);
+        if (eventRequest.getRepetitionFrequency() == null) {
+            eventRequest.setStartTime(null);
+            eventRequest.setEndTime(null);
+            eventRequest.setStartTimeZoneId(null);
+            eventRequest.setEndTimeZoneId(null);
+            eventRequest.setRepetitionStep(null);
+            eventRequest.setWeeklyRecurrenceDays(null);
+            eventRequest.setMonthlyRepetitionType(null);
+            eventRequest.setRepetitionDuration(null);
+            eventRequest.setRepetitionEndDate(null);
+            eventRequest.setRepetitionOccurrences(null);
             return true;
         }
 
-        if (value.getStartTime() == null && value.getEndTime() == null) {
+        if (eventRequest.getStartTime() == null && eventRequest.getEndTime() == null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("The start time and the end time of the event are required")
                     .addConstraintViolation();
             return false;
         }
 
-        if (value.getStartTime() == null) {
+        if (eventRequest.getStartTime() == null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("The start time of the event is required. Please provide one")
                     .addConstraintViolation();
             return false;
         }
 
-        if (value.getEndTime() == null) {
+        if (eventRequest.getEndTime() == null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("The end time of the event is required. Please provide one")
                     .addConstraintViolation();
             return false;
         }
 
-        if (value.getStartTimeZoneId() == null) {
+        if (eventRequest.getStartTimeZoneId() == null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Provide a time zone for your start time")
                     .addConstraintViolation();
             return false;
         }
 
-        if (value.getEndTimeZoneId() == null) {
+        if (eventRequest.getEndTimeZoneId() == null) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("Provide a time zone for your end time")
                     .addConstraintViolation();
             return false;
         }
 
-        if (DateUtils.futureOrPresent(value.getStartTime(), value.getStartTimeZoneId())) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Start time must be in the future or present")
-                    .addConstraintViolation();
-            return false;
-        }
-
-        if(DateUtils.futureOrPresent(value.getEndTime(), value.getEndTimeZoneId())) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("End time must be in the future or present")
-                    .addConstraintViolation();
-            return false;
-        }
+        return EventUtils.hasValidEventRequestProperties(eventRequest, context);
     }
 }

@@ -427,8 +427,8 @@ class EventIT extends AbstractIntegrationTest {
         // Login with user credentials in Spring's endpoint. The user exists in the db from the @SQL script
         response = given()
                 .contentType(ContentType.URLENC)
-                .formParam("username", userCredentials().get(2).getFirst())
-                .formParam("password", userCredentials().get(2).getSecond())
+                .formParam("username", userCredentials().get(0).getFirst())
+                .formParam("password", userCredentials().get(0).getSecond())
                 .cookie("XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
                 .header("X-XSRF-TOKEN", cookies.get("XSRF-TOKEN"))
                 .when()
@@ -462,7 +462,7 @@ class EventIT extends AbstractIntegrationTest {
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
                 .accept(ContentType.JSON)
                 .when()
-                .get(DAY_EVENT_PATH + "/{eventId}/time-event-slots", eventId)
+                .get(TIME_EVENT_PATH + "/{eventId}/time-event-slots", eventId)
                 .then().statusCode(200)
                 .extract()
                 .response().as(new TypeRef<>() {

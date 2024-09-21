@@ -23,7 +23,7 @@ import org.example.google_calendar_clone.calendar.event.slot.AbstractEventSlot;
 @Table(name = "day_event_slots")
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = true)
 @ToString
 public class DayEventSlot extends AbstractEventSlot {
     private LocalDate startDate;

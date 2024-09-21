@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.utils;
+package org.example.google_calendar_clone;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;

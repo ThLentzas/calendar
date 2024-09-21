@@ -1,7 +1,6 @@
 package org.example.google_calendar_clone.calendar.event.time;
 
-import org.example.google_calendar_clone.calendar.event.day.dto.UpdateDayEventRequest;
-import org.example.google_calendar_clone.calendar.event.time.dto.UpdateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.time.slot.TimeEventSlotService;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.example.google_calendar_clone.user.UserRepository;
@@ -40,7 +39,7 @@ class TimeEventServiceTest {
      */
     @Test
     void shouldThrowResourceNotFoundExceptionForUpdateEvent() {
-        UpdateTimeEventRequest eventRequest = UpdateTimeEventRequest.builder()
+        TimeEventRequest eventRequest = TimeEventRequest.builder()
                 .title("Event title")
                 .build();
         UUID eventId = UUID.randomUUID();

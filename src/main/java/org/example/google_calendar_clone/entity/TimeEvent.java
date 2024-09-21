@@ -24,7 +24,7 @@ import org.example.google_calendar_clone.calendar.event.AbstractEvent;
 @Table(name = "time_events")
 @Getter
 @Setter
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = true)
 public class TimeEvent extends AbstractEvent {
     private LocalDateTime startTime;
     private LocalDateTime endTime;

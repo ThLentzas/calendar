@@ -13,7 +13,6 @@ import java.util.UUID;
     do not persist for the event, but we need to event for the Hibernate relationship
  */
 public interface IEventSlotService<T extends AbstractEventRequest,
-        V extends AbstractEventRequest,
         U extends AbstractEvent,
         K extends EventSlotDTO> {
 
@@ -21,7 +20,7 @@ public interface IEventSlotService<T extends AbstractEventRequest,
     void create(T eventRequest, U event);
 
     @Transactional
-    void update(V eventRequest, U event);
+    void update(T eventRequest, U event);
 
     @Transactional
     void inviteGuests(Long userId, UUID slotId, InviteGuestsRequest inviteGuestsRequest);

@@ -15,9 +15,9 @@ import java.util.EnumSet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @JsonTest
-class CreateDayEventRequestJsonTest {
+class DayEventRequestJsonTest {
     @Autowired
-    private JacksonTester<CreateDayEventRequest> jacksonTester;
+    private JacksonTester<DayEventRequest> jacksonTester;
 
     @Test
     void shouldDeserializeCreateDayEventRequest() throws IOException {
@@ -36,7 +36,7 @@ class CreateDayEventRequestJsonTest {
                 }
                 """;
 
-        CreateDayEventRequest expected = CreateDayEventRequest.builder()
+        DayEventRequest expected = DayEventRequest.builder()
                 .title("Event title")
                 .location("Location")
                 .description("Description")
@@ -49,7 +49,7 @@ class CreateDayEventRequestJsonTest {
                 .repetitionOccurrences(3)
                 .build();
 
-        CreateDayEventRequest actual = this.jacksonTester.parseObject(json);
+        DayEventRequest actual = this.jacksonTester.parseObject(json);
 
         /*
             DayEventRequest has @EqualsAndHashCode(callSuperTrue) and the parent class is annotated with

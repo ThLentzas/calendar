@@ -1,11 +1,10 @@
-package org.example.google_calendar_clone.email;
+package org.example.google_calendar_clone.utils;
 
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventInvitationRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventInvitationRequest;
-import org.example.google_calendar_clone.utils.EmailUtils;
 import org.junit.jupiter.api.Test;
 
 import java.time.DayOfWeek;

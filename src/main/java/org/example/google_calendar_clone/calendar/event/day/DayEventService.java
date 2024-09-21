@@ -2,8 +2,7 @@ package org.example.google_calendar_clone.calendar.event.day;
 
 import org.example.google_calendar_clone.calendar.event.IEventService;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventInvitationRequest;
-import org.example.google_calendar_clone.calendar.event.day.dto.CreateDayEventRequest;
-import org.example.google_calendar_clone.calendar.event.day.dto.UpdateDayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.day.slot.DayEventSlotService;
 import org.example.google_calendar_clone.calendar.event.day.slot.dto.DayEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
@@ -23,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class DayEventService implements IEventService<CreateDayEventRequest, UpdateDayEventRequest, DayEventSlotDTO> {
+public class DayEventService implements IEventService<DayEventRequest, DayEventSlotDTO> {
     private final DayEventSlotService dayEventSlotService;
     private final DayEventRepository dayEventRepository;
     private final UserRepository userRepository;
@@ -31,7 +30,7 @@ public class DayEventService implements IEventService<CreateDayEventRequest, Upd
     private static final String EVENT_NOT_FOUND_MSG = "Day event not found with id: ";
 
     @Override
-    public UUID create(Long userId, CreateDayEventRequest eventRequest) {
+    public UUID create(Long userId, DayEventRequest eventRequest) {
         /*
             The current authenticated user is the organizer of the event. We can't call getReferenceById(), we need the
             username of the user to set it as the organizer in the invitation email template
@@ -119,8 +118,7 @@ public class DayEventService implements IEventService<CreateDayEventRequest, Upd
         this.dayEventRepository.deleteById(eventId);
     }
 
-    @Override
-    public void update(Long userId, UUID eventId, UpdateDayEventRequest eventRequest) {
+    public void update(Long userId, UUID eventId, DayEventRequest eventRequest) {
         DayEvent event = this.dayEventRepository.findByEventIdAndUserId(eventId, userId).orElseThrow(() ->
                 new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + eventId));
 

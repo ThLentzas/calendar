@@ -5,11 +5,13 @@ import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
+import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.validator.groups.OnUpdate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import org.example.google_calendar_clone.calendar.event.day.dto.UpdateDayEventRequest;
-
+import java.time.LocalDate;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,6 +38,9 @@ class UpdateDayEventRequestValidatorTest {
 
         It is very important to have 1 violation per test, because the set of constraints will have more than 1
         error message and, we can not be sure that iterator.next() will return the constraint we test
+
+        IMPORTANT!!! The remaining cases for the call to EventUtils.hasValidEventRequestProperties() are tested in the
+        CreateDayEventRequestValidatorTest class, and we don't have to repeat them.
      */
     @BeforeEach
     void setUp() {
@@ -44,16 +49,44 @@ class UpdateDayEventRequestValidatorTest {
         }
     }
 
-    // The remaining cases are covered by the CreateDayEventRequestValidator. Look at UpdateDayEventRequestValidator
-    // for the full explanation
     @Test
-    void shouldReturnFalseWhenAllPropertiesAreNullOrEmpty() {
-        UpdateDayEventRequest request = UpdateDayEventRequest.builder()
+    void shouldReturnFalseWhenFrequencyIsNotNullAndStartEndDateAreNull() {
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
+                .repetitionFrequency(RepetitionFrequency.DAILY)
                 .build();
 
-        Set<ConstraintViolation<UpdateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<UpdateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
-        assertThat(violation.getMessage()).isEqualTo("At least one field must be provided for the update");
+        assertThat(violation.getMessage()).isEqualTo("The start date and the end date of the event are required");
+    }
+
+    @Test
+    void shouldReturnFalseWhenFrequencyIsNotNullAndStartDateIsNull() {
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
+                .endDate(LocalDate.now().plusDays(2))
+                .repetitionFrequency(RepetitionFrequency.DAILY)
+                .build();
+
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
+
+        assertThat(violation.getMessage()).isEqualTo("The start date of the event is required. Please provide one");
+    }
+
+    @Test
+    void shouldReturnFalseWhenFrequencyIsNotNullAndEndDateIsNull() {
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
+                .startDate(LocalDate.now().plusDays(2))
+                .repetitionFrequency(RepetitionFrequency.DAILY)
+                .build();
+
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
+
+        assertThat(violation.getMessage()).isEqualTo("The end date of the event is required. Please provide one");
     }
 }

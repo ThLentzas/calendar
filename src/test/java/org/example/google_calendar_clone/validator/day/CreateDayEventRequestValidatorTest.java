@@ -4,10 +4,11 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import org.example.google_calendar_clone.calendar.event.day.dto.CreateDayEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
+import org.example.google_calendar_clone.validator.groups.OnCreate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -54,39 +55,58 @@ class CreateDayEventRequestValidatorTest {
     }
 
     @Test
-    void shouldReturnTrueWhenDayEventRequestIsValidAndFrequencyIsNever() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+    void shouldReturnFalseWhenDayEventRequestFrequencyIsNull() {
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusDays(3))
-                .repetitionFrequency(RepetitionFrequency.NEVER)
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
-        assertThat(violations).isEmpty();
+        assertThat(violation.getMessage()).isEqualTo("Provide a frequency. NEVER if event does not repeat");
+    }
+
+    @Test
+    void shouldReturnFalseWhenStartDateIsAfterEndDate() {
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
+                .startDate(LocalDate.now().plusDays(3))
+                .endDate(LocalDate.now().plusDays(1))
+                .repetitionFrequency(RepetitionFrequency.MONTHLY)
+                .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
+                .repetitionStep(2)
+                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
+                .repetitionEndDate(LocalDate.now().plusYears(1))
+                .build();
+
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
+
+        assertThat(violation.getMessage()).isEqualTo("Start date must be before end date");
     }
 
     @Test
     void shouldReturnFalseWhenFrequencyIsWeeklyAndWeeklyRecurrenceDaysAreEmptyOrNull() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusDays(3))
                 .repetitionFrequency(RepetitionFrequency.WEEKLY)
                 .repetitionStep(1)
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Provide at least one day of the week for weekly repeating events");
     }
 
     @Test
     void shouldReturnFalseWhenFrequencyIsNotWeeklyAndWeeklyRecurrenceDaysAreNotEmptyOrNull() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusDays(3))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -94,24 +114,24 @@ class CreateDayEventRequestValidatorTest {
                 .weeklyRecurrenceDays(EnumSet.of(DayOfWeek.MONDAY))
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Weekly recurrence days are only valid for weekly repeating events");
     }
 
     @Test
     void shouldReturnFalseWhenFrequencyIsMonthlyAndRepetitionMonthlyTypeIsNull() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusDays(3))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
                 .repetitionStep(1)
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Provide a monthly repetition type for monthly repeating " +
                 "events");
@@ -119,8 +139,8 @@ class CreateDayEventRequestValidatorTest {
 
     @Test
     void shouldReturnFalseWhenFrequencyIsNotMonthlyAndRepetitionMonthlyTypeIsNotNull() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusDays(3))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
@@ -128,17 +148,17 @@ class CreateDayEventRequestValidatorTest {
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Monthly repetition types are only valid for monthly repeating " +
                 "events");
     }
 
     @Test
-    void shouldReturnFalseWhenRepetitionDurationIsNullForRepeatedEvents() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+    void shouldReturnFalseWhenRepetitionDurationIsNullForRepeatingEvents() {
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusDays(3))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -146,8 +166,8 @@ class CreateDayEventRequestValidatorTest {
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Specify an end date or a number of repetitions for" +
                 " repeating events");
@@ -156,8 +176,8 @@ class CreateDayEventRequestValidatorTest {
 
     @Test
     void shouldReturnTrueWhenDayEventRequestIsValidAndRepetitionDurationIsForever() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusDays(3))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
@@ -165,15 +185,15 @@ class CreateDayEventRequestValidatorTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
 
         assertThat(violations).isEmpty();
     }
 
     @Test
     void shouldReturnFalseWhenRepetitionDurationIsUntilDateAndRepetitionEndDateIsNull() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now().plusDays(1))
                 .endDate(LocalDate.now().plusDays(3))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
@@ -181,8 +201,8 @@ class CreateDayEventRequestValidatorTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("The repetition end date is required when repetition duration is" +
                 " set to until a certain date");
@@ -191,18 +211,18 @@ class CreateDayEventRequestValidatorTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(ints = {0})
-    void shouldReturnFalseWhenRepetitionDurationIsNRepetitionsAndRepetitionCountIsNullOrZero(Integer repetitionCount) {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+    void shouldReturnFalseWhenRepetitionDurationIsNRepetitionsAndRepetitionOccurrencesIsNullOrZero(Integer occurrences) {
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusDays(3))
                 .repetitionFrequency(RepetitionFrequency.DAILY)
                 .repetitionStep(1)
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
-                .repetitionOccurrences(repetitionCount)
+                .repetitionOccurrences(occurrences)
                 .build();
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("The number of repetitions is required when repetition duration " +
                 "is set to a certain number of repetitions");
@@ -210,8 +230,8 @@ class CreateDayEventRequestValidatorTest {
 
     @Test
     void shouldReturnFalseWhenRepetitionEndDateAndRepetitionCountAreBothNotNullForRepeatedEvents() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusDays(3))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -222,36 +242,17 @@ class CreateDayEventRequestValidatorTest {
                 .repetitionOccurrences(3)
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Specify either a repetition end date or a number of " +
                 "repetitions. Not both");
     }
 
     @Test
-    void shouldReturnFalseWhenStartDateIsAfterEndDate() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
-                .startDate(LocalDate.now().plusDays(3))
-                .endDate(LocalDate.now().plusDays(1))
-                .repetitionFrequency(RepetitionFrequency.MONTHLY)
-                .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
-                .repetitionStep(2)
-                .repetitionDuration(RepetitionDuration.UNTIL_DATE)
-                .repetitionEndDate(LocalDate.now().plusYears(1))
-                .build();
-
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
-
-        assertThat(violation.getMessage()).isEqualTo("Start date must be before end date");
-    }
-
-    @Test
     void shouldReturnFalseWhenStartDateIsNotIncludedInWeeklyRecurrenceDays() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 /*
                     Adjusts now() to the closest upcoming Thursday. If now() is already a Thursday, it remains unchanged.
                     For example, if now() is 2024-09-10 (a Tuesday), with(DayOfWeek.THURSDAY) will return 2024-09-12.
@@ -265,8 +266,8 @@ class CreateDayEventRequestValidatorTest {
                 .repetitionEndDate(LocalDate.now().plusYears(1))
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("The start date " + request.getStartDate() + " is a " +
                 request.getStartDate().getDayOfWeek() + ", but this day is not included in the weekly recurrence days: " +
@@ -276,8 +277,8 @@ class CreateDayEventRequestValidatorTest {
 
     @Test
     void shouldReturnFalseWhenRepetitionEndDateIsBeforeTheEndDate() {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusMonths(3))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -287,8 +288,8 @@ class CreateDayEventRequestValidatorTest {
                 .repetitionEndDate(LocalDate.now().plusMonths(2))
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Repetition end date must be after end date");
     }
@@ -297,8 +298,8 @@ class CreateDayEventRequestValidatorTest {
     @NullSource
     @ValueSource(ints = {0})
     void shouldReturnFalseWhenRepetitionStepIsNullOrZeroAndFrequencyIsNotNever(Integer step) {
-        CreateDayEventRequest request = CreateDayEventRequest.builder()
-                .title("Event name")
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
                 .startDate(LocalDate.now())
                 .endDate(LocalDate.now().plusMonths(3))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -308,8 +309,8 @@ class CreateDayEventRequestValidatorTest {
                 .repetitionEndDate(LocalDate.now().plusMonths(4))
                 .build();
 
-        Set<ConstraintViolation<CreateDayEventRequest>> violations = validator.validate(request);
-        ConstraintViolation<CreateDayEventRequest> violation = violations.iterator().next();
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Specify how often you want the event to be repeated");
     }
