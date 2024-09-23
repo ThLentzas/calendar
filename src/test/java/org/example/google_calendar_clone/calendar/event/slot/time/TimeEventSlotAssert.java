@@ -22,7 +22,7 @@ class TimeEventSlotAssert extends AbstractAssert<TimeEventSlotAssert, TimeEventS
     TimeEventSlotAssert hasStartTime(LocalDateTime startTime) {
         isNotNull();
 
-        if(!actual.getStartTime().equals(startTime)) {
+        if (!actual.getStartTime().equals(startTime)) {
             failWithMessage("Expected startTime to be <%s> but was <%s>", startTime, actual.getStartTime());
         }
         return this;
@@ -31,7 +31,7 @@ class TimeEventSlotAssert extends AbstractAssert<TimeEventSlotAssert, TimeEventS
     TimeEventSlotAssert hasEndTime(LocalDateTime endTime) {
         isNotNull();
 
-        if(!actual.getEndTime().equals(endTime)) {
+        if (!actual.getEndTime().equals(endTime)) {
             failWithMessage("Expected endTime to be <%s> but was <%s>", endTime, actual.getEndTime());
         }
         return this;
@@ -40,7 +40,7 @@ class TimeEventSlotAssert extends AbstractAssert<TimeEventSlotAssert, TimeEventS
     TimeEventSlotAssert hasStartTimeZoneId(ZoneId startTimeZoneId) {
         isNotNull();
 
-        if(!actual.getStartTimeZoneId().equals(startTimeZoneId)) {
+        if (!actual.getStartTimeZoneId().equals(startTimeZoneId)) {
             failWithMessage("Expected startTimeZoneId to be <%s> but was <%s>", startTimeZoneId, actual.getStartTimeZoneId());
         }
         return this;
@@ -49,17 +49,17 @@ class TimeEventSlotAssert extends AbstractAssert<TimeEventSlotAssert, TimeEventS
     TimeEventSlotAssert hasEndTimeZoneId(ZoneId endTimeZoneId) {
         isNotNull();
 
-        if(!actual.getEndTimeZoneId().equals(endTimeZoneId)) {
+        if (!actual.getEndTimeZoneId().equals(endTimeZoneId)) {
             failWithMessage("Expected endTimeZoneId to be <%s> but was <%s>", endTimeZoneId, actual.getEndTimeZoneId());
         }
         return this;
     }
 
-    TimeEventSlotAssert hasName(String eventName) {
+    TimeEventSlotAssert hasTitle(String title) {
         isNotNull();
 
-        if(!actual.getTitle().equals(eventName)) {
-            failWithMessage("Expected eventName to be <%s> but was <%s>", eventName, actual.getTitle());
+        if (!actual.getTitle().equals(title)) {
+            failWithMessage("Expected title to be <%s> but was <%s>", title, actual.getTitle());
         }
         return this;
     }
@@ -67,7 +67,7 @@ class TimeEventSlotAssert extends AbstractAssert<TimeEventSlotAssert, TimeEventS
     TimeEventSlotAssert hasLocation(String location) {
         isNotNull();
 
-        if(!actual.getLocation().equals(location)) {
+        if (!actual.getLocation().equals(location)) {
             failWithMessage("Expected location to be <%s> but was <%s>", location, actual.getLocation());
         }
         return this;
@@ -76,7 +76,7 @@ class TimeEventSlotAssert extends AbstractAssert<TimeEventSlotAssert, TimeEventS
     TimeEventSlotAssert hasDescription(String description) {
         isNotNull();
 
-        if(!actual.getDescription().equals(description)) {
+        if (!actual.getDescription().equals(description)) {
             failWithMessage("Expected description to be <%s> but was <%s>", description, actual.getDescription());
         }
         return this;
@@ -84,7 +84,7 @@ class TimeEventSlotAssert extends AbstractAssert<TimeEventSlotAssert, TimeEventS
 
     TimeEventSlotAssert hasGuests(Set<String> guestEmails) {
         isNotNull();
-        if(!actual.getGuestEmails().equals(guestEmails)) {
+        if (!actual.getGuestEmails().equals(guestEmails)) {
             failWithMessage("Expected guestEmails to be <%s> but was <%s>", guestEmails, actual.getGuestEmails());
         }
 
@@ -94,7 +94,7 @@ class TimeEventSlotAssert extends AbstractAssert<TimeEventSlotAssert, TimeEventS
     TimeEventSlotAssert hasTimeEvent(TimeEvent timeEvent) {
         isNotNull();
 
-        if(!actual.getTimeEvent().equals(timeEvent)) {
+        if (!actual.getTimeEvent().equals(timeEvent)) {
             failWithMessage("Expected dayEvent to be <%s> but was <%s>", timeEvent, actual.getTimeEvent());
         }
         return this;

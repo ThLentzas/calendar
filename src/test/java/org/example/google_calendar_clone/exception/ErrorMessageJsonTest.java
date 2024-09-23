@@ -18,13 +18,7 @@ class ErrorMessageJsonTest {
 
     @Test
     void shouldSerializeErrorMessage() throws IOException {
-        ErrorMessage errorMessage = new ErrorMessage(
-                Instant.parse("2024-08-22T19:23:33.650400600Z"),
-                400,
-                ErrorMessage.ErrorType.BAD_REQUEST,
-                "The email field is required",
-                "/api/v1/auth/register"
-        );
+        ErrorMessage errorMessage = new ErrorMessage(Instant.parse("2024-08-22T19:23:33.650400600Z"), 400, ErrorMessage.ErrorType.BAD_REQUEST, "The email field is required", "/api/v1/auth/register");
         String json = """
                 {
                     "timestamp": "2024-08-22T19:23:33.650400600Z",

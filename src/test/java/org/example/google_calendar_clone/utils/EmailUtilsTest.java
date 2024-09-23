@@ -24,7 +24,6 @@ class EmailUtilsTest {
                 .repetitionFrequency(RepetitionFrequency.NEVER)
                 .build();
         String expected = "Thu Jan 9, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -39,9 +38,7 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2024-10-12"))
                 .build();
-
         String expected = "Daily, from Thu Sep 12 to Sat Oct 12";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -57,7 +54,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(10)
                 .build();
         String expected = "Daily, 10 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -71,9 +67,7 @@ class EmailUtilsTest {
                 .repetitionStep(1)
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
-
         String expected = "Daily";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -90,7 +84,6 @@ class EmailUtilsTest {
                 .build();
 
         String expected = "Every 4 days, from Wed Oct 23 to Fri Nov 22";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -106,7 +99,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(5)
                 .build();
         String expected = "Every 3 days, 5 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -122,7 +114,6 @@ class EmailUtilsTest {
                 .build();
 
         String expected = "Every 8 days";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -139,7 +130,6 @@ class EmailUtilsTest {
                 .repetitionEndDate(LocalDate.parse("2025-08-11"))
                 .build();
         String expected = "Weekly, on Monday, Wednesday, from Mon May 12, 2025 to Mon Aug 11, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -156,7 +146,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(12)
                 .build();
         String expected = "Weekly, on Friday, Sunday, 12 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -172,7 +161,6 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
         String expected = "Weekly, on Friday, Sunday";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -206,7 +194,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(15)
                 .build();
         String expected = "Every 2 weeks on Wednesday, Thursday, Friday, 15 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -222,7 +209,6 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
         String expected = "Every 2 weeks on Wednesday, Thursday, Friday";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -239,7 +225,6 @@ class EmailUtilsTest {
                 .repetitionEndDate(LocalDate.parse("2025-02-09"))
                 .build();
         String expected = "Monthly on day 9, from Mon Dec 9 to Sun Feb 9, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -256,7 +241,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(4)
                 .build();
         String expected = "Monthly on day 14, 4 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -272,14 +256,13 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
         String expected = "Monthly on day 14";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingMonthlyOnTheSameWeekDayUntilDate() {
+    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingMonthlyOnTheSameWeekdayUntilDate() {
         DayEventInvitationRequest emailRequest = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-03-20"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -289,14 +272,13 @@ class EmailUtilsTest {
                 .repetitionEndDate(LocalDate.parse("2025-07-15"))
                 .build();
         String expected = "Monthly on the third Thursday, from Thu Mar 20, 2025 to Tue Jul 15, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingMonthlyOnTheSameWeekDayForNRepetitions() {
+    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingMonthlyOnTheSameWeekdayForNRepetitions() {
         DayEventInvitationRequest emailRequest = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-06-28"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -306,14 +288,13 @@ class EmailUtilsTest {
                 .repetitionOccurrences(8)
                 .build();
         String expected = "Monthly on the fourth Saturday, 8 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingMonthlyOnTheSameWeekDayForForever() {
+    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingMonthlyOnTheSameWeekdayForForever() {
         DayEventInvitationRequest emailRequest = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-06-28"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -322,7 +303,6 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
         String expected = "Monthly on the fourth Saturday";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -339,7 +319,6 @@ class EmailUtilsTest {
                 .repetitionEndDate(LocalDate.parse("2025-02-18"))
                 .build();
         String expected = "Every 3 months on day 6, from Wed Nov 6 to Tue Feb 18, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -356,7 +335,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(6)
                 .build();
         String expected = "Every 2 months on day 3, 6 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -372,14 +350,13 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
         String expected = "Every 2 months on day 3";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingEveryNMonthsOnTheSameWeekDayUntilDate() {
+    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingEveryNMonthsOnTheSameWeekdayUntilDate() {
         DayEventInvitationRequest emailRequest = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-04-08"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -389,14 +366,13 @@ class EmailUtilsTest {
                 .repetitionEndDate(LocalDate.parse("2025-05-20"))
                 .build();
         String expected = "Every 3 months on the second Tuesday, from Tue Apr 8, 2025 to Tue May 20, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingEveryNMonthsOnTheSameWeekDayForNRepetitions() {
+    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingEveryNMonthsOnTheSameWeekdayForNRepetitions() {
         DayEventInvitationRequest emailRequest = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-07-27"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -406,14 +382,13 @@ class EmailUtilsTest {
                 .repetitionOccurrences(14)
                 .build();
         String expected = "Every 5 months on the fourth Sunday, 14 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingEveryNMonthsOnTheSameWeekDayForForever() {
+    void shouldBuildFrequencyDescriptionWhenDayEventIsRepeatingEveryNMonthsOnTheSameWeekdayForForever() {
         DayEventInvitationRequest emailRequest = DayEventInvitationRequest.builder()
                 .startDate(LocalDate.parse("2025-07-27"))
                 .repetitionFrequency(RepetitionFrequency.MONTHLY)
@@ -422,7 +397,6 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
         String expected = "Every 5 months on the fourth Sunday";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -438,7 +412,6 @@ class EmailUtilsTest {
                 .repetitionEndDate(LocalDate.parse("2027-04-28"))
                 .build();
         String expected = "Annually on April 28, from Mon Apr 28, 2025 to Wed Apr 28, 2027";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -454,7 +427,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(6)
                 .build();
         String expected = "Annually on July 18, 6 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -469,7 +441,6 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
         String expected = "Annually on July 18";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -485,7 +456,6 @@ class EmailUtilsTest {
                 .repetitionEndDate(LocalDate.parse("2029-09-18"))
                 .build();
         String expected = "Every 2 years on September 18, from Thu Sep 18, 2025 to Tue Sep 18, 2029";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -501,7 +471,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(8)
                 .build();
         String expected = "Every 3 years on November 11, 8 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -516,7 +485,6 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
         String expected = "Every 3 years on November 11";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -532,7 +500,6 @@ class EmailUtilsTest {
                 .repetitionFrequency(RepetitionFrequency.NEVER)
                 .build();
         String expected = "Sat Sep 14, 2024 4:30pm - 5:30pm";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -552,7 +519,6 @@ class EmailUtilsTest {
                 .build();
 
         String expected = "Daily, 2:00pm - 2:30pm, from Thu Oct 31 to Wed Dec 4";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -572,7 +538,6 @@ class EmailUtilsTest {
                 .build();
 
         String expected = "Daily, 11:30am - 12:30pm, 10 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -591,7 +556,6 @@ class EmailUtilsTest {
                 .build();
 
         String expected = "Daily, 11:30am - 12:30pm";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -611,7 +575,6 @@ class EmailUtilsTest {
                 .build();
 
         String expected = "Every 3 days, 5:30pm - 7:00pm, from Sat Aug 10 to Sun Nov 3";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -634,7 +597,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(8)
                 .build();
         String expected = "Every 5 days, 9:00pm, 8 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -653,7 +615,6 @@ class EmailUtilsTest {
                 .build();
 
         String expected = "Every 5 days, 9:00pm";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -672,9 +633,7 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2025-01-25"))
                 .build();
-
         String expected = "Weekly, on Friday, Saturday, Sunday, 2:30pm - 4:30pm, from Sun Nov 17 to Sat Jan 25, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -693,9 +652,7 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(4)
                 .build();
-
         String expected = "Weekly, on Monday, Wednesday, 8:00am - 11:00am, 4 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -713,9 +670,7 @@ class EmailUtilsTest {
                 .weeklyRecurrenceDays(EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY))
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
-
         String expected = "Weekly, on Monday, Wednesday, 8:00am - 11:00am";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -735,7 +690,6 @@ class EmailUtilsTest {
                 .repetitionEndDate(LocalDate.parse("2024-12-04"))
                 .build();
         String expected = "Every 3 weeks on Wednesday, Saturday, 2:00am - 7:00am, from Wed Sep 4 to Wed Dec 4";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -755,7 +709,6 @@ class EmailUtilsTest {
                 .repetitionOccurrences(5)
                 .build();
         String expected = "Every 3 weeks on Wednesday, Saturday, 2:00am - 7:00am, 5 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -774,7 +727,6 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
         String expected = "Every 3 weeks on Wednesday, Saturday, 2:00am - 7:00am";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -793,9 +745,7 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2025-06-20"))
                 .build();
-
         String expected = "Monthly on day 25, 8:00am - 8:30am, from Fri Oct 25 to Fri Jun 20, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -815,9 +765,7 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(5)
                 .build();
-
         String expected = "Monthly on day 18, 1:00pm - 5:00pm, 5 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -835,16 +783,14 @@ class EmailUtilsTest {
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
-
         String expected = "Monthly on day 25, 8:00am - 8:30am";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingMonthlyOnTheSameWeekDayUntilDate() {
+    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingMonthlyOnTheSameWeekdayUntilDate() {
         TimeEventInvitationRequest emailRequest = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T11:00"))
@@ -856,16 +802,14 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2024-11-20"))
                 .build();
-
         String expected = "Monthly on the first Wednesday, 6:00am - 8:00am, from Wed Sep 4 to Wed Nov 20";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingMonthlyOnTheSameWeekDayForNRepetitions() {
+    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingMonthlyOnTheSameWeekdayForNRepetitions() {
         TimeEventInvitationRequest emailRequest = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-30T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-30T10:30"))
@@ -877,16 +821,14 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(4)
                 .build();
-
         String expected = "Monthly on the last Monday, 8:00am - 9:30am, 4 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingMonthlyOnTheSameWeekDayForForever() {
+    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingMonthlyOnTheSameWeekdayForForever() {
         TimeEventInvitationRequest emailRequest = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-30T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-30T10:30"))
@@ -897,9 +839,7 @@ class EmailUtilsTest {
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_WEEKDAY)
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
-
         String expected = "Monthly on the last Monday, 8:00am - 9:30am";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -918,9 +858,7 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2025-06-20"))
                 .build();
-
         String expected = "Every 2 months on day 25, 8:00am - 8:30am, from Fri Oct 25 to Fri Jun 20, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -939,9 +877,7 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(5)
                 .build();
-
         String expected = "Every 4 months on day 18, 1:00pm - 5:00pm, 5 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -959,16 +895,14 @@ class EmailUtilsTest {
                 .monthlyRepetitionType(MonthlyRepetitionType.SAME_DAY)
                 .repetitionDuration(RepetitionDuration.FOREVER)
                 .build();
-
         String expected = "Every 4 months on day 18, 1:00pm - 5:00pm";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingEveryNMonthsOnTheSameWeekDayUntilDate() {
+    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingEveryNMonthsOnTheSameWeekdayUntilDate() {
         TimeEventInvitationRequest emailRequest = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-04T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-04T11:00"))
@@ -980,16 +914,14 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2024-11-20"))
                 .build();
-
         String expected = "Every 3 months on the first Wednesday, 6:00am - 8:00am, from Wed Sep 4 to Wed Nov 20";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingEveryNMonthsOnTheSameWeekForNRepetitions() {
+    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingEveryNMonthsOnTheSameWeekdayForNRepetitions() {
         TimeEventInvitationRequest emailRequest = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-30T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-30T10:30"))
@@ -1001,16 +933,14 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.N_REPETITIONS)
                 .repetitionOccurrences(5)
                 .build();
-
         String expected = "Every 6 months on the last Monday, 8:00am - 9:30am, 5 times";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingEveryNMonthsOnTheSameWeekForForever() {
+    void shouldBuildFrequencyDescriptionWhenTimeEventIsRepeatingEveryNMonthsOnTheSameWeekdayForForever() {
         TimeEventInvitationRequest emailRequest = TimeEventInvitationRequest.builder()
                 .startTime(LocalDateTime.parse("2024-09-30T09:00"))
                 .endTime(LocalDateTime.parse("2024-09-30T10:30"))
@@ -1041,9 +971,7 @@ class EmailUtilsTest {
                 .repetitionDuration(RepetitionDuration.UNTIL_DATE)
                 .repetitionEndDate(LocalDate.parse("2025-12-10"))
                 .build();
-
         String expected = "Annually on March 22, 8:00pm - 9:00pm, from Sat Mar 22, 2025 to Wed Dec 10, 2025";
-
         String actual = EmailUtils.buildFrequencyDescription(emailRequest);
 
         assertThat(actual).isEqualTo(expected);
@@ -1159,10 +1087,7 @@ class EmailUtilsTest {
     @Test
     void shouldBuildDateTimeDescription() {
         String expected = "Wednesday Sep 18, 2024 2:30pm - 3:30pm";
-        String actual = EmailUtils.buildDateTimeDescription(
-                LocalDateTime.parse("2024-09-18T14:30"),
-                LocalDateTime.parse("2024-09-18T15:30")
-        );
+        String actual = EmailUtils.buildDateTimeDescription(LocalDateTime.parse("2024-09-18T14:30"), LocalDateTime.parse("2024-09-18T15:30"));
 
         assertThat(actual).isEqualTo(expected);
     }

@@ -61,9 +61,8 @@ public class UserService {
         this.contactRequestService.updateContactRequest(senderId, receiverId, contactRequest.action());
     }
 
-    public User findByIdFetchingRoles(Long userId) {
-        return this.userRepository.findById(userId).orElseThrow(() ->
-                new ResourceNotFoundException("User not found with id: " + userId));
+    public User findById(Long userId) {
+        return this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
     }
 
     List<PendingContactRequest> findPendingContactRequests(Long receiverId) {
@@ -87,7 +86,7 @@ public class UserService {
             throw new IllegalArgumentException("Invalid username. Username must not exceed 20 characters");
         }
 
-        if(!username.matches("^[a-zA-Z0-9.]*$")) {
+        if (!username.matches("^[a-zA-Z0-9.]*$")) {
             throw new IllegalArgumentException("Invalid username. Username should contain only characters, numbers and .");
         }
     }

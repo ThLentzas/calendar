@@ -4,6 +4,8 @@ import org.example.google_calendar_clone.entity.TimeEventSlot;
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.springframework.core.convert.converter.Converter;
 
+import java.util.TreeSet;
+
 public class TimeEventSlotDTOConverter implements Converter<TimeEventSlot, TimeEventSlotDTO> {
 
     @Override
@@ -18,7 +20,7 @@ public class TimeEventSlotDTOConverter implements Converter<TimeEventSlot, TimeE
                 .location(timeEventSlot.getLocation())
                 .description(timeEventSlot.getDescription())
                 .organizer(timeEventSlot.getTimeEvent().getUser().getUsername())
-                .guestEmails(timeEventSlot.getGuestEmails())
+                .guestEmails(new TreeSet<>(timeEventSlot.getGuestEmails()))
                 .timeEventId(timeEventSlot.getTimeEvent().getId())
                 .build();
     }

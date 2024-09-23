@@ -13,12 +13,13 @@ import net.datafaker.Faker;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// https://docs.spring.io/spring-boot/docs/2.1.13.RELEASE/reference/html/boot-features-testing.html @JsonTest
 @JsonTest
 class UserProfileJsonTest {
     @Autowired
     private JacksonTester<UserProfile> jacksonTester;
     @Autowired
-    private JacksonTester<List<UserProfile>> jacksonTesterList;
+    private JacksonTester<List<UserProfile>> listJacksonTester;
     private static final Faker FAKER = new Faker();
 
     @Test
@@ -61,7 +62,7 @@ class UserProfileJsonTest {
                 ]
                 """, id1, name1, id2, name2);
 
-        JsonContent<List<UserProfile>> actual = this.jacksonTesterList.write(profiles);
+        JsonContent<List<UserProfile>> actual = this.listJacksonTester.write(profiles);
 
         assertThat(actual).isEqualToJson(json);
     }

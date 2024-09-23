@@ -43,6 +43,24 @@ import net.datafaker.Faker;
 
     Time assertions in the tests below, are in the timezone provided by the user. In the sql, scripts are in UTC, but
     we assert on the local time based on the timezone
+
+    @Sql(scripts = "/scripts/INIT_USERS.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+    Using the above at class level and the following method in the abstract class will not work.
+
+    @AfterEach
+    void clear() {
+        this.userRepository.deleteAll();
+    }
+
+    Our script of adding users/events is executed once for the entire class, but we delete them after each test, which causes
+    the remaining tests to fail, since there aren't any users.
+
+    I decided to keep the @AfterEach and pass the script in every test. Apart from providing a clean state it also
+    deletes all the other records we might have that have the user_id ON DELETE CASCADE
+
+    @Sql(scripts = "/scripts/INIT_USERS.sql")
+    class EventIT extends AbstractIntegrationTest -> Won't work either without executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS
+    because every method level @Sql script will overwrite it.
  */
 @ActiveProfiles(profiles = "test")
 class EventIT extends AbstractIntegrationTest {
@@ -273,14 +291,14 @@ class EventIT extends AbstractIntegrationTest {
                 .then()
                 .statusCode(204);
 
-        // GET request should result in 404
+        // GET request should result in an empty list, since we return event slots for the given event
         given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
                 .accept(ContentType.JSON)
                 .when()
                 .get(DAY_EVENT_PATH + "/{eventId}/day-event-slots", dayEventId)
                 .then()
-                .statusCode(404);
+                .body("", hasSize(0));
     }
 
     @Test
@@ -521,14 +539,14 @@ class EventIT extends AbstractIntegrationTest {
                 .then()
                 .statusCode(204);
 
-        // GET request should result in 404
+        // GET request should result in an empty list, since we return event slots for the given event
         given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
                 .accept(ContentType.JSON)
                 .when()
                 .get(TIME_EVENT_PATH + "/{eventId}/time-event-slots", timeEventId)
                 .then()
-                .statusCode(404);
+                .body("", hasSize(0));
     }
 
     @Test

@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.Set;
+import java.util.TreeSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -44,8 +45,8 @@ class ThymeleafServiceTest {
         again with just different frequency text value
 
         DO NOT I REPEAT DO NOT name your test templates as your templates in src/main/resources/templates. Tests will
-        pass and context values will be overwritten. To actually test the templates provide different names for your
-        test templates. invitation_email.html -> test_invitation_email.html
+        pass no matter the case and context values will be overwritten. To actually test the templates provide different
+        names for your test templates. invitation_email.html -> test_invitation_email.html
      */
     @BeforeEach
     void setup() {
@@ -64,29 +65,18 @@ class ThymeleafServiceTest {
     void shouldSetContextForEventInvitationEmail() throws IOException {
         String path = "src/test/resources/templates/test_invitation_email.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
-        String actual = this.underTest.setInvitationEmailContext(
-                LocalDate.parse("2025-01-09"),
-                null,
-                "Organizer",
-                null,
-                "Description",
-                "Thu Jan 9, 2025"
-        );
+        String actual = this.underTest.setInvitationEmailContext(LocalDate.parse("2025-01-09"), null, "Organizer", null, "Description", "Thu Jan 9, 2025");
 
         assertThat(actual.replaceAll("\\s+", " ").trim()).isEqualTo(expected.replaceAll("\\s+", " ").trim());
     }
 
     @Test
     void shouldSetContextForEventReminderEmail() throws IOException {
+        // Guests are shown in order alphabetically
+        Set<String> guestEmails = new TreeSet<>(Set.of("example1@example.com", "example2@example.com", "example3@example.com"));
         String path = "src/test/resources/templates/test_reminder_email.html";
         String expected = new String(Files.readAllBytes(Paths.get(path)));
-        String actual = this.underTest.setReminderEmailContext(
-                "Thursday Sep 19, 2024",
-                "Event title",
-                "Organizer",
-                Set.of("example2@example.com", "example1@example.com", "example3@example.com"),
-                "api/v1/events/day-event-slots/3075c6eb-8028-4f99-8c6c-27db1bb5cc43"
-        );
+        String actual = this.underTest.setReminderEmailContext("Thursday Sep 19, 2024", "Event title", "Organizer", guestEmails, "api/v1/events/day-event-slots/3075c6eb-8028-4f99-8c6c-27db1bb5cc43");
 
         assertThat(actual.replaceAll("\\s+", " ").trim()).isEqualTo(expected.replaceAll("\\s+", " ").trim());
     }

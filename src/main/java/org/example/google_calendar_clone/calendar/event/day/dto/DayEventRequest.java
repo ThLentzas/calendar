@@ -7,26 +7,26 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
+import org.example.google_calendar_clone.calendar.event.day.validator.ValidDayEventCreateRequest;
+import org.example.google_calendar_clone.calendar.event.day.validator.ValidDayEventUpdateRequest;
+import org.example.google_calendar_clone.calendar.event.groups.OnCreate;
+import org.example.google_calendar_clone.calendar.event.groups.OnUpdate;
+
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 
-import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
-import org.example.google_calendar_clone.validator.day.ValidCreateDayEventRequest;
-import org.example.google_calendar_clone.validator.day.ValidUpdateDayEventRequest;
-import org.example.google_calendar_clone.validator.groups.OnCreate;
-import org.example.google_calendar_clone.validator.groups.OnUpdate;
-
 import java.time.LocalDate;
 
-@NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
 @SuperBuilder
-@ValidCreateDayEventRequest(groups = OnCreate.class)
-@ValidUpdateDayEventRequest(groups = OnUpdate.class)
+@AllArgsConstructor
+@NoArgsConstructor
 // Will include all fields
 @EqualsAndHashCode(callSuper = true)
+@ValidDayEventCreateRequest(groups = OnCreate.class)
+@ValidDayEventUpdateRequest(groups = OnUpdate.class)
 public class DayEventRequest extends AbstractEventRequest {
     // null will return true
     @NotNull(message = "The start date of the event is required. Please provide one", groups = OnCreate.class)

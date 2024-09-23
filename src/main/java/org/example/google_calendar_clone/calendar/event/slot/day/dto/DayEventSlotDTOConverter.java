@@ -3,6 +3,8 @@ package org.example.google_calendar_clone.calendar.event.slot.day.dto;
 import org.example.google_calendar_clone.entity.DayEventSlot;
 import org.springframework.core.convert.converter.Converter;
 
+import java.util.TreeSet;
+
 public class DayEventSlotDTOConverter implements Converter<DayEventSlot, DayEventSlotDTO> {
 
     @Override
@@ -15,7 +17,7 @@ public class DayEventSlotDTOConverter implements Converter<DayEventSlot, DayEven
                 .location(dayEventSlot.getLocation())
                 .description(dayEventSlot.getDescription())
                 .organizer(dayEventSlot.getDayEvent().getUser().getUsername())
-                .guestEmails(dayEventSlot.getGuestEmails())
+                .guestEmails(new TreeSet<>(dayEventSlot.getGuestEmails()))
                 .dayEventId(dayEventSlot.getDayEvent().getId())
                 .build();
     }

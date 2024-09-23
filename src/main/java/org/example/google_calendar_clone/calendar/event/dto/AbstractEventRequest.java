@@ -16,12 +16,11 @@ import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.Set;
 
-
-@NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
 @SuperBuilder
+@AllArgsConstructor
+@NoArgsConstructor
 @EqualsAndHashCode
 public abstract class AbstractEventRequest {
     protected String title;

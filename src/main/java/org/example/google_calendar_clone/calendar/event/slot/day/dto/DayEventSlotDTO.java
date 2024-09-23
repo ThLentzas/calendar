@@ -1,21 +1,24 @@
 package org.example.google_calendar_clone.calendar.event.slot.day.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
-import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
 
 import java.time.LocalDate;
 import java.util.UUID;
 
+import org.example.google_calendar_clone.calendar.event.slot.AbstractEventSlotDTO;
+
 @Getter
 @Setter
+@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-@SuperBuilder
-public class DayEventSlotDTO extends EventSlotDTO {
+@EqualsAndHashCode(callSuper = true)
+public class DayEventSlotDTO extends AbstractEventSlotDTO {
     private LocalDate startDate;
     private LocalDate endDate;
     /*

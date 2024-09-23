@@ -8,15 +8,16 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import org.example.google_calendar_clone.calendar.event.dto.AbstractEventRequest;
-import org.example.google_calendar_clone.validator.groups.OnCreate;
-import org.example.google_calendar_clone.validator.groups.OnUpdate;
-import org.example.google_calendar_clone.validator.time.ValidCreateTimeEventRequest;
+import org.example.google_calendar_clone.calendar.event.groups.OnCreate;
+import org.example.google_calendar_clone.calendar.event.groups.OnUpdate;
+import org.example.google_calendar_clone.calendar.event.time.validator.ValidTimeEventCreateRequest;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
 import jakarta.validation.constraints.NotNull;
-import org.example.google_calendar_clone.validator.time.ValidUpdateTimeEventRequest;
+
+import org.example.google_calendar_clone.calendar.event.time.validator.ValidTimeEventUpdateRequest;
 
 /*
     We can not use @FutureOrPresent() on the date times because according to the annotation:
@@ -29,14 +30,15 @@ import org.example.google_calendar_clone.validator.time.ValidUpdateTimeEventRequ
     What we do in the TimeEventRequestValidator is to convert the times to UTC based on the offset of their timezone and
     then compare it with ZonedDateTime.now(ZoneId.of("UTC")).toLocalDateTime())
  */
-@NoArgsConstructor
-@AllArgsConstructor
 @Getter
 @Setter
 @SuperBuilder
-@ValidCreateTimeEventRequest(groups = OnCreate.class)
-@ValidUpdateTimeEventRequest(groups = OnUpdate.class)
+@AllArgsConstructor
+@NoArgsConstructor
+// Will include all fields
 @EqualsAndHashCode(callSuper = true)
+@ValidTimeEventCreateRequest(groups = OnCreate.class)
+@ValidTimeEventUpdateRequest(groups = OnUpdate.class)
 public class TimeEventRequest extends AbstractEventRequest {
     @NotNull(message = "The start time of the event is required. Please provide one", groups = OnCreate.class)
     // null will return true

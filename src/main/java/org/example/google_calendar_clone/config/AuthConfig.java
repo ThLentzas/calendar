@@ -9,7 +9,6 @@ import org.springframework.security.authentication.AuthenticationEventPublisher;
 import org.springframework.security.authentication.DefaultAuthenticationEventPublisher;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
 import org.example.google_calendar_clone.user.UserPrincipal;
 import org.example.google_calendar_clone.user.UserRepository;
 

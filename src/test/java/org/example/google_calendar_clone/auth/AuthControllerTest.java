@@ -49,10 +49,7 @@ class AuthControllerTest {
     // registerUser()
     @Test
     void should201WhenUserIsRegisteredSuccessfully() throws Exception {
-        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(),
-                FAKER.internet().emailAddress(),
-                FAKER.internet().password(12, 128, true, true, true)
-        );
+        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(), FAKER.internet().emailAddress(), FAKER.internet().password(12, 128, true, true, true));
 
         doNothing().when(this.authService).registerUser(eq(registerRequest), any(HttpServletResponse.class));
 
@@ -68,10 +65,7 @@ class AuthControllerTest {
     @ParameterizedTest
     @NullAndEmptySource
     void should400WhenRegisterRequestEmailIsBlank(String email) throws Exception {
-        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(),
-                email,
-                FAKER.internet().password(12, 128, true, true, true)
-        );
+        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(), email, FAKER.internet().password(12, 128, true, true, true));
         String responseBody = """
                 {
                     "status": 400,
@@ -99,10 +93,7 @@ class AuthControllerTest {
     // registerUser()
     @Test
     void should409WhenRegisteringUserWithExistingEmail() throws Exception {
-        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(),
-                FAKER.internet().emailAddress(),
-                FAKER.internet().password(12, 128, true, true, true)
-        );
+        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(), FAKER.internet().emailAddress(), FAKER.internet().password(12, 128, true, true, true));
         String responseBody = """
                 {
                     "status": 409,
@@ -132,10 +123,7 @@ class AuthControllerTest {
     // registerUser()
     @Test
     void should403WhenRegisterUserIsCalledWithNoCsrfToken() throws Exception {
-        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(),
-                FAKER.internet().emailAddress(),
-                FAKER.internet().password(12, 128, true, true, true)
-        );
+        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(), FAKER.internet().emailAddress(), FAKER.internet().password(12, 128, true, true, true));
         String responseBody = """
                 {
                     "status": 403,
@@ -159,10 +147,7 @@ class AuthControllerTest {
     // registerUser()
     @Test
     void should403WhenRegisterUserIsCalledWithInvalidCsrfToken() throws Exception {
-        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(),
-                FAKER.internet().emailAddress(),
-                FAKER.internet().password(12, 128, true, true, true)
-        );
+        RegisterRequest registerRequest = new RegisterRequest(FAKER.internet().username(), FAKER.internet().emailAddress(), FAKER.internet().password(12, 128, true, true, true));
         String responseBody = """
                 {
                     "status": 403,

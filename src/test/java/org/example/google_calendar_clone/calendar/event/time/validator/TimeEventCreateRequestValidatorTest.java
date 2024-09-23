@@ -1,20 +1,16 @@
-package org.example.google_calendar_clone.validator.time;
-
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
+package org.example.google_calendar_clone.calendar.event.time.validator;
 
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
-import org.example.google_calendar_clone.validator.groups.OnCreate;
+import org.example.google_calendar_clone.calendar.event.groups.OnCreate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -23,9 +19,14 @@ import java.time.ZoneId;
 import java.util.EnumSet;
 import java.util.Set;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
-class CreateTimeEventRequestValidatorTest {
+class TimeEventCreateRequestValidatorTest {
     private Validator validator;
 
     /*
@@ -48,9 +49,15 @@ class CreateTimeEventRequestValidatorTest {
         It is very important to have 1 violation per test, because the set of constraints will have more than 1
         error message and, we can not be sure that iterator.next() will return the constraint we test
 
-        In this class we test every case on the CreateTimeEventRequestValidator which includes all the cases for the
-        EventUtils.hasValidEventRequestProperties(eventRequest, context) method. This method is also called on the
-        UpdateTimeEventRequestValidator. We don't have to repeat the tests.
+        All the dates must be created dynamically relative to now(). If they are hardcoded eventually they will be in the
+        past and the validation for future or present dates will consider the request invalid. We can not also call
+        LocalDateTime.now() to generate those values. It will generate values with the default time zone. We need to pass
+        the time zone the provided: LocalDateTime.now(ZoneId.of("Asia/Tokyo") and startTimeZoneId(ZoneId.of("Asia/Tokyo")
+
+        In this class we test every case on the TimeEventCreateRequestValidator which covers all the cases for the
+        EventUtils.hasValidEventRequestProperties(eventRequest, context), including the call to the
+        hasValidDateTimeProperties(). For that reason, we don't need to repeat the tests for frequency/date times in
+        the TimeEventUpdateRequestValidatorTest and date times in TimeEventSlotRequestValidatorTest
      */
     @BeforeEach
     void setUp() {
@@ -200,9 +207,7 @@ class CreateTimeEventRequestValidatorTest {
         Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnCreate.class);
         ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
 
-        assertThat(violation.getMessage()).isEqualTo("The start date " + request.getStartTime() + " is a " +
-                request.getStartTime().getDayOfWeek() + ", but this day is not included in the weekly recurrence days: " +
-                request.getWeeklyRecurrenceDays());
+        assertThat(violation.getMessage()).isEqualTo("The start date " + request.getStartTime() + " is a " + request.getStartTime().getDayOfWeek() + ", but this day is not included in the weekly recurrence days: " + request.getWeeklyRecurrenceDays());
     }
 
     @Test

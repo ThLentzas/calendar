@@ -33,13 +33,13 @@ import java.util.UUID;
     We can not create a class Repetition and have all the related properties there because Hibernate will see it as an
     object and, it will require some sort of relationship
  */
-@AllArgsConstructor
-@NoArgsConstructor
-@SuperBuilder
 @Getter
 @Setter
-@MappedSuperclass
+@SuperBuilder
+@AllArgsConstructor
+@NoArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@MappedSuperclass
 public abstract class AbstractEvent {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

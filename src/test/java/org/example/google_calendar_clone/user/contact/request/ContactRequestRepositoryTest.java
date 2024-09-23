@@ -92,8 +92,7 @@ class ContactRequestRepositoryTest extends AbstractRepositoryTest {
         User receiver = users.get(2);
         ContactRequest expected = createContactRequests(users).get(1);
 
-        this.underTest.findPendingContactRequestBySenderAndReceiverId(sender.getId(),
-                receiver.getId(), ContactRequestStatus.PENDING).ifPresent(actual ->
+        this.underTest.findPendingContactRequestBySenderAndReceiverId(sender.getId(), receiver.getId(), ContactRequestStatus.PENDING).ifPresent(actual ->
                 ContactRequestAssert.assertThat(actual)
                         .hasContactRequestId(expected.getId())
                         .hasSender(sender)
@@ -135,7 +134,6 @@ class ContactRequestRepositoryTest extends AbstractRepositoryTest {
     }
 
     private List<User> createUsers() {
-
         User sender1 = User.builder()
                 .username(FAKER.internet().username())
                 .password(FAKER.internet().password(12, 128, true, true, true))

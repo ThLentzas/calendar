@@ -1,6 +1,7 @@
 package org.example.google_calendar_clone.calendar.event.slot.time.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,14 +11,15 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.UUID;
 
-import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.AbstractEventSlotDTO;
 
 @Getter
 @Setter
+@SuperBuilder
 @AllArgsConstructor
 @NoArgsConstructor
-@SuperBuilder
-public class TimeEventSlotDTO extends EventSlotDTO {
+@EqualsAndHashCode(callSuper = true)
+public class TimeEventSlotDTO extends AbstractEventSlotDTO {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private ZoneId startTimeZoneId;

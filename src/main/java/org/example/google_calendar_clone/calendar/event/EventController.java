@@ -23,10 +23,10 @@ import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventReques
 import org.example.google_calendar_clone.calendar.event.time.TimeEventService;
 import org.example.google_calendar_clone.calendar.event.slot.EventSlotComparator;
 import org.example.google_calendar_clone.calendar.event.slot.time.dto.TimeEventSlotDTO;
-import org.example.google_calendar_clone.calendar.event.slot.EventSlotDTO;
+import org.example.google_calendar_clone.calendar.event.slot.AbstractEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.slot.day.dto.DayEventSlotDTO;
-import org.example.google_calendar_clone.validator.groups.OnCreate;
-import org.example.google_calendar_clone.validator.groups.OnUpdate;
+import org.example.google_calendar_clone.calendar.event.groups.OnCreate;
+import org.example.google_calendar_clone.calendar.event.groups.OnUpdate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -130,6 +130,18 @@ import lombok.RequiredArgsConstructor;
                 this.timeEventService = timeEventService;
             }
 
+      I also tried this:
+        Generics are invariant. EventSchedule(List<AbstractEventSlotDTO> eventSlots) would not work. When we try to pass
+        a list of either DayEventSlotDTO or TimeEventSlotDTO, because those do extend AbstractEvenSlotDTO, but their
+        respective List<> won't due to generics being invariant
+        public record EventSchedule(List<? extends AbstractEventSlotDTO> eventSlots) {
+        } Had problems with Serialization and Jackson when i was using the EventSchedule class.
+        <List<AbstractEventSlotDTO>> findEventsByUserInDateRange For this method Jackson had no issues to serialize the
+        objects.
+        Jackson was having trouble deserializing the polymorphic type (list of AbstractEventSlotDTO inside
+        EventSchedule) because the list was a field within another object (EventSchedule), and Jackson couldn't infer
+        the concrete type from an abstract class. The solution was to use @JsonTypeInfo and @JsonSubTypes
+
      IMPORTANT!!! We don't pass the Jwt in the service to extract the userId. Service layer should not know anything
      about jwt/auth mechanism.
  */
@@ -140,7 +152,6 @@ class EventController {
     private final DayEventService dayEventService;
     private final TimeEventService timeEventService;
 
-    // toDo: indexing
     @PostMapping("/day-events")
     ResponseEntity<Void> createDayEvent(@AuthenticationPrincipal Jwt jwt,
                                         @Validated(OnCreate.class) @RequestBody DayEventRequest eventRequest) {
@@ -177,7 +188,7 @@ class EventController {
     ResponseEntity<List<DayEventSlotDTO>> findDayEventSlotsByEventId(@AuthenticationPrincipal Jwt jwt,
                                                                      @PathVariable("eventId") UUID eventId) {
         Long userId = Long.valueOf(jwt.getSubject());
-        List<DayEventSlotDTO> dayEventSlots = this.dayEventService.findEventSlotsByEventId(userId, eventId);
+        List<DayEventSlotDTO> dayEventSlots = this.dayEventService.findEventSlotsByEventId(eventId, userId);
 
         return new ResponseEntity<>(dayEventSlots, HttpStatus.OK);
     }
@@ -187,7 +198,7 @@ class EventController {
     ResponseEntity<Void> deleteDayEventById(@AuthenticationPrincipal Jwt jwt,
                                             @PathVariable("eventId") UUID eventId) {
         Long userId = Long.valueOf(jwt.getSubject());
-        this.dayEventService.deleteById(userId, eventId);
+        this.dayEventService.deleteEventById(eventId, userId);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -224,7 +235,7 @@ class EventController {
     ResponseEntity<List<TimeEventSlotDTO>> findTimeEventSlotsByEventId(@AuthenticationPrincipal Jwt jwt,
                                                                        @PathVariable("eventId") UUID eventId) {
         Long userId = Long.valueOf(jwt.getSubject());
-        List<TimeEventSlotDTO> timeEventSlots = this.timeEventService.findEventSlotsByEventId(userId, eventId);
+        List<TimeEventSlotDTO> timeEventSlots = this.timeEventService.findEventSlotsByEventId(eventId, userId);
 
         return new ResponseEntity<>(timeEventSlots, HttpStatus.OK);
     }
@@ -234,7 +245,7 @@ class EventController {
     ResponseEntity<Void> deleteTimeEventById(@AuthenticationPrincipal Jwt jwt,
                                              @PathVariable("eventId") UUID eventId) {
         Long userId = Long.valueOf(jwt.getSubject());
-        this.timeEventService.deleteById(userId, eventId);
+        this.timeEventService.deleteEventById(eventId, userId);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
@@ -246,26 +257,18 @@ class EventController {
         If startDate > endDate we return an empty list
      */
     @GetMapping
-    ResponseEntity<List<EventSlotDTO>> findEventsByUserInDateRange(@RequestParam(value = "start")
-                                                                   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-                                                                   LocalDate startDate,
-                                                                   @RequestParam(value = "end")
-                                                                   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-                                                                   LocalDate endDate,
-                                                                   @AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<List<AbstractEventSlotDTO>> findEventsByUserInDateRange(@RequestParam(value = "start")
+                                                                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                                                                           LocalDate startDate,
+                                                                           @RequestParam(value = "end")
+                                                                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+                                                                           LocalDate endDate,
+                                                                           @AuthenticationPrincipal Jwt jwt) {
         Long userId = Long.valueOf(jwt.getSubject());
-        List<DayEventSlotDTO> dayEventSlots = this.dayEventService.findEventSlotsByUserInDateRange(
-                userId,
-                startDate,
-                endDate
-        );
-        List<EventSlotDTO> eventSlots = new ArrayList<>(dayEventSlots);
-        eventSlots.addAll(this.timeEventService.findEventSlotsByUserInDateRange(
-                userId,
-                // converts a LocalDate into a LocalDateTime adding time of the midnight as 00:00:00
-                startDate.atStartOfDay(),
-                endDate.atStartOfDay())
-        );
+        List<DayEventSlotDTO> dayEventSlots = this.dayEventService.findEventSlotsByUserInDateRange(userId, startDate, endDate);
+        List<AbstractEventSlotDTO> eventSlots = new ArrayList<>(dayEventSlots);
+        // converts a LocalDate into a LocalDateTime adding time of the midnight as 00:00:00
+        eventSlots.addAll(this.timeEventService.findEventSlotsByUserInDateRange(userId, startDate.atStartOfDay(), endDate.atStartOfDay()));
         /*
             Both the DayEventSlots and TimeEventSlots are sorted but when we add them in 1 list, we need to make sure
             that they are also sorted based on their starting date. We need a comparator so that we can compare the
@@ -274,6 +277,15 @@ class EventController {
          */
         eventSlots.sort(new EventSlotComparator());
 
+        /*
+            Jackson will serialize the list correctly. Even though the list is of type AbstractEventSlotDTO,
+            the objects themselves are instances of DayEventSlotDTO or TimeEventSlotDTO. Jackson inspects each object
+            to determine its actual class and serializes it accordingly. It is capable of serializing subclass-specific
+            fields because it operates on the actual objects' runtime types, not just their declared reference types.
+            This allows it to include all relevant fields in the JSON output (fields like startDate and startTime are
+            not part of the AbstractEventSlotDTO. It serializes the object based on its actual type, not the reference
+            type in the list)
+         */
         return new ResponseEntity<>(eventSlots, HttpStatus.OK);
     }
 }

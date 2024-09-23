@@ -31,10 +31,7 @@ class DayEventServiceTest {
         There are 2 cases where the findByEventIdAndUserId() could throw ResourceNotFoundException.
             1. Event exists but the authenticated user is not the organizer
             2. Event does not exist
-        We cover both with our existsByEventIdAndUserId(). If the event exists and the user is not organizer it returns
-        false. If the event does not exist it also returns false. In theory, the user should exist in our database,
-        because we use the id of the current authenticated user. There is also an argument for data integrity problems,
-        where the user was deleted and the token was not invalidated.
+        In either case it is 404
      */
     @Test
     void shouldThrowResourceNotFoundExceptionForUpdateEvent() {
@@ -43,50 +40,23 @@ class DayEventServiceTest {
                 .build();
         UUID eventId = UUID.randomUUID();
 
-        when(this.dayEventRepository.findByEventIdAndUserId(eventId, 2L)).thenReturn(Optional.empty());
+        when(this.dayEventRepository.findByEventAndUserId(eventId, 2L)).thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() ->
-                        this.underTest.update(2L, eventId, eventRequest))
-                .withMessage("Day event not found with id: " + eventId);
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.update(2L, eventId, eventRequest)).withMessage("Day event not found with id: " + eventId);
     }
 
     /*
-        There are 2 cases where the findEventSlotsByEventId() could throw ResourceNotFoundException.
+        There are 2 cases where the deleteEventById() could throw ResourceNotFoundException.
             1. Event exists but the authenticated user is not the organizer
             2. Event does not exist
-        We cover both with our existsByEventIdAndUserId(). If the event exists and the user is not organizer it returns
-        false. If the event does not exist it also returns false. In theory, the user should exist in our database,
-        because we use the id of the current authenticated user. There is also an argument for data integrity problems,
-        where the user was deleted and the token was not invalidated.
-     */
-    @Test
-    void shouldThrowResourceNotFoundExceptionForFindEventSlotsByEventId() {
-        UUID eventId = UUID.randomUUID();
-
-        when(this.dayEventRepository.existsByEventIdAndUserId(eventId, 2L)).thenReturn(false);
-
-        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() ->
-                        this.underTest.findEventSlotsByEventId(2L, eventId))
-                .withMessage("Day event not found with id: " + eventId);
-    }
-
-    /*
-        There are 2 cases where the deleteById() could throw ResourceNotFoundException.
-            1. Event exists but the authenticated user is not the organizer
-            2. Event does not exist
-        We cover both with our existsByEventIdAndUserId(). If the event exists and the user is not organizer it returns
-        false. If the event does not exist it also returns false. In theory, the user should exist in our database,
-        because we use the id of the current authenticated user. There is also an argument for data integrity problems,
-        where the user was deleted and the token was not invalidated.
+         In either case it is 404
      */
     @Test
     void shouldThrowResourceNotFoundExceptionForDeleteById() {
         UUID eventId = UUID.randomUUID();
 
-        when(this.dayEventRepository.existsByEventIdAndUserId(eventId, 2L)).thenReturn(false);
+        when(this.dayEventRepository.deleteByEventAndUserId(eventId, 1L)).thenReturn(0);
 
-        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() ->
-                        this.underTest.deleteById(2L, eventId))
-                .withMessage("Day event not found with id: " + eventId);
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.deleteEventById(eventId, 1L)).withMessage("Day event not found with id: " + eventId);
     }
 }

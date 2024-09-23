@@ -10,10 +10,10 @@ import java.util.Comparator;
     starting date of DayEventSlot with the starting dateTime of the TimeEventSlot. If we have 2 DayEventSlots
     we compare their starting date, if we have 2 TimeEventSlots we compare their starting time.
  */
-public class EventSlotComparator implements Comparator<EventSlotDTO> {
+public class EventSlotComparator implements Comparator<AbstractEventSlotDTO> {
 
     @Override
-    public int compare(EventSlotDTO o1, EventSlotDTO o2) {
+    public int compare(AbstractEventSlotDTO o1, AbstractEventSlotDTO o2) {
         if (o1 instanceof DayEventSlotDTO dayEventSlot1) {
             if (o2 instanceof DayEventSlotDTO dayEventSlot2) {
                 // Compare by startDate

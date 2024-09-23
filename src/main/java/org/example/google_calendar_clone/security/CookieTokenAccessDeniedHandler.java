@@ -33,17 +33,11 @@ import java.time.Instant;
 public final class CookieTokenAccessDeniedHandler implements AccessDeniedHandler {
 
     @Override
-    public void handle(HttpServletRequest request,
-                       HttpServletResponse response,
-                       AccessDeniedException accessDeniedException) throws IOException {
+    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        ErrorMessage errorMessage = new ErrorMessage(Instant.now(),
-                HttpStatus.FORBIDDEN.value(),
-                ErrorMessage.ErrorType.FORBIDDEN,
-                "Access Denied",
-                request.getRequestURI());
+        ErrorMessage errorMessage = new ErrorMessage(Instant.now(), HttpStatus.FORBIDDEN.value(), ErrorMessage.ErrorType.FORBIDDEN, "Access Denied", request.getRequestURI());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpStatus.FORBIDDEN.value());
         response.getWriter().write(objectMapper.writeValueAsString(errorMessage));

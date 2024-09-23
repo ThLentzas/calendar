@@ -16,13 +16,13 @@ import java.util.Set;
 
 import org.example.google_calendar_clone.calendar.event.AbstractEvent;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@SuperBuilder
 @Entity
 @Table(name = "day_events")
 @Getter
 @Setter
+@SuperBuilder
+@AllArgsConstructor
+@NoArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = true)
 public class DayEvent extends AbstractEvent {
     private LocalDate startDate;

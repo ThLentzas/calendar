@@ -58,7 +58,7 @@ class AuthService {
         }
 
         RefreshToken refreshToken = this.refreshTokenService.findByTokenValue(cookie.getValue());
-        User user = this.userService.findByIdFetchingRoles(refreshToken.getUserId());
+        User user = this.userService.findById(refreshToken.getUserId());
         UserPrincipal userPrincipal = new UserPrincipal(user);
         String accessTokenValue = this.jwtService.generateToken(userPrincipal);
         String refreshTokenValue = this.refreshTokenService.generateToken(userPrincipal);
@@ -73,18 +73,14 @@ class AuthService {
 
     private void setSecurityContext(User user) {
         UserPrincipal userPrincipal = new UserPrincipal(user);
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                userPrincipal,
-                null,
-                userPrincipal.getAuthorities()
-        );
+        Authentication authentication = new UsernamePasswordAuthenticationToken(userPrincipal, null, userPrincipal.getAuthorities());
         /*
             https://docs.spring.io/spring-security/reference/servlet/authentication/session-management.html#use-securitycontextholderstrategy
 
             We are not persisting the authentication like in the case of sessions. In that case, the securityContextRepository
             was an HttpSessionSecurityContextRepository, for this case is RequestAttributeSecurityContextRepository
 
-            For more look at the BearerTokenAuthenticationFilter
+            For more info, look at the BearerTokenAuthenticationFilter
          */
         SecurityContext context = this.securityContextHolderStrategy.createEmptyContext();
         context.setAuthentication(authentication);

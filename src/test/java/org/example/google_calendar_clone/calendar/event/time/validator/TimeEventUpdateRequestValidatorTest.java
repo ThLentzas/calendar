@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.validator.time;
+package org.example.google_calendar_clone.calendar.event.time.validator;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -7,7 +7,7 @@ import jakarta.validation.ValidatorFactory;
 
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
-import org.example.google_calendar_clone.validator.groups.OnUpdate;
+import org.example.google_calendar_clone.calendar.event.groups.OnUpdate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +17,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class UpdateTimeEventRequestValidatorTest {
+class TimeEventUpdateRequestValidatorTest {
     private Validator validator;
 
     /*
@@ -38,19 +38,27 @@ class UpdateTimeEventRequestValidatorTest {
         We need to have 1 violation per test, because the set of constraints will have more than 1
         error message and, we can not be sure that iterator.next() will return the constraint we test
 
-        In this validator test, we don't include the validation part of everything related to repetition. Those scenarios
-        don't change between DayEventRequest and TimeEventRequest. What changes is LocalDate to LocalDateTime
-
-        All the dates must be created dynamically relative to now(). If they are hardcoded eventually they will be in the
-        past and the validation for future or present dates will consider the request invalid. We can not also call
-        LocalDateTime.now() to generate those values. It will generate values with the default time zone. We need to pass
-        the time zone the provided: LocalDateTime.now(ZoneId.of("Asia/Tokyo") and startTimeZoneId(ZoneId.of("Asia/Tokyo")
+        In this class we test every case on the TimeEventCreateRequestValidator which covers all the cases for the
+        EventUtils.hasValidEventRequestProperties(eventRequest, context), including the call to the
+        hasValidDateTimeProperties(). For that reason, we don't need to repeat the tests for frequency/date times in
+        the TimeEventUpdateRequestValidatorTest and date times in TimeEventSlotRequestValidatorTest
      */
     @BeforeEach
     public void setUp() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
+    }
+
+    @Test
+    void shouldReturnFalseWhenAllPropertiesAreInvalid() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .build();
+
+        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
+
+        assertThat(violation.getMessage()).isEqualTo("At least one field must be provided for the update");
     }
 
     @Test

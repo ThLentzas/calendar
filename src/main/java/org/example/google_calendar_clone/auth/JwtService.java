@@ -23,7 +23,7 @@ class JwtService {
     String generateToken(UserPrincipal userPrincipal) {
         Instant now = Instant.now();
         //5 minutes TTL 300
-        long expiry = 10800L;
+        long expiry = 300L;
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("self")

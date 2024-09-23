@@ -268,14 +268,8 @@ class UserControllerTest {
     // findPendingContactsRequests()
     @Test
     void should200WithListOfPendingContactRequests() throws Exception {
-        PendingContactRequest request1 = new PendingContactRequest(
-                new UserProfile(FAKER.number().numberBetween(1L, 1000L), FAKER.internet().username()),
-                ContactRequestStatus.PENDING
-        );
-        PendingContactRequest request2 = new PendingContactRequest(
-                new UserProfile(FAKER.number().numberBetween(1L, 1000L), FAKER.internet().username()),
-                ContactRequestStatus.PENDING
-        );
+        PendingContactRequest request1 = new PendingContactRequest(new UserProfile(FAKER.number().numberBetween(1L, 1000L), FAKER.internet().username()), ContactRequestStatus.PENDING);
+        PendingContactRequest request2 = new PendingContactRequest(new UserProfile(FAKER.number().numberBetween(1L, 1000L), FAKER.internet().username()), ContactRequestStatus.PENDING);
 
         when(this.userService.findPendingContactRequests(1L)).thenReturn(List.of(request1, request2));
 
@@ -317,9 +311,7 @@ class UserControllerTest {
     // updateContactRequest()
     @Test
     void should204WhenUpdateContactRequestIsSuccessful() throws Exception {
-        UpdateContactRequest request = new UpdateContactRequest(FAKER.number().numberBetween(1L, 1000L),
-                ContactRequestAction.ACCEPT
-        );
+        UpdateContactRequest request = new UpdateContactRequest(FAKER.number().numberBetween(1L, 1000L), ContactRequestAction.ACCEPT);
 
         doNothing().when(this.userService).updateContactRequest(request, 1L);
 
@@ -364,8 +356,7 @@ class UserControllerTest {
     // updateContactRequest()
     @Test
     void should401WhenUpdateContactRequestIsCalledByUnauthenticatedUser() throws Exception {
-        UpdateContactRequest request = new UpdateContactRequest(FAKER.number().numberBetween(1L, 1000L),
-                ContactRequestAction.ACCEPT);
+        UpdateContactRequest request = new UpdateContactRequest(FAKER.number().numberBetween(1L, 1000L), ContactRequestAction.ACCEPT);
 
         String responseBody = """
                 {
@@ -394,8 +385,7 @@ class UserControllerTest {
     // updateContactRequest()
     @Test
     void should403WhenUpdateContactRequestIsCalledWithNoCsrf() throws Exception {
-        UpdateContactRequest request = new UpdateContactRequest(FAKER.number().numberBetween(1L, 1000L),
-                ContactRequestAction.ACCEPT);
+        UpdateContactRequest request = new UpdateContactRequest(FAKER.number().numberBetween(1L, 1000L), ContactRequestAction.ACCEPT);
 
         String responseBody = """
                 {
@@ -425,8 +415,7 @@ class UserControllerTest {
     // updateContactRequest()
     @Test
     void should403WhenUpdateContactRequestIsCalledWithInvalidCsrf() throws Exception {
-        UpdateContactRequest request = new UpdateContactRequest(FAKER.number().numberBetween(1L, 1000L),
-                ContactRequestAction.ACCEPT);
+        UpdateContactRequest request = new UpdateContactRequest(FAKER.number().numberBetween(1L, 1000L), ContactRequestAction.ACCEPT);
 
         String responseBody = """
                 {

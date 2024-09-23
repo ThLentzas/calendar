@@ -1,18 +1,16 @@
-package org.example.google_calendar_clone.validator.time;
+package org.example.google_calendar_clone.calendar.event.time.validator;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
-
 import org.example.google_calendar_clone.utils.EventUtils;
 
-public final class UpdateTimeEventRequestValidator
-        implements ConstraintValidator<ValidUpdateTimeEventRequest, TimeEventRequest> {
+public final class TimeEventUpdateRequestValidator implements ConstraintValidator<ValidTimeEventUpdateRequest, TimeEventRequest> {
 
     @Override
     public boolean isValid(TimeEventRequest eventRequest, ConstraintValidatorContext context) {
-        if (EventUtils.emptyUpdateRequestProperties(eventRequest)) {
+        if (EventUtils.emptyEventUpdateRequestProperties(eventRequest)) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("At least one field must be provided for the update")
                     .addConstraintViolation();

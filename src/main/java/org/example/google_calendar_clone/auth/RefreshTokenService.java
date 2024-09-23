@@ -39,7 +39,7 @@ class RefreshTokenService {
             logger.info("Refresh token expired with value: {}", tokenValue);
             throw new UnauthorizedException("Unauthorized");
         }
-        // We don't have to check if the token expired because the TTL is the same as its maxAge, 7 days. It can be in Redis and expired
+        // We don't have to check if the token expired because the TTL is the same as its maxAge, 7 days. It can't be in Redis and expired
         return refreshToken;
     }
 

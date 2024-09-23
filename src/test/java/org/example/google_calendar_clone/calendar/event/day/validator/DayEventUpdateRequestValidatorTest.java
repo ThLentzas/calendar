@@ -1,4 +1,4 @@
-package org.example.google_calendar_clone.validator.day;
+package org.example.google_calendar_clone.calendar.event.day.validator;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
@@ -7,7 +7,7 @@ import jakarta.validation.ValidatorFactory;
 
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-import org.example.google_calendar_clone.validator.groups.OnUpdate;
+import org.example.google_calendar_clone.calendar.event.groups.OnUpdate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +16,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class UpdateDayEventRequestValidatorTest {
+class DayEventUpdateRequestValidatorTest {
     private Validator validator;
 
     /*
@@ -47,6 +47,18 @@ class UpdateDayEventRequestValidatorTest {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
+    }
+
+    // Every property is null/empty/0/blank etc.
+    @Test
+    void shouldReturnFalseWhenAllPropertiesAreInvalid() {
+        DayEventRequest request = DayEventRequest.builder()
+                .build();
+
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
+
+        assertThat(violation.getMessage()).isEqualTo("At least one field must be provided for the update");
     }
 
     @Test

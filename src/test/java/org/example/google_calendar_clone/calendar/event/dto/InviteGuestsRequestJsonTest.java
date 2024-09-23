@@ -1,18 +1,20 @@
 package org.example.google_calendar_clone.calendar.event.dto;
 
-import net.datafaker.Faker;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
 import org.springframework.boot.test.json.JacksonTester;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import net.datafaker.Faker;
+
+// https://docs.spring.io/spring-boot/docs/2.1.13.RELEASE/reference/html/boot-features-testing.html @JsonTest
 @JsonTest
-class InviteGuestsRequestTest {
+class InviteGuestsRequestJsonTest {
     @Autowired
     private JacksonTester<InviteGuestsRequest> jacksonTester;
     private static final Faker FAKER = new Faker();

@@ -12,10 +12,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.List;
-
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.Mockito.when;
+
+import java.util.List;
 
 import net.datafaker.Faker;
 
@@ -44,11 +44,9 @@ class ContactRequestServiceTest {
         User receiver = users.get(1);
         ContactRequest contactRequest = createContactRequests(users, ContactRequestStatus.PENDING).get(0);
 
-        when(this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId()))
-                .thenReturn(List.of(contactRequest));
+        when(this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId())).thenReturn(List.of(contactRequest));
 
-        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender,
-                receiver)).withMessage("Contact request already pending");
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender, receiver)).withMessage("Contact request already pending");
     }
 
     // sendContactRequest()
@@ -59,11 +57,9 @@ class ContactRequestServiceTest {
         User receiver = users.get(1);
         ContactRequest contactRequest = createContactRequests(users, ContactRequestStatus.PENDING).get(0);
 
-        when(this.contactRequestRepository.findContactRequestBetweenUsers(receiver.getId(), sender.getId()))
-                .thenReturn(List.of(contactRequest));
+        when(this.contactRequestRepository.findContactRequestBetweenUsers(receiver.getId(), sender.getId())).thenReturn(List.of(contactRequest));
 
-        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(receiver,
-                sender)).withMessage("Contact request already pending");
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(receiver, sender)).withMessage("Contact request already pending");
     }
 
     // sendContactRequest()
@@ -74,11 +70,9 @@ class ContactRequestServiceTest {
         User receiver = users.get(1);
         ContactRequest contactRequest = createContactRequests(users, ContactRequestStatus.ACCEPTED).get(0);
 
-        when(this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId()))
-                .thenReturn(List.of(contactRequest));
+        when(this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId())).thenReturn(List.of(contactRequest));
 
-        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender,
-                receiver)).withMessage("Contact request already accepted");
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender, receiver)).withMessage("Contact request already accepted");
     }
 
     // sendContactRequest()
@@ -89,11 +83,9 @@ class ContactRequestServiceTest {
         User receiver = users.get(1);
         ContactRequest contactRequest = createContactRequests(users, ContactRequestStatus.REJECTED).get(0);
 
-        when(this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId()))
-                .thenReturn(List.of(contactRequest));
+        when(this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId())).thenReturn(List.of(contactRequest));
 
-        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender,
-                receiver)).withMessage("Contact request already rejected");
+        assertThatExceptionOfType(ConflictException.class).isThrownBy(() -> this.underTest.sendContactRequest(sender, receiver)).withMessage("Contact request already rejected");
     }
 
     // updateContact()
@@ -101,11 +93,7 @@ class ContactRequestServiceTest {
     void shouldThrowResourceNotFoundExceptionWhenContactRequestIsNotFoundToBeUpdated() {
         Long senderId = FAKER.number().numberBetween(1L, 120L);
         Long receiverId = FAKER.number().numberBetween(1L, 120L);
-        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.updateContactRequest(
-                        senderId,
-                        receiverId,
-                        ContactRequestAction.ACCEPT))
-                .withMessage("Contact request was not found for sender id: " + senderId + " and receiver id: " + receiverId);
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.updateContactRequest(senderId, receiverId, ContactRequestAction.ACCEPT)).withMessage("Contact request was not found for sender id: " + senderId + " and receiver id: " + receiverId);
     }
 
     private List<User> createUsers() {

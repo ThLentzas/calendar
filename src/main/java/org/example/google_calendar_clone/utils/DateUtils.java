@@ -26,10 +26,7 @@ public final class DateUtils {
         return utcStartTime.isBefore(ZonedDateTime.now(ZoneId.of("UTC")).toLocalDateTime());
     }
 
-    public static boolean isAfter(LocalDateTime starTime,
-                                  ZoneId startTimeZoneId,
-                                  LocalDateTime endTime,
-                                  ZoneId endTimeZoneId) {
+    public static boolean isAfter(LocalDateTime starTime, ZoneId startTimeZoneId, LocalDateTime endTime, ZoneId endTimeZoneId) {
         LocalDateTime utcStartTime = convertToUTC(starTime, startTimeZoneId);
         LocalDateTime utcEndTime = convertToUTC(endTime, endTimeZoneId);
 
@@ -44,6 +41,7 @@ public final class DateUtils {
         return startDate.isAfter(endDate);
     }
 
+    // 2023-09-23 is the 4th Monday of September
     public static int findDayOfMonthOccurrence(LocalDate date) {
         // For the given year/month and index returns the day of the month
         LocalDate firstDayOfMonth = LocalDate.of(date.getYear(), date.getMonth(), 1);
@@ -193,11 +191,7 @@ public final class DateUtils {
             case. If both are converted to UTC, the difference is 0, both are 14:00 UTC. This is why we need to consider
             timezones for the event duration
      */
-    public static long timeZoneAwareDifference(LocalDateTime startTime,
-                                               ZoneId startTimeZoneId,
-                                               LocalDateTime endTime,
-                                               ZoneId endTimeZoneId,
-                                               TemporalUnit unit) {
+    public static long timeZoneAwareDifference(LocalDateTime startTime, ZoneId startTimeZoneId, LocalDateTime endTime, ZoneId endTimeZoneId, TemporalUnit unit) {
         LocalDateTime utcStartTime = convertToUTC(startTime, startTimeZoneId);
         LocalDateTime utcEndTime = convertToUTC(endTime, endTimeZoneId);
         return unit.between(utcStartTime, utcEndTime);

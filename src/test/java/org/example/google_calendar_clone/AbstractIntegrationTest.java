@@ -86,10 +86,6 @@ public abstract class AbstractIntegrationTest {
     // The credentials from the users in the INIT_USERS.sql script. The import is from springframework data util.
     // It will also work with the test containers apache tuple Pair
     protected List<Pair<String, String>> userCredentials() {
-        return List.of(
-                Pair.of("joshua.wolf@hotmail.com", "jPt75uo0g$8_"),
-                Pair.of("ericka.ankunding@hotmail.com", "kR8zV1l$5x#"),
-                Pair.of("waltraud.roberts@gmail.com", "nJ2dQ4t@7y!")
-        );
+        return List.of(Pair.of("joshua.wolf@hotmail.com", "jPt75uo0g$8_"), Pair.of("ericka.ankunding@hotmail.com", "kR8zV1l$5x#"), Pair.of("waltraud.roberts@gmail.com", "nJ2dQ4t@7y!"));
     }
 }

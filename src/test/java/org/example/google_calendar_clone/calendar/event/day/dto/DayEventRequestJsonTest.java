@@ -14,13 +14,14 @@ import java.util.EnumSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+// https://docs.spring.io/spring-boot/docs/2.1.13.RELEASE/reference/html/boot-features-testing.html @JsonTest
 @JsonTest
 class DayEventRequestJsonTest {
     @Autowired
     private JacksonTester<DayEventRequest> jacksonTester;
 
     @Test
-    void shouldDeserializeCreateDayEventRequest() throws IOException {
+    void shouldDeserializeDayEventRequest() throws IOException {
         String json = """
                 {
                      "title": "Event title",

@@ -31,8 +31,7 @@ public class SecurityConfig {
                     csrfConfigurer.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
                     csrfConfigurer.csrfTokenRequestHandler(requestHandler);
                 })
-                .sessionManagement(sessionManagementConfigurer ->
-                        sessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(sessionManagementConfigurer -> sessionManagementConfigurer.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(Customizer.withDefaults())
                 .oauth2ResourceServer(oauth2 -> {
                     oauth2.jwt(Customizer.withDefaults());

@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 interface ContactRequestRepository extends JpaRepository<ContactRequest, ContactRequestId> {
-    
+
     @Query("""
                 SELECT c
                 FROM ContactRequest c

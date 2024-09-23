@@ -1,19 +1,20 @@
-package org.example.google_calendar_clone.validator.day;
+package org.example.google_calendar_clone.calendar.event.day.validator;
 
-import jakarta.validation.ConstraintViolation;
-import jakarta.validation.Validation;
-import jakarta.validation.Validator;
-import jakarta.validation.ValidatorFactory;
 import org.example.google_calendar_clone.calendar.event.day.dto.DayEventRequest;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionFrequency;
-import org.example.google_calendar_clone.validator.groups.OnCreate;
+import org.example.google_calendar_clone.calendar.event.groups.OnCreate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -24,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 // https://www.baeldung.com/javax-validation-groups How to acquire a validator
 // https://stackoverflow.com/questions/29069956/how-to-test-validation-annotations-of-a-class-using-junit
-class CreateDayEventRequestValidatorTest {
+class DayEventCreateRequestValidatorTest {
     private Validator validator;
 
     /*
@@ -137,8 +138,7 @@ class CreateDayEventRequestValidatorTest {
         Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
         ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
-        assertThat(violation.getMessage()).isEqualTo("Provide a monthly repetition type for monthly repeating " +
-                "events");
+        assertThat(violation.getMessage()).isEqualTo("Provide a monthly repetition type for monthly repeating events");
     }
 
     @Test
@@ -155,8 +155,7 @@ class CreateDayEventRequestValidatorTest {
         Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
         ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
-        assertThat(violation.getMessage()).isEqualTo("Monthly repetition types are only valid for monthly repeating " +
-                "events");
+        assertThat(violation.getMessage()).isEqualTo("Monthly repetition types are only valid for monthly repeating events");
     }
 
     @Test
@@ -173,8 +172,7 @@ class CreateDayEventRequestValidatorTest {
         Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
         ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
-        assertThat(violation.getMessage()).isEqualTo("Specify an end date or a number of repetitions for" +
-                " repeating events");
+        assertThat(violation.getMessage()).isEqualTo("Specify an end date or a number of repetitions for repeating events");
     }
 
 
@@ -208,8 +206,7 @@ class CreateDayEventRequestValidatorTest {
         Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
         ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
-        assertThat(violation.getMessage()).isEqualTo("The repetition end date is required when repetition duration is" +
-                " set to until a certain date");
+        assertThat(violation.getMessage()).isEqualTo("The repetition end date is required when repetition duration is set to until a certain date");
     }
 
     @ParameterizedTest
@@ -228,8 +225,7 @@ class CreateDayEventRequestValidatorTest {
         Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
         ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
-        assertThat(violation.getMessage()).isEqualTo("The number of repetitions is required when repetition duration " +
-                "is set to a certain number of repetitions");
+        assertThat(violation.getMessage()).isEqualTo("The number of repetitions is required when repetition duration is set to a certain number of repetitions");
     }
 
     @Test
@@ -249,8 +245,7 @@ class CreateDayEventRequestValidatorTest {
         Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
         ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
-        assertThat(violation.getMessage()).isEqualTo("Specify either a repetition end date or a number of " +
-                "repetitions. Not both");
+        assertThat(violation.getMessage()).isEqualTo("Specify either a repetition end date or a number of repetitions. Not both");
     }
 
     @Test
@@ -273,9 +268,7 @@ class CreateDayEventRequestValidatorTest {
         Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
         ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
-        assertThat(violation.getMessage()).isEqualTo("The start date " + request.getStartDate() + " is a " +
-                request.getStartDate().getDayOfWeek() + ", but this day is not included in the weekly recurrence days: " +
-                request.getWeeklyRecurrenceDays());
+        assertThat(violation.getMessage()).isEqualTo("The start date " + request.getStartDate() + " is a " + request.getStartDate().getDayOfWeek() + ", but this day is not included in the weekly recurrence days: " + request.getWeeklyRecurrenceDays());
     }
 
 

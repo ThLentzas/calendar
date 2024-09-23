@@ -3,6 +3,7 @@ package org.example.google_calendar_clone.calendar.event.slot.day;
 import org.example.google_calendar_clone.entity.DayEventSlot;
 import org.example.google_calendar_clone.exception.ResourceNotFoundException;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,10 +20,10 @@ public interface DayEventSlotRepository extends JpaRepository<DayEventSlot, UUID
                 JOIN FETCH des.dayEvent de
                 JOIN FETCH de.user
                 LEFT JOIN FETCH des.guestEmails
-                WHERE des.dayEvent.id = :id
+                WHERE des.dayEvent.id = :eventId AND de.user.id = :userId
                 ORDER BY des.startDate
             """)
-    List<DayEventSlot> findByEventId(@Param("id") UUID id);
+    List<DayEventSlot> findByEventAndUserId(@Param("eventId") UUID eventId, @Param("userId") Long userId);
 
     /*
         IN vs MEMBER OF
@@ -53,9 +54,9 @@ public interface DayEventSlotRepository extends JpaRepository<DayEventSlot, UUID
                 LEFT JOIN FETCH des.guestEmails
                 WHERE (de.user.id = :userId OR :email MEMBER OF des.guestEmails) AND des.id = :slotId
             """)
-    Optional<DayEventSlot> findByUserIdAndSlotId(@Param("userId") Long userId,
-                                                 @Param("email") String email,
-                                                 @Param("slotId") UUID slotId);
+    Optional<DayEventSlot> findByOrganizerOrGuestEmailAndSlotId(@Param("userId") Long userId,
+                                                                @Param("email") String email,
+                                                                @Param("slotId") UUID slotId);
 
     @Query("""
                 SELECT des
@@ -70,13 +71,48 @@ public interface DayEventSlotRepository extends JpaRepository<DayEventSlot, UUID
     @Query("""
                 SELECT des
                 FROM DayEventSlot des
-                JOIN FETCH des.dayEvent
+                JOIN FETCH des.dayEvent de
                 LEFT JOIN FETCH des.guestEmails
-                WHERE des.id = :id
+                WHERE des.id = :slotId AND de.user.id = :userId
             """)
-    Optional<DayEventSlot> findBySlotId(@Param("id") UUID id);
+    Optional<DayEventSlot> findBySlotAndUserId(@Param("slotId") UUID slotId, @Param("userId") Long userId);
 
-    default DayEventSlot findByIdOrThrow(UUID id) {
-        return findBySlotId(id).orElseThrow(() -> new ResourceNotFoundException("Day event slot not found with id: " + id));
+    /*
+        Two delete queries will be logged, first to delete all the guest emails and then the slot itself
+        WHERE des.id = :slotId AND des.dayEvent.user.id = :userId would not work
+
+        Hibernate:
+            delete
+            from
+                day_event_slots des1_0
+            where
+                des1_0.id=?
+                and des1_0.id in (select
+                    des2_0.id
+                from
+                    day_event_slots des2_0
+                join
+                    day_events de1_0
+                        on de1_0.id=des2_0.day_event_id
+                where
+                    de1_0.user_id=?)
+
+        The subquery checks if the DayEventSlot with the given slotId is owned by a specific user (userId). The subquery
+        returns all DayEventSlot Ids where the dayEvent is associated with the given user.
+
+        Returns affected rows
+     */
+    @Modifying
+    @Query("""
+                DELETE FROM DayEventSlot des
+                    WHERE des.id = :slotId
+                    AND des.id IN (
+                        SELECT d.id FROM DayEventSlot d
+                        WHERE d.dayEvent.user.id = :userId)
+            """)
+    int deleteBySlotAndUserId(@Param("slotId") UUID slotId, @Param("userId") Long userId);
+
+    default DayEventSlot findByIdOrThrow(UUID slotId, Long userId) {
+        return findBySlotAndUserId(slotId, userId).orElseThrow(() -> new ResourceNotFoundException("Day event slot not found with id: " + slotId));
     }
 }

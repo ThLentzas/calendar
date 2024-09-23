@@ -12,7 +12,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DayEventSlotDTOConverterTest {
-    private final DayEventSlotDTOConverter converter = new DayEventSlotDTOConverter();
+    private final DayEventSlotDTOConverter underTest = new DayEventSlotDTOConverter();
 
     @Test
     void shouldConvertDayEventSlotToDTO() {
@@ -44,7 +44,7 @@ class DayEventSlotDTOConverterTest {
                 .dayEventId(UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa"))
                 .build();
 
-        DayEventSlotDTO actual = this.converter.convert(dayEventSlot);
+        DayEventSlotDTO actual = this.underTest.convert(dayEventSlot);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
     }

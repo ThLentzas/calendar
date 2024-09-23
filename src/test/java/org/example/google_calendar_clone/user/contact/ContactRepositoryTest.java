@@ -29,8 +29,7 @@ class ContactRepositoryTest extends AbstractRepositoryTest {
         User expected = createUser();
         List<UserProjection> projections = this.underTest.findContacts(1L);
 
-        assertThat(projections).anyMatch(userProjection -> userProjection.getId().equals(expected.getId())
-                && userProjection.getUsername().equals(expected.getUsername()));
+        assertThat(projections).anyMatch(userProjection -> userProjection.getId().equals(expected.getId()) && userProjection.getUsername().equals(expected.getUsername()));
     }
 
     private User createUser() {

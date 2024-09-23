@@ -16,7 +16,6 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.util.Set;
 
-import lombok.ToString;
 import org.example.google_calendar_clone.calendar.event.slot.AbstractEventSlot;
 
 @Entity
@@ -24,7 +23,6 @@ import org.example.google_calendar_clone.calendar.event.slot.AbstractEventSlot;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = true)
-@ToString
 public class DayEventSlot extends AbstractEventSlot {
     private LocalDate startDate;
     private LocalDate endDate;

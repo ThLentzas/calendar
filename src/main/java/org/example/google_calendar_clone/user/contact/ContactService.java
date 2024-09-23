@@ -35,10 +35,8 @@ public class ContactService {
         https://www.bitbytebit.xyz/p/user-friends-system-and-database
     */
     public void createContact(ContactRequest contactRequest) {
-        User user1 = contactRequest.getSender().getId() < contactRequest.getReceiver().getId() ?
-                contactRequest.getSender() : contactRequest.getReceiver();
-        User user2 = contactRequest.getSender().getId() > contactRequest.getReceiver().getId() ?
-                contactRequest.getSender() : contactRequest.getReceiver();
+        User user1 = contactRequest.getSender().getId() < contactRequest.getReceiver().getId() ? contactRequest.getSender() : contactRequest.getReceiver();
+        User user2 = contactRequest.getSender().getId() > contactRequest.getReceiver().getId() ? contactRequest.getSender() : contactRequest.getReceiver();
 
         Contact contact = new Contact();
         contact.setId(new ContactId(user1.getId(), user2.getId()));

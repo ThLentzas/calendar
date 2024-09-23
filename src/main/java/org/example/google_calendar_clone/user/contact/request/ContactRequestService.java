@@ -47,9 +47,7 @@ public class ContactRequestService {
         which means that our findContactRequestBetweenUsers() will fetch them both.
      */
     public void sendContactRequest(User sender, User receiver) {
-        List<ContactRequest> contactRequests = this.contactRequestRepository.findContactRequestBetweenUsers(
-                sender.getId(),
-                receiver.getId());
+        List<ContactRequest> contactRequests = this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId());
         for (ContactRequest contactRequest : contactRequests) {
             switch (contactRequest.getStatus()) {
                 case PENDING -> throw new ConflictException("Contact request already pending");
@@ -72,11 +70,7 @@ public class ContactRequestService {
 
     @Transactional
     public void updateContactRequest(Long senderId, Long receiverId, ContactRequestAction action) {
-        ContactRequest contactRequest = this.contactRequestRepository.findPendingContactRequestBySenderAndReceiverId(
-                senderId, receiverId, ContactRequestStatus.PENDING).orElseThrow(() -> new ResourceNotFoundException(
-                "Contact request was not found for sender id: " + senderId + " and receiver id: " + receiverId)
-        );
-
+        ContactRequest contactRequest = this.contactRequestRepository.findPendingContactRequestBySenderAndReceiverId(senderId, receiverId, ContactRequestStatus.PENDING).orElseThrow(() -> new ResourceNotFoundException("Contact request was not found for sender id: " + senderId + " and receiver id: " + receiverId));
         // Switch requires at least 3 cases
         if (action.equals(ContactRequestAction.ACCEPT)) {
             contactRequest.setStatus(ContactRequestStatus.ACCEPTED);

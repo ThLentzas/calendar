@@ -29,10 +29,7 @@ class PendingContactRequestJsonTest {
         String name1 = FAKER.internet().username();
         Long id2 = FAKER.number().numberBetween(1L, 1000L);
         String name2 = FAKER.internet().username();
-        List<PendingContactRequest> requests = List.of(new PendingContactRequest(new UserProfile(id1, name1),
-                ContactRequestStatus.PENDING), new PendingContactRequest(new UserProfile(id2, name2),
-                ContactRequestStatus.PENDING
-        ));
+        List<PendingContactRequest> requests = List.of(new PendingContactRequest(new UserProfile(id1, name1), ContactRequestStatus.PENDING), new PendingContactRequest(new UserProfile(id2, name2), ContactRequestStatus.PENDING));
         // For more complex objects we can have a json file
         String json = String.format("""
                 [

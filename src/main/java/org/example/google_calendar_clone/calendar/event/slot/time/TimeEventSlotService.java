@@ -1,10 +1,9 @@
 package org.example.google_calendar_clone.calendar.event.slot.time;
 
 import org.example.google_calendar_clone.calendar.event.dto.InviteGuestsRequest;
-import org.example.google_calendar_clone.calendar.event.slot.IEventSlotService;
 import org.example.google_calendar_clone.calendar.event.repetition.MonthlyRepetitionType;
 import org.example.google_calendar_clone.calendar.event.repetition.RepetitionDuration;
-import org.example.google_calendar_clone.calendar.event.time.TimeEventRepository;
+import org.example.google_calendar_clone.calendar.event.slot.time.dto.TimeEventSlotRequest;
 import org.example.google_calendar_clone.calendar.event.time.dto.TimeEventRequest;
 import org.example.google_calendar_clone.calendar.event.slot.time.dto.TimeEventSlotDTO;
 import org.example.google_calendar_clone.calendar.event.slot.time.dto.TimeEventSlotDTOConverter;
@@ -16,6 +15,7 @@ import org.example.google_calendar_clone.user.UserRepository;
 import org.example.google_calendar_clone.utils.DateUtils;
 import org.example.google_calendar_clone.utils.EventUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -33,9 +33,8 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class TimeEventSlotService implements IEventSlotService<TimeEventRequest, TimeEvent, TimeEventSlotDTO> {
+public class TimeEventSlotService {
     private final TimeEventSlotRepository timeEventSlotRepository;
-    private final TimeEventRepository timeEventRepository;
     private final UserRepository userRepository;
     private static final TimeEventSlotDTOConverter converter = new TimeEventSlotDTOConverter();
     private static final String EVENT_SLOT_NOT_FOUND_MSG = "Time event slot not found with id: ";
@@ -45,7 +44,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         the times stored in the DB will be in UTC. When we return an event slot to the user we convert the UTC time
         back to their local time according to the timezones we stored alongside them. This happens in the converter
      */
-    @Override
+    @Transactional
     public void create(TimeEventRequest eventRequest, TimeEvent event) {
         // We want to send invitation emails only to emails that at least contain @
         Set<String> guestEmails = new HashSet<>();
@@ -91,9 +90,9 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         tested and the remaining code is just calling delete() and save(). No logic to be tested in the
         TimeEventSlotServiceTest class, create is already fully tested.
      */
-    @Override
-    public void update(TimeEventRequest eventRequest, TimeEvent event) {
-        if (eventRequest.getRepetitionFrequency() != null && !EventUtils.hasSameFrequencyDetails(eventRequest, event)) {
+    @Transactional
+    public void updateEventSlotsForEvent(TimeEventRequest eventRequest, TimeEvent event) {
+        if (eventRequest.getRepetitionFrequency() != null && !EventUtils.hasSameFrequencyProperties(eventRequest, event)) {
             TimeEventRequest createTimeEventRequest = TimeEventRequest.builder()
                     .title(eventRequest.getTitle())
                     .location(eventRequest.getLocation())
@@ -116,37 +115,91 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
             event.setEndTime(eventRequest.getEndTime());
             event.setStartTimeZoneId(eventRequest.getStartTimeZoneId());
             event.setEndTimeZoneId(eventRequest.getEndTimeZoneId());
-            EventUtils.setFrequencyDetails(eventRequest, event);
+            EventUtils.updateCommonEventProperties(eventRequest, event);
 
             this.timeEventSlotRepository.deleteAll(event.getTimeEventSlots());
 
             // Maybe this is bad practise to self invoke public methods, but we need to create the event slots for the different frequency
             create(createTimeEventRequest, event);
         } else {
+            TimeEventSlotRequest eventSlotRequest = TimeEventSlotRequest.builder()
+                    .title(eventRequest.getTitle())
+                    .location(eventRequest.getLocation())
+                    .description(eventRequest.getDescription())
+                    .build();
+
             event.getTimeEventSlots().forEach(eventSlot -> {
-                eventSlot.setTitle(eventRequest.getTitle() != null
-                        && !eventRequest.getTitle().isBlank() ? eventRequest.getTitle() : eventSlot.getTitle());
-                eventSlot.setLocation(eventRequest.getLocation() != null
-                        && !eventRequest.getLocation().isBlank() ? eventRequest.getLocation()
-                        : eventSlot.getLocation());
-                eventSlot.setDescription(eventRequest.getDescription() != null
-                        && !eventRequest.getDescription().isBlank() ? eventRequest.getDescription()
-                        : eventSlot.getDescription());
-                eventSlot.setGuestEmails(eventRequest.getGuestEmails() != null
-                        && !eventRequest.getGuestEmails().isEmpty() ? eventRequest.getGuestEmails()
-                        : eventSlot.getGuestEmails());
+                EventUtils.updateCommonEventSlotProperties(eventSlotRequest, eventSlot);
+                eventSlot.setGuestEmails(eventRequest.getGuestEmails() != null && !eventRequest.getGuestEmails().isEmpty() ? eventRequest.getGuestEmails() : eventSlot.getGuestEmails());
 
                 this.timeEventSlotRepository.save(eventSlot);
             });
         }
     }
 
-    @Override
+    /*
+        We can not call getReferenceById(), we need the email.
+
+        There are 2 cases where the existsByEventIdAndUserId() could throw ResourceNotFoundException.
+            1. Event slot exists but the authenticated user is not the organizer
+            2. Event slot does not exist
+        We cover both with our existsByEventIdAndUserId(). If the event exists and the user is not organizer it returns
+        false. If the event does not exist it also returns false. In theory, the user should exist in our database,
+        because we use the id of the current authenticated user. There is also an argument for data integrity problems,
+        where the user was deleted and the token was not invalidated.
+
+        Previous approach that was improved:
+            TimeEventSlot eventSlot = this.timeEventSlotRepository.findByIdOrThrow(slotId);
+            if (!this.timeEventRepository.existsByEventIdAndUserId(eventSlot.getTimeEvent().getId(), userId)) {
+                throw new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId);
+            }
+        With the above approach we do the lookup for the eventSlot by id, and then we can check if the user that made
+        the request is the organizer of the event. We optimize the query to do the look-up like this:
+            WHERE des.id = :slotId AND de.user.id = :userId
+        Both cases that are mentioned above are covered by 1 query.
+     */
+    @Transactional
+    public void updateEventSlot(Long userId, UUID slotId, TimeEventSlotRequest eventSlotRequest) {
+        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByIdOrThrow(slotId, userId);
+
+        User user = this.userRepository.findAuthUserByIdOrThrow(userId);
+        Set<String> guestEmails = EventUtils.processGuestEmails(user, eventSlotRequest.getGuestEmails());
+        eventSlot.setStartTime(eventSlotRequest.getStartTime() != null ? DateUtils.convertToUTC(eventSlotRequest.getStartTime(), eventSlotRequest.getStartTimeZoneId()) : eventSlot.getStartTime());
+        eventSlot.setEndTime(eventSlotRequest.getEndTime() != null ? DateUtils.convertToUTC(eventSlotRequest.getEndTime(), eventSlotRequest.getEndTimeZoneId()) : eventSlot.getEndTime());
+        eventSlot.setStartTimeZoneId(eventSlotRequest.getStartTimeZoneId() != null ? eventSlotRequest.getStartTimeZoneId() : eventSlot.getStartTimeZoneId());
+        eventSlot.setEndTimeZoneId(eventSlotRequest.getEndTimeZoneId() != null ? eventSlotRequest.getEndTimeZoneId() : eventSlot.getEndTimeZoneId());
+        EventUtils.updateCommonEventSlotProperties(eventSlotRequest, eventSlot);
+        // guestEmails can be empty after processing the emails from the update request
+        eventSlot.setGuestEmails(!guestEmails.isEmpty() ? guestEmails : eventSlot.getGuestEmails());
+
+        // Explicit saving. EventSlot is updated within a transactional context, Hibernate will update it anyway but, it is better to know what is happening
+        this.timeEventSlotRepository.save(eventSlot);
+    }
+
+    /*
+        We can not call getReferenceById(), we need the email.
+
+        There are 2 cases where the existsByEventIdAndUserId() could throw ResourceNotFoundException.
+            1. Event slot exists but the authenticated user is not the organizer
+            2. Event slot does not exist
+        We cover both with our existsByEventIdAndUserId(). If the event exists and the user is not organizer it returns
+        false. If the event does not exist it also returns false. In theory, the user should exist in our database,
+        because we use the id of the current authenticated user. There is also an argument for data integrity problems,
+        where the user was deleted and the token was not invalidated.
+
+        Previous approach that was improved:
+            TimeEventSlot eventSlot = this.timeEventSlotRepository.findByIdOrThrow(slotId);
+            if (!this.timeEventRepository.existsByEventIdAndUserId(eventSlot.getTimeEvent().getId(), userId)) {
+                throw new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId);
+            }
+        With the above approach we do the lookup for the eventSlot by id, and then we can check if the user that made
+        the request is the organizer of the event. We optimize the query to do the look-up like this:
+            WHERE des.id = :slotId AND de.user.id = :userId
+        Both cases that are mentioned above are covered by 1 query.
+     */
+    @Transactional
     public void inviteGuests(Long userId, UUID slotId, InviteGuestsRequest inviteGuestsRequest) {
-        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByIdOrThrow(slotId);
-        if (!this.timeEventRepository.existsByEventIdAndUserId(eventSlot.getTimeEvent().getId(), userId)) {
-            throw new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId);
-        }
+        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByIdOrThrow(slotId, userId);
 
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
         Set<String> guestEmails = EventUtils.processGuestEmails(user, inviteGuestsRequest, eventSlot.getGuestEmails());
@@ -156,18 +209,19 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
         this.timeEventSlotRepository.save(eventSlot);
     }
 
-    @Override
-    public List<TimeEventSlotDTO> findEventSlotsByEventId(UUID eventId) {
-        return this.timeEventSlotRepository.findByEventId(eventId)
+    public List<TimeEventSlotDTO> findEventSlotsByEventId(UUID eventId, Long userId) {
+        return this.timeEventSlotRepository.findByEventAndUserId(eventId, userId)
                 .stream()
                 .map(converter::convert)
                 .toList();
     }
 
-    @Override
-    public TimeEventSlotDTO findByUserAndSlotId(Long userId, UUID slotId) {
+    /*
+        Returns an event slot where the user is either the organizer or invited as guest
+    */
+    public TimeEventSlotDTO findEventSlotById(Long userId, UUID slotId) {
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
-        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByUserAndSlotId(
+        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByOrganizerOrGuestEmailAndSlotId(
                 user.getId(),
                 user.getEmail(),
                 slotId).orElseThrow(() -> new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId));
@@ -182,6 +236,15 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
                 .stream()
                 .map(converter::convert)
                 .toList();
+    }
+
+    // 2 delete queries will be logged, first to delete all the guest emails and then the slot itself
+    @Transactional
+    public void deleteEventSlotById(UUID slotId, Long userId) {
+        int deleted = this.timeEventSlotRepository.deleteBySlotAndUserId(slotId, userId);
+        if (deleted != 1) {
+            throw new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId);
+        }
     }
 
     /*
@@ -309,8 +372,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
 
     // Monthly events that repeat the same week day until a certain date(2nd Tuesday of the month)
     private void createUntilDateMonthlySameWeekdayEventSlots(TimeEventRequest eventRequest, TimeEvent event) {
-        if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
-                && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
+        if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
         }
 
@@ -355,8 +417,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
     }
 
     private void createUntilDateSameDayEventSlots(TimeEventRequest eventRequest, TimeEvent event, ChronoUnit unit) {
-        if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE
-                && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
+        if (event.getRepetitionDuration() != RepetitionDuration.UNTIL_DATE && event.getRepetitionDuration() != RepetitionDuration.FOREVER) {
             return;
         }
 
@@ -404,12 +465,7 @@ public class TimeEventSlotService implements IEventSlotService<TimeEventRequest,
      */
     private void createTimeEventSlot(TimeEventRequest eventRequest, TimeEvent event, LocalDateTime startTime) {
         startTime = DateUtils.convertToUTC(startTime, eventRequest.getStartTimeZoneId());
-        LocalDateTime endTime = startTime.plusMinutes(DateUtils.timeZoneAwareDifference(
-                event.getStartTime(),
-                event.getStartTimeZoneId(),
-                event.getEndTime(),
-                event.getEndTimeZoneId(),
-                ChronoUnit.MINUTES));
+        LocalDateTime endTime = startTime.plusMinutes(DateUtils.timeZoneAwareDifference(event.getStartTime(), event.getStartTimeZoneId(), event.getEndTime(), event.getEndTimeZoneId(), ChronoUnit.MINUTES));
 
         TimeEventSlot timeEventSlot = new TimeEventSlot();
         timeEventSlot.setStartTime(startTime);

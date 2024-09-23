@@ -38,8 +38,7 @@ class UserServiceTest {
         User user = createUser();
         user.setUsername(RandomStringUtils.randomAlphanumeric(21, FAKER.number().numberBetween(22, 120)));
 
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user))
-                .withMessage("Invalid username. Username must not exceed 20 characters");
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("Invalid username. Username must not exceed 20 characters");
     }
 
     // registerUser()
@@ -49,8 +48,7 @@ class UserServiceTest {
         User user = createUser();
         user.setUsername(username);
 
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user))
-                .withMessage("Invalid username. Username should contain only characters, numbers and .");
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("Invalid username. Username should contain only characters, numbers and .");
     }
 
     // registerUser()
@@ -59,8 +57,7 @@ class UserServiceTest {
         User user = createUser();
         user.setEmail(RandomStringUtils.randomAlphanumeric(51, FAKER.number().numberBetween(52, 120)));
 
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user))
-                .withMessage("Invalid email. Email must not exceed 50 characters");
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("Invalid email. Email must not exceed 50 characters");
     }
 
     // registerUser()
@@ -69,8 +66,7 @@ class UserServiceTest {
         User user = createUser();
         user.setEmail("testexample.com");
 
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user))
-                .withMessage("Invalid email format");
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("Invalid email format");
     }
 
     // registerUser()
@@ -80,8 +76,7 @@ class UserServiceTest {
 
         when(this.userRepository.existsByEmailIgnoringCase(user.getEmail())).thenReturn(true);
 
-        assertThatExceptionOfType(DuplicateResourceException.class).isThrownBy(() -> this.underTest.registerUser(user))
-                .withMessage("The provided email already exists");
+        assertThatExceptionOfType(DuplicateResourceException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("The provided email already exists");
     }
 
     // findUserByIdFetchingRoles()
@@ -91,8 +86,7 @@ class UserServiceTest {
 
         when(this.userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.findByIdFetchingRoles(userId))
-                .withMessage("User not found with id: " + userId);
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.findById(userId)).withMessage("User not found with id: " + userId);
     }
 
     // addContact()
@@ -105,10 +99,7 @@ class UserServiceTest {
         when(this.userRepository.getReferenceById(sender.getId())).thenReturn(sender);
         when(this.userRepository.findById(contactRequest.receiverId())).thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.sendContactRequest(
-                        contactRequest,
-                        sender.getId()))
-                .withMessage("User not found with id: " + contactRequest.receiverId());
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.sendContactRequest(contactRequest, sender.getId())).withMessage("User not found with id: " + contactRequest.receiverId());
     }
 
     private User createUser() {

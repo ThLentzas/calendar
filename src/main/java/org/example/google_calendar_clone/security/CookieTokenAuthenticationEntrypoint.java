@@ -77,17 +77,11 @@ import java.time.Instant;
 public final class CookieTokenAuthenticationEntrypoint implements AuthenticationEntryPoint {
 
     @Override
-    public void commence(HttpServletRequest request,
-                         HttpServletResponse response,
-                         AuthenticationException authException) throws IOException {
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        ErrorMessage errorMessage = new ErrorMessage(Instant.now(),
-                HttpStatus.UNAUTHORIZED.value(),
-                ErrorMessage.ErrorType.UNAUTHORIZED,
-                "Unauthorized",
-                request.getRequestURI());
+        ErrorMessage errorMessage = new ErrorMessage(Instant.now(), HttpStatus.UNAUTHORIZED.value(), ErrorMessage.ErrorType.UNAUTHORIZED, "Unauthorized", request.getRequestURI());
         Cookie cookie = CookieUtils.generateCookie("accessToken", "", "/", 0);
         response.addCookie(cookie);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
