@@ -1,4 +1,4 @@
-CREATE TYPE repetition_frequency AS ENUM (
+CREATE TYPE recurrence_frequency AS ENUM (
     'NEVER',
     'DAILY',
     'WEEKLY',
@@ -6,13 +6,13 @@ CREATE TYPE repetition_frequency AS ENUM (
     'ANNUALLY'
 );
 
-CREATE TYPE repetition_duration AS ENUM (
+CREATE TYPE recurrence_duration AS ENUM (
     'FOREVER',
-    'N_REPETITIONS',
+    'N_OCCURRENCES',
     'UNTIL_DATE'
 );
 
-CREATE TYPE monthly_repetition_type AS ENUM (
+CREATE TYPE monthly_recurrence_type AS ENUM (
     'SAME_DAY',
     'SAME_WEEKDAY'
 );
@@ -22,14 +22,14 @@ CREATE TABLE IF NOT EXISTS day_events (
     user_id INTEGER NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    -- It can not be null because if it was during parsing, it is set to NEVER
-    repetition_frequency repetition_frequency NOT NULL,
-    repetition_step INTEGER NULL,
+    -- It can not be null. For non-recurring events NEVER should be provided
+    recurrence_frequency recurrence_frequency NOT NULL,
+    recurrence_step INTEGER NULL,
     weekly_recurrence_days VARCHAR(56) NULL,
-    monthly_repetition_type monthly_repetition_type NULL,
-    repetition_duration repetition_duration NULL,
-    repetition_end_date DATE NULL,
-    repetition_occurrences INTEGER NULL,
+    monthly_recurrence_type monthly_recurrence_type NULL,
+    recurrence_duration recurrence_duration NULL,
+    recurrence_end_date DATE NULL,
+    number_of_occurrences INTEGER NULL,
     CONSTRAINT pk_day_events PRIMARY KEY (id),
     CONSTRAINT fk_day_events_users_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );

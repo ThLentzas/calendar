@@ -5,14 +5,14 @@ CREATE TABLE IF NOT EXISTS time_events (
     start_time_zone_id TEXT NOT NULL,
     end_time TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     end_time_zone_id TEXT NOT NULL,
-    -- It can not be null because if it was during parsing it is set to NEVER
-    repetition_frequency repetition_frequency NOT NULL,
-    repetition_step INTEGER NULL,
+    -- It can not be null. For non-recurring events NEVER should be provided
+    recurrence_frequency recurrence_frequency NOT NULL,
+    recurrence_step INTEGER NULL,
     weekly_recurrence_days VARCHAR(56) NULL,
-    monthly_repetition_type monthly_repetition_type NULL,
-    repetition_duration repetition_duration NULL,
-    repetition_end_date DATE NULL,
-    repetition_occurrences INTEGER NULL,
+    monthly_recurrence_type monthly_recurrence_type NULL,
+    recurrence_duration recurrence_duration NULL,
+    recurrence_end_date DATE NULL,
+    number_of_occurrences INTEGER NULL,
     CONSTRAINT pk_time_events PRIMARY KEY (id),
     CONSTRAINT fk_time_events_users_id FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
