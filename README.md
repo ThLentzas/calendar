@@ -23,16 +23,16 @@ A Calendar Event System for managing events, including day events, time events, 
 ### Authentication
 - `POST /auth/register` Register a user
 - `POST /auth/login` Login a user
-- `POST /auth/token/refresh` Refreshes the access token
-- `POST /auth/token/revoke` Revokes the access token
-- `POST /auth/token/csrf` Returns a csrf token
+- `POST /auth/token/refresh` Refresh the access token
+- `POST /auth/token/revoke` Revoke the access token
+- `POST /auth/token/csrf` Return a csrf token
 
 ### User
 
 - `POST /user/contacts` Send a contact request
-- `GET /user/contact-requests` Returns a list of pending contact requests
+- `GET /user/contact-requests` Return a list of pending contact requests
 - `PUT /user/contact-requests` Accept/Reject a pending contact request
-- `GET /user/contact-requests` Returns a list of contacts
+- `GET /user/contact-requests` Return a list of contacts
 
 ### Events
 
@@ -42,19 +42,19 @@ A Calendar Event System for managing events, including day events, time events, 
 - `DELETE /events/day-events/{eventId}` Delete a day event
 - `POST /events/time-events` Create a time event
 - `PUT /events/time-events/{eventId}` Update a time event
-- `GET /events/time-events/{eventId}` Returns the schedule for a time event
+- `GET /events/time-events/{eventId}` Return the schedule for a time event
 - `DELETE /events/time-events/{eventId}` Delete a time event
-- `GET /events?startDate= &endDate=` Returns a list of events that fall within the time range
+- `GET /events?startDate= &endDate=` Return a list of events that fall within the time range
 
 ### Event Slots
 
 - `PUT /event-slots/day-event-slots/{slotId}/invite` Invite guests to a day event slot
 - `PUT /event-slots/day-event-slots/{slotId}` Update a day event slot
-- `GET /event-slots/day-event-slots/{slotId}` Returns a day event slot
+- `GET /event-slots/day-event-slots/{slotId}` Return a day event slot
 - `DELETE /event-slots/day-event-slots/{slotId}` Delete a day event slot
 - `PUT /event-slots/time-event-slots/{slotId}/invite` Invite guests to a time event slot
 - `PUT /event-slots/time-event-slots/{slotId}` Update a time event slot
-- `GET /event-slots/time-event-slots/{slotId}` Returns a time event slot
+- `GET /event-slots/time-event-slots/{slotId}` Return a time event slot
 - `DELETE /event-slots/time-event-slots/{slotId}` Delete a time event slot
 
 Events can repeat on various intervals—daily, weekly, monthly, or annually—and continue based on one of the following conditions:
