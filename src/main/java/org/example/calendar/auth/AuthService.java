@@ -58,6 +58,7 @@ class AuthService {
         }
 
         RefreshToken refreshToken = this.refreshTokenService.findByTokenValue(cookie.getValue());
+        // We don't just call getReferenceById(), because the user might have been deleted from the db.
         User user = this.userService.findById(refreshToken.getUserId());
         UserPrincipal userPrincipal = new UserPrincipal(user);
         String accessTokenValue = this.jwtService.generateToken(userPrincipal);
