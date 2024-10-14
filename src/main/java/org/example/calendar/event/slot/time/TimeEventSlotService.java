@@ -3,14 +3,14 @@ package org.example.calendar.event.slot.time;
 import org.example.calendar.event.dto.InviteGuestsRequest;
 import org.example.calendar.event.recurrence.MonthlyRecurrenceType;
 import org.example.calendar.event.recurrence.RecurrenceDuration;
+import org.example.calendar.event.slot.projection.EventSlotWithGuestsProjection;
 import org.example.calendar.event.slot.time.dto.TimeEventSlotRequest;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotProjection;
 import org.example.calendar.event.time.dto.TimeEventRequest;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotDTO;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotDTOConverter;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotPublicProjection;
 import org.example.calendar.entity.TimeEvent;
 import org.example.calendar.entity.TimeEventSlot;
 import org.example.calendar.entity.User;
-import org.example.calendar.event.recurrence.RecurrenceFrequency;
 import org.example.calendar.exception.ResourceNotFoundException;
 import org.example.calendar.user.UserRepository;
 import org.example.calendar.utils.DateUtils;
@@ -18,26 +18,20 @@ import org.example.calendar.utils.EventUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
+import java.time.*;
 import java.time.temporal.ChronoUnit;
-import java.util.HashSet;
 import java.util.List;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class TimeEventSlotService {
-    private final TimeEventSlotRepository timeEventSlotRepository;
+    private final TimeEventSlotRepository eventSlotRepository;
     private final UserRepository userRepository;
-    private static final TimeEventSlotDTOConverter converter = new TimeEventSlotDTOConverter();
     private static final String EVENT_SLOT_NOT_FOUND_MSG = "Time event slot not found with id: ";
 
     /*
@@ -47,15 +41,6 @@ public class TimeEventSlotService {
      */
     @Transactional
     public void create(TimeEventRequest eventRequest, TimeEvent event) {
-        // We want to send invitation emails only to emails that at least contain @
-        Set<String> guestEmails = new HashSet<>();
-        if (eventRequest.getGuestEmails() != null) {
-            guestEmails = eventRequest.getGuestEmails().stream()
-                    .filter(guestEmail -> guestEmail.contains("@"))
-                    .collect(Collectors.toSet());
-        }
-        eventRequest.setGuestEmails(guestEmails);
-
         switch (event.getRecurrenceFrequency()) {
             // Non-recurring event, we only create 1 TimeEventSlot
             case NEVER -> createTimeEventSlot(eventRequest, event, event.getStartTime());
@@ -92,49 +77,20 @@ public class TimeEventSlotService {
         TimeEventSlotServiceTest class, create is already fully tested.
      */
     @Transactional
-    public void updateEventSlotsForEvent(TimeEventRequest eventRequest, TimeEvent event) {
-        if (eventRequest.getRecurrenceFrequency() != null && !EventUtils.hasSameFrequencyProperties(eventRequest, event)) {
-            TimeEventRequest createTimeEventRequest = TimeEventRequest.builder()
-                    .title(eventRequest.getTitle())
-                    .location(eventRequest.getLocation())
-                    .description(eventRequest.getDescription())
-                    .guestEmails(eventRequest.getGuestEmails())
-                    .startTime(eventRequest.getStartTime())
-                    .endTime(eventRequest.getEndTime())
-                    .startTimeZoneId(eventRequest.getStartTimeZoneId())
-                    .endTimeZoneId(eventRequest.getEndTimeZoneId())
-                    .recurrenceFrequency(eventRequest.getRecurrenceFrequency())
-                    .recurrenceStep(eventRequest.getRecurrenceStep())
-                    .weeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays())
-                    .monthlyRecurrenceType(eventRequest.getMonthlyRecurrenceType())
-                    .recurrenceDuration(eventRequest.getRecurrenceDuration())
-                    .recurrenceEndDate(eventRequest.getRecurrenceEndDate())
-                    .numberOfOccurrences(eventRequest.getNumberOfOccurrences())
-                    .build();
+    public void updateEventSlotsForEvent(TimeEventRequest eventRequest, List<TimeEventSlot> eventSlots) {
+        TimeEventSlotRequest eventSlotRequest = TimeEventSlotRequest.builder()
+                .title(eventRequest.getTitle())
+                .location(eventRequest.getLocation())
+                .description(eventRequest.getDescription())
+                .build();
 
-            event.setStartTime(eventRequest.getStartTime());
-            event.setEndTime(eventRequest.getEndTime());
-            event.setStartTimeZoneId(eventRequest.getStartTimeZoneId());
-            event.setEndTimeZoneId(eventRequest.getEndTimeZoneId());
-            EventUtils.updateCommonEventProperties(eventRequest, event);
+        for (TimeEventSlot original : eventSlots) {
+            TimeEventSlot modified = new TimeEventSlot();
+            modified.setId(original.getId());
+            EventUtils.setCommonEventSlotProperties(eventSlotRequest, modified);
+            modified.setGuestEmails(eventRequest.getGuestEmails());
 
-            this.timeEventSlotRepository.deleteAll(event.getTimeEventSlots());
-
-            // Maybe this is bad practise to self invoke public methods, but we need to create the event slots for the different frequency
-            create(createTimeEventRequest, event);
-        } else {
-            TimeEventSlotRequest eventSlotRequest = TimeEventSlotRequest.builder()
-                    .title(eventRequest.getTitle())
-                    .location(eventRequest.getLocation())
-                    .description(eventRequest.getDescription())
-                    .build();
-
-            event.getTimeEventSlots().forEach(eventSlot -> {
-                EventUtils.updateCommonEventSlotProperties(eventSlotRequest, eventSlot);
-                eventSlot.setGuestEmails(eventRequest.getGuestEmails() != null && !eventRequest.getGuestEmails().isEmpty() ? eventRequest.getGuestEmails() : eventSlot.getGuestEmails());
-
-                this.timeEventSlotRepository.save(eventSlot);
-            });
+            this.eventSlotRepository.updateEventSlotForEvent(original, modified);
         }
     }
 
@@ -161,20 +117,29 @@ public class TimeEventSlotService {
      */
     @Transactional
     public void updateEventSlot(Long userId, UUID slotId, TimeEventSlotRequest eventSlotRequest) {
-        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByIdOrThrow(slotId, userId);
+        TimeEventSlotProjection projection = this.eventSlotRepository.findBySlotAndUserId(slotId, userId).orElseThrow(() -> new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId));
+        TimeEventSlot original = TimeEventSlot.builder()
+                .id(projection.getId())
+                .title(projection.getTitle())
+                .location(projection.getLocation())
+                .description(projection.getDescription())
+                .startTime(projection.getStarTime())
+                .startTimeZoneId(projection.getStartTimeZoneId())
+                .endTime(projection.getEndTime())
+                .endTimeZoneId(projection.getEndTimeZoneId())
+                .guestEmails(projection.getGuestEmails())
+                .build();
 
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
-        Set<String> guestEmails = EventUtils.processGuestEmails(user, eventSlotRequest.getGuestEmails());
-        eventSlot.setStartTime(eventSlotRequest.getStartTime() != null ? DateUtils.convertToUTC(eventSlotRequest.getStartTime(), eventSlotRequest.getStartTimeZoneId()) : eventSlot.getStartTime());
-        eventSlot.setEndTime(eventSlotRequest.getEndTime() != null ? DateUtils.convertToUTC(eventSlotRequest.getEndTime(), eventSlotRequest.getEndTimeZoneId()) : eventSlot.getEndTime());
-        eventSlot.setStartTimeZoneId(eventSlotRequest.getStartTimeZoneId() != null ? eventSlotRequest.getStartTimeZoneId() : eventSlot.getStartTimeZoneId());
-        eventSlot.setEndTimeZoneId(eventSlotRequest.getEndTimeZoneId() != null ? eventSlotRequest.getEndTimeZoneId() : eventSlot.getEndTimeZoneId());
-        EventUtils.updateCommonEventSlotProperties(eventSlotRequest, eventSlot);
-        // guestEmails can be empty after processing the emails from the update request
-        eventSlot.setGuestEmails(!guestEmails.isEmpty() ? guestEmails : eventSlot.getGuestEmails());
+        TimeEventSlot modified = new TimeEventSlot(original);
+        modified.setStartTime(DateUtils.convertToUTC(eventSlotRequest.getStartTime(), eventSlotRequest.getStartTimeZoneId()));
+        modified.setEndTime(DateUtils.convertToUTC(eventSlotRequest.getEndTime(), eventSlotRequest.getEndTimeZoneId()));
+        modified.setStartTimeZoneId(eventSlotRequest.getStartTimeZoneId());
+        modified.setEndTimeZoneId(eventSlotRequest.getEndTimeZoneId());
+        EventUtils.setCommonEventSlotProperties(eventSlotRequest, modified);
+        modified.setGuestEmails(EventUtils.processGuestEmails(user, eventSlotRequest.getGuestEmails()));
 
-        // Explicit saving. EventSlot is updated within a transactional context, Hibernate will update it anyway but, it is better to know what is happening
-        this.timeEventSlotRepository.save(eventSlot);
+        this.eventSlotRepository.update(original, modified);
     }
 
     /*
@@ -200,52 +165,61 @@ public class TimeEventSlotService {
      */
     @Transactional
     public void inviteGuests(Long userId, UUID slotId, InviteGuestsRequest inviteGuestsRequest) {
-        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByIdOrThrow(slotId, userId);
-
+        EventSlotWithGuestsProjection projection = this.eventSlotRepository.findBySlotAndUserIdFetchingGuests(slotId, userId).orElseThrow(() -> new ResourceNotFoundException("Time event slot not found with id: " + slotId));
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
-        Set<String> guestEmails = EventUtils.processGuestEmails(user, inviteGuestsRequest, eventSlot.getGuestEmails());
-        eventSlot.getGuestEmails().addAll(guestEmails);
+        Set<String> guestEmails = EventUtils.processGuestEmails(user, inviteGuestsRequest, projection.getGuestEmails());
 
-        // The method is @Transactional, but we explicitly call save() to know that we update the guest list
-        this.timeEventSlotRepository.save(eventSlot);
+        this.eventSlotRepository.inviteGuests(projection.getId(), guestEmails);
     }
 
-    public List<TimeEventSlotDTO> findEventSlotsByEventId(UUID eventId, Long userId) {
-        return this.timeEventSlotRepository.findByEventAndUserId(eventId, userId)
-                .stream()
-                .map(converter::convert)
-                .toList();
+    public List<TimeEventSlotPublicProjection> findEventSlotsByEventAndUserId(UUID eventId, Long userId) {
+        return this.eventSlotRepository.findByEventAndUserId(eventId, userId).stream()
+                // Don't use peek
+                .map(eventSlot -> {
+                    eventSlot.setStartTime(DateUtils.convertFromUTC(eventSlot.getStartTime(), eventSlot.getStartTimeZoneId()));
+                    eventSlot.setEndTime(DateUtils.convertFromUTC(eventSlot.getEndTime(), eventSlot.getEndTimeZoneId()));
+                    return eventSlot;
+                }).toList();
     }
 
     /*
         Returns an event slot where the user is either the organizer or invited as guest
     */
-    public TimeEventSlotDTO findEventSlotById(Long userId, UUID slotId) {
+    public TimeEventSlotPublicProjection findEventSlotById(Long userId, UUID slotId) {
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
-        TimeEventSlot eventSlot = this.timeEventSlotRepository.findByOrganizerOrGuestEmailAndSlotId(
-                user.getId(),
-                user.getEmail(),
-                slotId).orElseThrow(() -> new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId));
+        TimeEventSlotPublicProjection projection = this.eventSlotRepository.findByOrganizerOrGuestEmailAndSlotId(slotId, userId, user.getEmail()).orElseThrow(() -> new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId));
+        projection.setStartTime(DateUtils.convertFromUTC(projection.getStartTime(), projection.getStartTimeZoneId()));
+        projection.setEndTime(DateUtils.convertFromUTC(projection.getEndTime(), projection.getEndTimeZoneId()));
 
-        return converter.convert(eventSlot);
+        return projection;
     }
 
-    public List<TimeEventSlotDTO> findEventSlotsByUserInDateRange(User user,
-                                                                  LocalDateTime startTime,
-                                                                  LocalDateTime endTime) {
-        return this.timeEventSlotRepository.findByUserInDateRange(user, user.getEmail(), startTime, endTime)
-                .stream()
-                .map(converter::convert)
-                .toList();
+    public List<TimeEventSlotPublicProjection> findEventSlotsByUserInDateRange(User user, LocalDateTime startTime, ZoneId startTimeZoneId, LocalDateTime endTime, ZoneId endTimeZoneId) {
+        startTime = startTimeZoneId.equals(ZoneId.of("UTC")) ? startTime : DateUtils.convertToUTC(startTime, startTimeZoneId);
+        endTime = endTimeZoneId.equals(ZoneId.of("UTC")) ? endTime : DateUtils.convertToUTC(endTime, endTimeZoneId);
+
+        return this.eventSlotRepository.findByUserInDateRange(user.getId(), user.getEmail(), startTime, endTime).stream()
+                // Don't use peek
+                .map(eventSlot -> {
+                    eventSlot.setStartTime(DateUtils.convertFromUTC(eventSlot.getStartTime(), eventSlot.getStartTimeZoneId()));
+                    eventSlot.setEndTime(DateUtils.convertFromUTC(eventSlot.getEndTime(), eventSlot.getEndTimeZoneId()));
+                    return eventSlot;
+                }).toList();
     }
 
     // 2 delete queries will be logged, first to delete all the guest emails and then the slot itself
     @Transactional
     public void deleteEventSlotById(UUID slotId, Long userId) {
-        int deleted = this.timeEventSlotRepository.deleteBySlotAndUserId(slotId, userId);
-        if (deleted != 1) {
+        int rowsAffected = this.eventSlotRepository.deleteBySlotAndUserId(slotId, userId);
+        if (rowsAffected != 1) {
             throw new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId);
         }
+    }
+
+    // This method is used to delete the current event slots before creating new ones based on the new recurrence
+    // properties when we update an event. We need to delete the previous ones and create the new
+    public void deleteEventSlotsByEventId(UUID eventId) {
+        this.eventSlotRepository.deleteEventSlotsByEventId(eventId);
     }
 
     /*
@@ -475,7 +449,7 @@ public class TimeEventSlotService {
         timeEventSlot.setDescription(eventRequest.getDescription());
         timeEventSlot.setLocation(eventRequest.getLocation());
         timeEventSlot.setGuestEmails(eventRequest.getGuestEmails());
-        timeEventSlot.setTimeEvent(event);
-        this.timeEventSlotRepository.save(timeEventSlot);
+        timeEventSlot.setEventId(event.getId());
+        this.eventSlotRepository.create(timeEventSlot);
     }
 }

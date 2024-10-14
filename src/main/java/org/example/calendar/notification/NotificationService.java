@@ -1,11 +1,10 @@
 package org.example.calendar.notification;
 
 import org.example.calendar.event.slot.day.DayEventSlotRepository;
+import org.example.calendar.event.slot.day.projection.DayEventSlotReminderProjection;
 import org.example.calendar.event.slot.time.TimeEventSlotRepository;
 import org.example.calendar.email.EmailService;
-import org.example.calendar.entity.DayEventSlot;
-import org.example.calendar.entity.TimeEventSlot;
-import org.example.calendar.utils.EventUtils;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotReminderProjection;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -38,26 +37,31 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 class NotificationService {
     private final EmailService emailService;
-    private final DayEventSlotRepository dayEventSlotRepository;
+    private final DayEventSlotRepository eventSlotRepository;
     private final TimeEventSlotRepository timeEventSlotRepository;
 
     @Scheduled(cron = "0 0 0 * * *")
     void notifyDayEvents() {
-        List<DayEventSlot> eventSlots = this.dayEventSlotRepository.findByStartDate(LocalDate.now().plusDays(1));
-
-        eventSlots.stream()
-                .map(EventUtils::mapToReminderRequest)
-                .forEach(this.emailService::sendReminderEmail);
+        List<DayEventSlotReminderProjection> eventSlots = this.eventSlotRepository.findByStartDate(LocalDate.now().plusDays(1));
+        eventSlots.forEach(this.emailService::sendReminderEmail);
     }
 
+    /*
+         The difference between the event's start time and the current time in UTC is the same as the difference in the
+         user's local time zone.
+             Scheduled event at 3:00 PM(Europe/London)
+             Event is stored as 2:00 PM UTC
+             At 1:30 PM UTC, our task runs and looks for events starting at 2:00 PM UTC
+             The event is found, and a notification is sent exactly 30 minutes before the event starts in the user's local
+             time
+         Because we store event start times in UTC, querying for events starting 30 minutes from the current UTC time
+         effectively finds events that are 30 minutes away in each user's local time zone. Time zone conversions were
+         already handled when the events were scheduled
+     */
     @Scheduled(cron = "0 */30 * * * *")
     void notifyTimeEvents() {
-        // Starting times are stored in UTC
         LocalDateTime dateTime = LocalDateTime.now(ZoneId.of("UTC")).plusMinutes(30);
-        List<TimeEventSlot> eventSlots = this.timeEventSlotRepository.findByStartTime(dateTime);
-
-        eventSlots.stream()
-                .map(EventUtils::mapToReminderRequest)
-                .forEach(this.emailService::sendReminderEmail);
+        List<TimeEventSlotReminderProjection> eventSlots = this.timeEventSlotRepository.findByStartTime(dateTime);
+        eventSlots.forEach(this.emailService::sendReminderEmail);
     }
 }

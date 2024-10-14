@@ -48,15 +48,34 @@ class DayEventCreateRequestValidatorTest {
         It is very important to have 1 violation per test, because the set of constraints will have more than 1
         error message and, we can not be sure that iterator.next() will return the constraint we test
 
-        In this class we test every case on the CreateDayEventRequestValidator which includes all the cases for the
-        EventUtils.hasValidEventRequestProperties(eventRequest, context) method. This method is also called on the
-        UpdateDayEventRequestValidator. We don't have to repeat the tests.
+        Both the DayEventCreateRequestValidator and the TimeEventCreateRequestValidator make a call to the overloaded
+        method EventUtils.hasValidEventRequestProperties(). For day events, the method calls hasValidDateProperties()
+        and then calls hasValidFrequencyProperties(). For time events, method calls hasValidDateTimeProperties()
+        and then calls hasValidFrequencyProperties(). In this class, we test every case for the hasValidDateProperties()
+        and hasValidFrequencyProperties(). We don't have to repeat the tests for the frequency properties in the
+        TimeEventCreateRequestValidator
      */
     @BeforeEach
     void setUp() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
+    }
+
+    @Test
+    void shouldReturnTrueWhenDayEventRequestIsValid() {
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusDays(3))
+                .recurrenceFrequency(RecurrenceFrequency.DAILY)
+                .recurrenceStep(3)
+                .recurrenceDuration(RecurrenceDuration.FOREVER)
+                .build();
+
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
+
+        assertThat(violations).isEmpty();
     }
 
     @Test
@@ -173,23 +192,6 @@ class DayEventCreateRequestValidatorTest {
         ConstraintViolation<DayEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Specify an end date or a number of occurrences for recurring events");
-    }
-
-
-    @Test
-    void shouldReturnTrueWhenDayEventRequestIsValidAndRecurrenceDurationIsForever() {
-        DayEventRequest request = DayEventRequest.builder()
-                .title("Event title")
-                .startDate(LocalDate.now())
-                .endDate(LocalDate.now().plusDays(3))
-                .recurrenceFrequency(RecurrenceFrequency.DAILY)
-                .recurrenceStep(3)
-                .recurrenceDuration(RecurrenceDuration.FOREVER)
-                .build();
-
-        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnCreate.class);
-
-        assertThat(violations).isEmpty();
     }
 
     @Test

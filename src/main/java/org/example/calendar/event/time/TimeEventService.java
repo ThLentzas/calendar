@@ -1,37 +1,42 @@
 package org.example.calendar.event.time;
 
+import org.example.calendar.entity.TimeEventSlot;
 import org.example.calendar.event.recurrence.RecurrenceDuration;
 import org.example.calendar.event.recurrence.RecurrenceFrequency;
 import org.example.calendar.event.time.dto.TimeEventInvitationRequest;
 import org.example.calendar.event.time.dto.TimeEventRequest;
 import org.example.calendar.event.slot.time.TimeEventSlotService;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotDTO;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotPublicProjection;
 import org.example.calendar.email.EmailService;
 import org.example.calendar.entity.TimeEvent;
 import org.example.calendar.entity.User;
+import org.example.calendar.event.time.projection.TimeEventProjection;
 import org.example.calendar.exception.ResourceNotFoundException;
 import org.example.calendar.user.UserRepository;
+import org.example.calendar.utils.EventUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class TimeEventService {
-    private final UserRepository userRepository;
     private final TimeEventRepository timeEventRepository;
+    private final UserRepository userRepository;
     private final TimeEventSlotService timeEventSlotService;
     private final EmailService emailService;
     private static final String EVENT_NOT_FOUND_MSG = "Time event not found with id: ";
 
     @Transactional
-    public UUID create(Long userId, TimeEventRequest eventRequest) {
+    public UUID createEvent(Long userId, TimeEventRequest eventRequest) {
         /*
             The current authenticated user is the organizer of the event. We can't call getReferenceById(), we need the
             username of the user to set it as the organizer in the invitation email template
@@ -49,7 +54,7 @@ public class TimeEventService {
                 .recurrenceDuration(eventRequest.getRecurrenceDuration())
                 .recurrenceEndDate(eventRequest.getRecurrenceEndDate())
                 .numberOfOccurrences(eventRequest.getNumberOfOccurrences())
-                .user(user)
+                .organizerId(user.getId())
                 .build();
         /*
             For events that are set to recur forever, we choose an arbitrary limit of 100 years and set the recurrence
@@ -61,24 +66,25 @@ public class TimeEventService {
             event.setRecurrenceEndDate(LocalDate.from(event.getStartTime().plusYears(100)));
         }
 
-        this.timeEventRepository.save(event);
+        this.timeEventRepository.create(event);
+        eventRequest.setGuestEmails(EventUtils.processGuestEmails(user, eventRequest.getGuestEmails()));
         this.timeEventSlotService.create(eventRequest, event);
         TimeEventInvitationRequest emailRequest = TimeEventInvitationRequest.builder()
                 .eventName(eventRequest.getTitle())
                 .location(eventRequest.getLocation())
                 .organizer(user.getUsername())
                 .guestEmails(eventRequest.getGuestEmails())
-                .recurrenceFrequency(event.getRecurrenceFrequency())
-                .recurrenceStep(event.getRecurrenceStep())
-                .weeklyRecurrenceDays(event.getWeeklyRecurrenceDays())
-                .monthlyRecurrenceType(event.getMonthlyRecurrenceType())
-                .recurrenceDuration(event.getRecurrenceDuration())
-                .recurrenceEndDate(event.getRecurrenceEndDate())
-                .numbersOfOccurrences(event.getNumberOfOccurrences())
-                .startTime(event.getStartTime())
-                .endTime(event.getEndTime())
-                .startTimeZoneId(event.getStartTimeZoneId())
-                .endTimeZoneId(event.getEndTimeZoneId())
+                .recurrenceFrequency(eventRequest.getRecurrenceFrequency())
+                .recurrenceStep(eventRequest.getRecurrenceStep())
+                .weeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays())
+                .monthlyRecurrenceType(eventRequest.getMonthlyRecurrenceType())
+                .recurrenceDuration(eventRequest.getRecurrenceDuration())
+                .recurrenceEndDate(eventRequest.getRecurrenceEndDate())
+                .numbersOfOccurrences(eventRequest.getNumberOfOccurrences())
+                .startTime(eventRequest.getStartTime())
+                .endTime(eventRequest.getEndTime())
+                .startTimeZoneId(eventRequest.getStartTimeZoneId())
+                .endTimeZoneId(eventRequest.getEndTimeZoneId())
                 .build();
         this.emailService.sendInvitationEmail(emailRequest);
 
@@ -87,11 +93,52 @@ public class TimeEventService {
 
     // Either the event does not exist, or the user that made the request is not organizer of the event. Both lead to 404.
     @Transactional
-    public void update(Long userId, UUID eventId, TimeEventRequest eventRequest) {
-        TimeEvent event = this.timeEventRepository.findByEventIdAndUserId(eventId, userId).orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + eventId));
+    public void updateEvent(Long userId, UUID eventId, TimeEventRequest eventRequest) {
+        TimeEventProjection projection = this.timeEventRepository.findByEventAndUserId(eventId, userId).orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + eventId));
+        User user = this.userRepository.findAuthUserByIdOrThrow(userId);
+        TimeEvent original = TimeEvent.builder()
+                .id(projection.getId())
+                .startTime(projection.getStarTime())
+                .startTimeZoneId(projection.getStartTimeZoneId())
+                .endTime(projection.getEndTime())
+                .endTimeZoneId(projection.getEndTimeZoneId())
+                .recurrenceFrequency(projection.getRecurrenceFrequency())
+                .recurrenceStep(projection.getRecurrenceStep())
+                .weeklyRecurrenceDays(projection.getWeeklyRecurrenceDays())
+                .monthlyRecurrenceType(projection.getMonthlyRecurrenceType())
+                .recurrenceDuration(projection.getRecurrenceDuration())
+                .recurrenceEndDate(projection.getRecurrenceEndDate())
+                .numberOfOccurrences(projection.getNumberOfOccurrences())
+                .build();
 
-        this.timeEventSlotService.updateEventSlotsForEvent(eventRequest, event);
-        this.timeEventRepository.save(event);
+        // TimeEvent modified = original; Shallow copy it would also change the original
+        TimeEvent modified = new TimeEvent(original);
+        eventRequest.setGuestEmails(EventUtils.processGuestEmails(user, eventRequest.getGuestEmails()));
+        EventUtils.setFrequencyProperties(eventRequest, modified);
+        modified.setStartTime(eventRequest.getStartTime());
+        modified.setStartTimeZoneId(eventRequest.getStartTimeZoneId());
+        modified.setEndTime(eventRequest.getEndTime());
+        modified.setEndTimeZoneId(eventRequest.getEndTimeZoneId());
+        if (!EventUtils.hasSameFrequencyProperties(original, modified)
+                || !original.getStartTime().isEqual(modified.getStartTime())
+                || !original.getStartTimeZoneId().equals(modified.getStartTimeZoneId())
+                || !original.getEndTime().isEqual(modified.getEndTime())
+                || !original.getEndTimeZoneId().equals(modified.getEndTimeZoneId())) {
+            this.timeEventSlotService.deleteEventSlotsByEventId(original.getId());
+            this.timeEventSlotService.create(eventRequest, modified);
+            this.timeEventRepository.update(original, modified);
+        } else {
+            List<TimeEventSlot> eventSlots = projection.getEventSlots().stream()
+                    .map(slotProjection -> TimeEventSlot.builder()
+                            .id(slotProjection.getId())
+                            .title(slotProjection.getTitle())
+                            .location(slotProjection.getLocation())
+                            .description(slotProjection.getDescription())
+                            .guestEmails(slotProjection.getGuestEmails())
+                            .build())
+                    .collect(Collectors.toList());
+            this.timeEventSlotService.updateEventSlotsForEvent(eventRequest, eventSlots);
+        }
     }
 
     /*
@@ -114,17 +161,18 @@ public class TimeEventService {
 
         If the event is not found or the user is not organizer of the event an empty list will be returned.
      */
-    public List<TimeEventSlotDTO> findEventSlotsByEventId(UUID eventId, Long userId) {
-        return this.timeEventSlotService.findEventSlotsByEventId(eventId, userId);
+    public List<TimeEventSlotPublicProjection> findEventSlotsByEventId(UUID eventId, Long userId) {
+        return this.timeEventSlotService.findEventSlotsByEventAndUserId(eventId, userId);
     }
 
     /*
         Calling getReferenceById() will not work like it did before because we need all the day events that the user
         is either the Organizer(id) but also those that they are invited as guest via their email. We need both.
      */
-    public List<TimeEventSlotDTO> findEventSlotsByUserInDateRange(Long userId, LocalDateTime startTime, LocalDateTime endTime) {
+    public List<TimeEventSlotPublicProjection> findEventSlotsByUserInDateRange(Long userId, LocalDateTime startTime, ZoneId startTimeZoneId, LocalDateTime endTime, ZoneId endTimeZoneId) {
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
-        return this.timeEventSlotService.findEventSlotsByUserInDateRange(user, startTime, endTime);
+
+        return this.timeEventSlotService.findEventSlotsByUserInDateRange(user, startTime, startTimeZoneId, endTime, endTimeZoneId);
     }
 
     /*

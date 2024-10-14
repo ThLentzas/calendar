@@ -28,6 +28,7 @@ public class SecurityConfig {
                     auth.anyRequest().authenticated();
                 })
                 .csrf(csrfConfigurer -> {
+                    // Double submit pattern
                     csrfConfigurer.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());
                     csrfConfigurer.csrfTokenRequestHandler(requestHandler);
                 })

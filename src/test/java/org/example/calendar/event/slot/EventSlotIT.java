@@ -9,7 +9,10 @@ import org.example.calendar.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.jdbc.Sql;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.UUID;
 
@@ -110,7 +113,7 @@ class EventSlotIT extends AbstractIntegrationTest {
                 .body("guestEmails", contains("ericka.ankunding@hotmail.com", guestEmail))
                 .body("startDate", equalTo("2024-10-29"))
                 .body("endDate", equalTo("2024-10-30"))
-                .body("dayEventId", equalTo("6b9b32f2-3c2a-4420-9d52-781c09f320ce"));
+                .body("eventId", equalTo("6b9b32f2-3c2a-4420-9d52-781c09f320ce"));
     }
 
     //updateDayEventSlot()
@@ -183,7 +186,7 @@ class EventSlotIT extends AbstractIntegrationTest {
                 .body("description", equalTo("New description"))
                 .body("organizer", equalTo("clement.gulgowski"))
                 .body("guestEmails", hasItems(guestEmail))
-                .body("dayEventId", equalTo("4472d36c-2051-40e3-a2cf-00c6497807b5"));
+                .body("eventId", equalTo("4472d36c-2051-40e3-a2cf-00c6497807b5"));
     }
 
     // deleteDayEventSlot()
@@ -234,7 +237,7 @@ class EventSlotIT extends AbstractIntegrationTest {
                 .statusCode(404);
     }
 
-    // inviteGuestsToDayEventSlot()
+    // inviteGuestsToTimeEventSlot()
     @Test
     @Sql({"/scripts/INIT_USERS.sql", "/scripts/INIT_EVENTS.sql"})
     void shouldInviteGuestsToTimeEventSlot() {
@@ -291,7 +294,7 @@ class EventSlotIT extends AbstractIntegrationTest {
                 .statusCode(200)
                 .body("id", equalTo(timeEventSlotId.toString()))
                 .body("title", equalTo("Event title"))
-                .body("startTime", equalTo("2024-10-11T10:00:00"))
+                .body("startTime", equalTo("2024-10-15T10:00:00"))
                 .body("endTime", equalTo("2024-10-15T15:00:00"))
                 .body("startTimeZoneId", equalTo("Europe/London"))
                 .body("endTimeZoneId", equalTo("Europe/London"))
@@ -299,7 +302,7 @@ class EventSlotIT extends AbstractIntegrationTest {
                 .body("organizer", equalTo("kris.hudson"))
                 // order matters for the emails (hasItems ignores order). There is also containsInRelativeOrder()
                 .body("guestEmails", contains("ericka.ankunding@hotmail.com", guestEmail))
-                .body("timeEventId", equalTo("0c9d6398-a6de-47f0-8328-04a2f3c0511c"));
+                .body("eventId", equalTo("0c9d6398-a6de-47f0-8328-04a2f3c0511c"));
     }
 
     // updateTimeEventSlot
@@ -331,13 +334,17 @@ class EventSlotIT extends AbstractIntegrationTest {
         cookies = response.getCookies();
         UUID slotId = UUID.fromString("3075c6eb-8028-4f99-8c6c-27db1bb5cc43");
 
-        String requestBody = """
+        String requestBody = String.format("""
                 {
+                    "startTime": "%s",
+                    "startTimeZoneId": "Europe/London",
+                    "endTime": "%s",
+                    "endTimeZoneId": "Europe/London",
                     "title": "Title",
                     "location": "New location",
                     "description": "New description"
                 }
-                """;
+                """, LocalDateTime.now(ZoneId.of("Europe/London")).plusMinutes(30), LocalDateTime.now(ZoneId.of("Europe/London")).plusHours(2));
 
         given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))

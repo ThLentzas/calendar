@@ -1,17 +1,46 @@
 package org.example.calendar.user.contact;
 
 import org.example.calendar.entity.Contact;
-import org.example.calendar.entity.key.ContactId;
-import org.example.calendar.user.UserProjection;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.example.calendar.entity.User;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-interface ContactRepository extends JpaRepository<Contact, ContactId> {
+import lombok.RequiredArgsConstructor;
 
-    // explain the problem with just WHERE c.id.userId1 = :userId OR c.id.userId2 = :userId
+@Repository
+@RequiredArgsConstructor
+class ContactRepository {
+    private final JdbcClient jdbcClient;
+
+    /*
+        We are inserting in the join table once the user accepted a pending contact request. We need to handle the case
+        of inserting a duplicate PK. The PK in the join table is the composite key of (userId1, userId2). There are
+        3 different approaches to handle it.
+            1. ON CONFLICT DO NOTHING, this syntax is psql specific but same idea
+            2. Perform a SELECT and execute the INSERT if no results (SELECT COUNT() etc)
+            3. a try/catch block where we handle a DuplicateKeyException
+
+        The below check is not necessary because if the contact already exists with the provided ids, a contact request
+        record would exist with status ACCEPTED and the check we perform in the contact request service would result
+        in a ConflictException.
+
+        if (insert != 1) {
+            LOGGER.info("Duplicate key: {}, {}", contact.getUser1Id(), contact.getUser2Id());
+        }
+
+        Also the "ON CONFLICT DO NOTHING" is not needed
+     */
+    void create(Contact contact) {
+        this.jdbcClient.sql("""
+                        INSERT INTO contacts
+                        VALUES(:userId1, :userId2)
+                        """)
+                .param("userId1", contact.getUser1Id())
+                .param("userId2", contact.getUser2Id())
+                .update();
+    }
 
     /*
         In contacts, the relationship is bidirectional with a single entry. It means that user 1 has user 3 in their
@@ -45,11 +74,6 @@ interface ContactRepository extends JpaRepository<Contact, ContactId> {
         We need to use scalar expressions like the one below, to return something like an integer, string, or boolean value
         We can not map the response to Hibernate Entity.
 
-        We have to use a Projection instead according to Spring Data Jpa convention.
-        https://docs.spring.io/spring-data/jpa/reference/repositories/projections.html. We define an interface with
-        accessors. Naming convention is very important, we need to always add the as id, as username so that Hibernate
-        knows how to map those values to the values of the interface.
-
         The flow:
             1. WHERE clause filters the rows from the Contact table to include only those rows where either user1.id or
             user2.id matches the given userId
@@ -59,53 +83,33 @@ interface ContactRepository extends JpaRepository<Contact, ContactId> {
                 If not, the values from user1 are selected
             3. ORDER BY clause, needs to know which username was selected to order them correctly
      */
-    @Query("""
-                SELECT
-                    CASE
-                        WHEN c.user1.id = :userId THEN c.user2.id
-                        ELSE c.user1.id
-                    END as id,
-                    CASE
-                        WHEN c.user1.id = :userId THEN c.user2.username
-                        ELSE c.user1.username
-                    END as username,
-                    CASE
-                        WHEN c.user1.id = :userId THEN c.user2.email
-                        ELSE c.user1.email
-                    END as email
-                FROM Contact c
-                WHERE c.user1.id = :userId OR c.user2.id = :userId
-                ORDER BY
-                    CASE
-                        WHEN c.user1.id = :userId THEN c.user2.username
-                        ELSE c.user1.username
-                        END ASC
-            """)
-    List<UserProjection> findContacts(@Param("userId") Long userId);
-
-        /*
-            @Query(value = """
-                SELECT
-                    CASE
-                        WHEN c.user_id_1 = :userId THEN u2.id
-                        ELSE u1.id
-                    END as id,
-                    CASE
-                        WHEN c.user_id_1 = :userId THEN u2.username
-                        ELSE u1.username
-                    END as username,
-                    CASE
-                        WHEN c.user_id_1 = :userId THEN u2.password
-                        ELSE u1.password
-                    END as password,
-                    CASE
-                        WHEN c.user_id_1 = :userId THEN u2.email
-                        ELSE u1.email
-                    END as email
-                FROM contacts c
-                JOIN users u1 ON c.user_id_1 = u1.id
-                JOIN users u2 ON c.user_id_2 = u2.id
-                WHERE c.user_id_1 = :userId OR c.user_id_2 = :userId
-                            """, nativeQuery = true)
-     */
+    List<User> findContacts(Long userId) {
+        return this.jdbcClient.sql("""
+                        SELECT
+                            CASE
+                                WHEN c.user_id_1 = :userId THEN u2.id
+                                ELSE u1.id
+                            END as id,
+                            CASE
+                                WHEN c.user_id_1 = :userId THEN u2.username
+                                ELSE u1.username
+                            END as username,
+                            CASE
+                                WHEN c.user_id_1 = :userId THEN u2.password
+                                ELSE u1.password
+                            END as password,
+                            CASE
+                                WHEN c.user_id_1 = :userId THEN u2.email
+                                ELSE u1.email
+                            END as email
+                        FROM contacts c
+                        JOIN users u1 ON c.user_id_1 = u1.id
+                        JOIN users u2 ON c.user_id_2 = u2.id
+                        WHERE c.user_id_1 = :userId OR c.user_id_2 = :userId
+                        ORDER BY username
+                        """)
+                .param("userId", userId)
+                .query(User.class)
+                .list();
+    }
 }

@@ -72,6 +72,12 @@ public abstract class AbstractIntegrationTest {
     }
 
     /*
+        I tried to setup in @BeforeEach but the method was getting executed after the @SQl scripts and it was deleting
+        the users which made my tests fail
+
+        Why is it better to clean in @BeforeEach()?
+        https://www.youtube.com/watch?v=u5foQULTxHM 1.07.40
+
         We have ON DELETE CASCADE and every user related entries will also be deleted.
         We need to delete the received emails between the tests, so
             await().atMost(5, TimeUnit.SECONDS).until(() -> greenMail.getReceivedMessages().length == 1);
@@ -79,6 +85,7 @@ public abstract class AbstractIntegrationTest {
      */
     @AfterEach
     void clear() throws FolderException {
+        // This must be @Transactional! Explained in the method itself
         this.userRepository.deleteAll();
         greenMail.purgeEmailFromAllMailboxes();
     }
@@ -86,6 +93,10 @@ public abstract class AbstractIntegrationTest {
     // The credentials from the users in the INIT_USERS.sql script. The import is from springframework data util.
     // It will also work with the test containers apache tuple Pair
     protected List<Pair<String, String>> userCredentials() {
-        return List.of(Pair.of("joshua.wolf@hotmail.com", "jPt75uo0g$8_"), Pair.of("ericka.ankunding@hotmail.com", "kR8zV1l$5x#"), Pair.of("waltraud.roberts@gmail.com", "nJ2dQ4t@7y!"));
+        return List.of(
+                Pair.of("joshua.wolf@hotmail.com", "jPt75uo0g$8_"),
+                Pair.of("ericka.ankunding@hotmail.com", "kR8zV1l$5x#"),
+                Pair.of("waltraud.roberts@gmail.com", "nJ2dQ4t@7y!")
+        );
     }
 }

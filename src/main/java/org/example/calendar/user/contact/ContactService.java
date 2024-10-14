@@ -3,8 +3,6 @@ package org.example.calendar.user.contact;
 import org.example.calendar.entity.Contact;
 import org.example.calendar.entity.ContactRequest;
 import org.example.calendar.entity.User;
-import org.example.calendar.entity.key.ContactId;
-import org.example.calendar.user.UserProjection;
 import org.springframework.stereotype.Service;
 
 import lombok.RequiredArgsConstructor;
@@ -14,10 +12,10 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ContactService {
-    private final ContactRepository contactRepository;
+    private final ContactRepository repository;
 
     /*
-        In the user_contacts table, we only create a single entry that will represent both sides of the relationship, so
+        In the contacts table, we only create a single entry that will represent both sides of the relationship, so
         if we store user_id_1: 1, user_id_2: 2 it is bidirectional. If instead actually stored the relationship to show
         that it is bidirectional, user_id_1: 1, user_id_2: 2 and user_id_1: 2, user_id_2: 1 we would consume twice the
         space and, also we have to be careful with consistency because any change to one of the two records has to be
@@ -35,24 +33,13 @@ public class ContactService {
         https://www.bitbytebit.xyz/p/user-friends-system-and-database
     */
     public void createContact(ContactRequest contactRequest) {
-        User user1 = contactRequest.getSender().getId() < contactRequest.getReceiver().getId() ? contactRequest.getSender() : contactRequest.getReceiver();
-        User user2 = contactRequest.getSender().getId() > contactRequest.getReceiver().getId() ? contactRequest.getSender() : contactRequest.getReceiver();
-
-        Contact contact = new Contact();
-        contact.setId(new ContactId(user1.getId(), user2.getId()));
-        contact.setUser1(user1);
-        contact.setUser2(user2);
-        this.contactRepository.save(contact);
+        Long userId1 = contactRequest.getSenderId() < contactRequest.getReceiverId() ? contactRequest.getSenderId() : contactRequest.getReceiverId();
+        Long userId2 = contactRequest.getSenderId() > contactRequest.getReceiverId() ? contactRequest.getSenderId() : contactRequest.getReceiverId();
+        Contact contact = new Contact(userId1, userId2);
+        this.repository.create(contact);
     }
 
     public List<User> findContacts(Long userId) {
-        List<UserProjection> projections = this.contactRepository.findContacts(userId);
-        return projections.stream()
-                .map(userProjection -> {
-                    User user = new User();
-                    user.setId(userProjection.getId());
-                    user.setUsername(userProjection.getUsername());
-                    return user;
-                }).toList();
+        return this.repository.findContacts(userId);
     }
 }

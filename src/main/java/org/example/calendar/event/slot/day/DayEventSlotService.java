@@ -4,13 +4,13 @@ import org.example.calendar.event.day.dto.DayEventRequest;
 import org.example.calendar.event.dto.InviteGuestsRequest;
 import org.example.calendar.event.recurrence.MonthlyRecurrenceType;
 import org.example.calendar.event.recurrence.RecurrenceDuration;
-import org.example.calendar.event.slot.day.dto.DayEventSlotDTO;
-import org.example.calendar.event.slot.day.dto.DayEventSlotDTOConverter;
+import org.example.calendar.event.slot.day.projection.DayEventSlotPublicProjection;
 import org.example.calendar.event.slot.day.dto.DayEventSlotRequest;
 import org.example.calendar.entity.DayEvent;
 import org.example.calendar.entity.DayEventSlot;
 import org.example.calendar.entity.User;
-import org.example.calendar.event.recurrence.RecurrenceFrequency;
+import org.example.calendar.event.slot.day.projection.DayEventSlotProjection;
+import org.example.calendar.event.slot.projection.EventSlotWithGuestsProjection;
 import org.example.calendar.exception.ResourceNotFoundException;
 import org.example.calendar.user.UserRepository;
 import org.example.calendar.utils.DateUtils;
@@ -22,20 +22,17 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class DayEventSlotService {
-    private final DayEventSlotRepository dayEventSlotRepository;
+    private final DayEventSlotRepository eventSlotRepository;
     private final UserRepository userRepository;
-    private static final DayEventSlotDTOConverter CONVERTER = new DayEventSlotDTOConverter();
     private static final String EVENT_SLOT_NOT_FOUND_MSG = "Day event slot not found with id: ";
 
     /*
@@ -49,21 +46,9 @@ public class DayEventSlotService {
             ChronoUnit.DAYS.between(dayEvent.getStartDate(), dayEvent.getEndDate()).
         We advance the start date by the number of days specified in the recurrence step (e.g., every 2 days, weeks,
         months, etc.) and repeat the process.
-
-        We create the DayEventSlots based on the DayEvent, and we retrieve properties like dayEvent.getStartDate();
-        and not like dayEventRequest.getStartDate(). The values are the same. That was my thought process
     */
     @Transactional
     public void create(DayEventRequest eventRequest, DayEvent event) {
-        // We want to send invitation emails only to emails that at least contain @
-        Set<String> guestEmails = new HashSet<>();
-        if (eventRequest.getGuestEmails() != null) {
-            guestEmails = eventRequest.getGuestEmails().stream()
-                    .filter(guestEmail -> guestEmail.contains("@"))
-                    .collect(Collectors.toSet());
-        }
-        eventRequest.setGuestEmails(guestEmails);
-
         switch (event.getRecurrenceFrequency()) {
             // Since the event is not recurring, we only create 1 DayEventSlot
             case NEVER -> createDayEventSlot(eventRequest, event, event.getStartDate());
@@ -113,56 +98,25 @@ public class DayEventSlotService {
         }
     }
 
-    /*
-        This method will be tested via an Integration test, because EventUtils.hasSameFrequencyProperties() is already
-        tested and the remaining code is just calling delete() and save(). No logic to be tested in the
-        DayEventSlotServiceTest class, create is already fully tested.
-     */
-    @Transactional
-    public void updateEventSlotsForEvent(DayEventRequest eventRequest, DayEvent event) {
-        if (eventRequest.getRecurrenceFrequency() != null && !EventUtils.hasSameFrequencyProperties(eventRequest, event)) {
-            DayEventRequest dayEventRequest = DayEventRequest.builder()
-                    .title(eventRequest.getTitle())
-                    .location(eventRequest.getLocation())
-                    .description(eventRequest.getDescription())
-                    .guestEmails(eventRequest.getGuestEmails())
-                    .startDate(eventRequest.getStartDate())
-                    .endDate(eventRequest.getEndDate())
-                    .recurrenceFrequency(eventRequest.getRecurrenceFrequency())
-                    .recurrenceStep(eventRequest.getRecurrenceStep())
-                    .weeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays())
-                    .monthlyRecurrenceType(eventRequest.getMonthlyRecurrenceType())
-                    .recurrenceDuration(eventRequest.getRecurrenceDuration())
-                    .recurrenceEndDate(eventRequest.getRecurrenceEndDate())
-                    .numberOfOccurrences(eventRequest.getNumberOfOccurrences())
-                    .build();
+    public void updateEventSlotsForEvent(DayEventRequest eventRequest, List<DayEventSlot> eventSlots) {
+        DayEventSlotRequest eventSlotRequest = DayEventSlotRequest.builder()
+                .title(eventRequest.getTitle())
+                .location(eventRequest.getLocation())
+                .description(eventRequest.getDescription())
+                .build();
 
-            event.setStartDate(eventRequest.getStartDate());
-            event.setEndDate(eventRequest.getEndDate());
-            EventUtils.updateCommonEventProperties(eventRequest, event);
-
-            this.dayEventSlotRepository.deleteAll(event.getDayEventSlots());
-
-            // Maybe this is bad practise to self invoke public methods, but we need to create the event slots for the different frequency
-            create(dayEventRequest, event);
-        } else {
-            DayEventSlotRequest eventSlotRequest = DayEventSlotRequest.builder()
-                    .title(eventRequest.getTitle())
-                    .location(eventRequest.getLocation())
-                    .description(eventRequest.getDescription())
-                    .build();
-
-            event.getDayEventSlots().forEach(eventSlot -> {
-                EventUtils.updateCommonEventSlotProperties(eventSlotRequest, eventSlot);
-                eventSlot.setGuestEmails(eventRequest.getGuestEmails() != null && !eventRequest.getGuestEmails().isEmpty() ? eventRequest.getGuestEmails() : eventSlot.getGuestEmails());
-
-                this.dayEventSlotRepository.save(eventSlot);
-            });
+        for (DayEventSlot original : eventSlots) {
+            DayEventSlot modified = new DayEventSlot();
+            modified.setId(original.getId());
+            EventUtils.setCommonEventSlotProperties(eventSlotRequest, modified);
+            // Can't be null. Emails are processed and if they were null an empty set is returned.
+            modified.setGuestEmails(eventRequest.getGuestEmails());
+            this.eventSlotRepository.updateEventSlotForEvent(original, modified);
         }
     }
 
     /*
-        We can not call getReferenceById(), we need the email.
+        For update validation rules look at the DayEventSlotRequestValidator
 
         There are 2 cases where the existsByEventIdAndUserId() could throw ResourceNotFoundException.
             1. Event slot exists but the authenticated user is not the organizer
@@ -184,23 +138,27 @@ public class DayEventSlotService {
     */
     @Transactional
     public void updateEventSlot(Long userId, UUID slotId, DayEventSlotRequest eventSlotRequest) {
-        DayEventSlot eventSlot = this.dayEventSlotRepository.findByIdOrThrow(slotId, userId);
+        DayEventSlotProjection eventSlotProjection = this.eventSlotRepository.findBySlotAndUserId(slotId, userId).orElseThrow(() -> new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId));
+        DayEventSlot original = DayEventSlot.builder()
+                .id(eventSlotProjection.getId())
+                .title(eventSlotProjection.getTitle())
+                .location(eventSlotProjection.getLocation())
+                .description(eventSlotProjection.getDescription())
+                .startDate(eventSlotProjection.getStartDate())
+                .endDate(eventSlotProjection.getEndDate())
+                .guestEmails(eventSlotProjection.getGuestEmails())
+                .build();
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
+        DayEventSlot modified = new DayEventSlot(original);
+        modified.setStartDate(eventSlotRequest.getStartDate());
+        modified.setEndDate(eventSlotRequest.getEndDate());
+        EventUtils.setCommonEventSlotProperties(eventSlotRequest, modified);
+        modified.setGuestEmails(EventUtils.processGuestEmails(user, eventSlotRequest.getGuestEmails()));
 
-        Set<String> guestEmails = EventUtils.processGuestEmails(user, eventSlotRequest.getGuestEmails());
-        eventSlot.setStartDate(eventSlotRequest.getStartDate() != null ? eventSlotRequest.getStartDate() : eventSlot.getStartDate());
-        eventSlot.setEndDate(eventSlotRequest.getEndDate() != null ? eventSlotRequest.getEndDate() : eventSlot.getEndDate());
-        EventUtils.updateCommonEventSlotProperties(eventSlotRequest, eventSlot);
-        // guestEmails can be empty after processing the emails from the update request
-        eventSlot.setGuestEmails(!guestEmails.isEmpty() ? guestEmails : eventSlot.getGuestEmails());
-
-        // Explicit saving. EventSlot is updated within a transactional context, Hibernate will update it anyway but, it is better to know what is happening
-        this.dayEventSlotRepository.save(eventSlot);
+        this.eventSlotRepository.update(original, modified);
     }
 
     /*
-        We can not call getReferenceById(), we need the email.
-
         There are 2 cases where the existsByEventIdAndUserId() could throw ResourceNotFoundException.
             1. Event slot exists but the authenticated user is not the organizer
             2. Event slot does not exist
@@ -221,47 +179,41 @@ public class DayEventSlotService {
      */
     @Transactional
     public void inviteGuests(Long userId, UUID slotId, InviteGuestsRequest inviteGuestsRequest) {
-        DayEventSlot eventSlot = this.dayEventSlotRepository.findByIdOrThrow(slotId, userId);
+        EventSlotWithGuestsProjection projection = this.eventSlotRepository.findBySlotAndUserIdFetchingGuests(slotId, userId).orElseThrow(() -> new ResourceNotFoundException("Day event slot not found with id: " + slotId));
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
+        Set<String> guestEmails = EventUtils.processGuestEmails(user, inviteGuestsRequest, projection.getGuestEmails());
 
-        Set<String> guestEmails = EventUtils.processGuestEmails(user, inviteGuestsRequest, eventSlot.getGuestEmails());
-        eventSlot.getGuestEmails().addAll(guestEmails);
-
-        // The method is @Transactional, but we explicitly call save() to know that we update the guest list
-        this.dayEventSlotRepository.save(eventSlot);
+        this.eventSlotRepository.inviteGuests(projection.getId(), guestEmails);
     }
 
-    public List<DayEventSlotDTO> findEventSlotsByEventId(UUID eventId, Long userId) {
-        return this.dayEventSlotRepository.findByEventAndUserId(eventId, userId)
-                .stream()
-                .map(CONVERTER::convert)
-                .toList();
+    public List<DayEventSlotPublicProjection> findEventSlotsByEventAndUserId(UUID eventId, Long userId) {
+        return this.eventSlotRepository.findByEventAndUserId(eventId, userId);
     }
 
     /*
         Returns an event slot where the user is either the organizer or invited as guest
     */
-    public DayEventSlotDTO findEventSlotById(Long userId, UUID slotId) {
+    public DayEventSlotPublicProjection findEventSlotById(Long userId, UUID slotId) {
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
-        DayEventSlot eventSlot = this.dayEventSlotRepository.findByOrganizerOrGuestEmailAndSlotId(userId, user.getEmail(), slotId).orElseThrow(() -> new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId));
-
-        return CONVERTER.convert(eventSlot);
+        return this.eventSlotRepository.findByOrganizerOrGuestEmailAndSlotId(slotId, userId, user.getEmail()).orElseThrow(() -> new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId));
     }
 
-    public List<DayEventSlotDTO> findEventSlotsByUserInDateRange(User user, LocalDate startDate, LocalDate endDate) {
-        return this.dayEventSlotRepository.findByUserInDateRange(user.getId(), user.getEmail(), startDate, endDate)
-                .stream()
-                .map(CONVERTER::convert)
-                .toList();
+    public List<DayEventSlotPublicProjection> findEventSlotsByUserInDateRange(User user, LocalDate startDate, LocalDate endDate) {
+        return this.eventSlotRepository.findByUserInDateRange(user.getId(), user.getEmail(), startDate, endDate);
     }
 
-    // 2 delete queries will be logged, first to delete all the guest emails and then the slot itself
     @Transactional
     public void deleteEventSlotById(UUID slotId, Long userId) {
-        int deleted = this.dayEventSlotRepository.deleteBySlotAndUserId(slotId, userId);
-        if (deleted != 1) {
+        int rowsAffected = this.eventSlotRepository.deleteBySlotAndUserId(slotId, userId);
+        if (rowsAffected != 1) {
             throw new ResourceNotFoundException(EVENT_SLOT_NOT_FOUND_MSG + slotId);
         }
+    }
+
+    // This method is used to delete the current event slots before creating new ones based on the new recurrence
+    // properties when we update an event. We need to delete the previous ones and create the new
+    public void deleteEventSlotsByEventId(UUID eventId) {
+        this.eventSlotRepository.deleteEventSlotsByEventId(eventId);
     }
 
     private void createUntilDateDailyEventSlots(DayEventRequest dayEventRequest, DayEvent dayEvent) {
@@ -462,15 +414,17 @@ public class DayEventSlotService {
 
     private void createDayEventSlot(DayEventRequest eventRequest, DayEvent dayEvent, LocalDate startDate) {
         LocalDate endDate = startDate.plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate()));
-        DayEventSlot dayEventSlot = new DayEventSlot();
-        dayEventSlot.setStartDate(startDate);
-        dayEventSlot.setEndDate(endDate);
-        dayEventSlot.setTitle(eventRequest.getTitle());
-        dayEventSlot.setDescription(eventRequest.getDescription());
-        dayEventSlot.setLocation(eventRequest.getLocation());
-        dayEventSlot.setGuestEmails(eventRequest.getGuestEmails());
-        dayEventSlot.setDayEvent(dayEvent);
-        this.dayEventSlotRepository.save(dayEventSlot);
+        DayEventSlot eventSlot = DayEventSlot.builder()
+                .id(UUID.randomUUID())
+                .eventId(dayEvent.getId())
+                .startDate(startDate)
+                .endDate(endDate)
+                .title(eventRequest.getTitle())
+                .description(eventRequest.getDescription())
+                .location(eventRequest.getLocation())
+                .guestEmails(eventRequest.getGuestEmails())
+                .build();
+        this.eventSlotRepository.create(eventSlot);
     }
 
     /*

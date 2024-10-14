@@ -6,6 +6,8 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 
 import org.example.calendar.event.day.dto.DayEventRequest;
+import org.example.calendar.event.groups.OnCreate;
+import org.example.calendar.event.recurrence.RecurrenceDuration;
 import org.example.calendar.event.recurrence.RecurrenceFrequency;
 import org.example.calendar.event.groups.OnUpdate;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,14 +41,36 @@ class DayEventUpdateRequestValidatorTest {
         It is very important to have 1 violation per test, because the set of constraints will have more than 1
         error message and, we can not be sure that iterator.next() will return the constraint we test
 
-        IMPORTANT!!! The remaining cases for the call to EventUtils.hasValidEventRequestProperties() are tested in the
-        CreateDayEventRequestValidatorTest class, and we don't have to repeat them.
+        Both the DayEventUpdateRequestValidator and the TimeEventUpdateRequestValidator make a call to the overloaded
+        method EventUtils.hasEmptyEventUpdateRequestProperties(). For day events, the next call is it to
+        EventUtils.hasRequiredDateProperties() and then to EventUtils.hasValidEventRequestProperties() which then calls
+        hasValidFrequencyProperties() and hasValidDateProperties(). For time events, the next method call is to
+        EventUtils.hasRequiredDateTimeProperties() and then calls EventUtils.hasValidEventRequestProperties(), which then calls
+        hasValidFrequencyProperties() and hasValidDateTimeProperties(). In this class, we test the EventUtils.hasEmptyEventUpdateRequestProperties()
+        and the EventUtils.hasRequiredDateProperties() cases because everything else is already tested in the
+        DayEventCreateRequestValidatorTest class.
      */
     @BeforeEach
     void setUp() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
+    }
+
+    @Test
+    void shouldReturnTrueWhenRequestIsValid() {
+        DayEventRequest request = DayEventRequest.builder()
+                .title("Event title")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusDays(3))
+                .recurrenceFrequency(RecurrenceFrequency.DAILY)
+                .recurrenceStep(3)
+                .recurrenceDuration(RecurrenceDuration.FOREVER)
+                .build();
+
+        Set<ConstraintViolation<DayEventRequest>> violations = validator.validate(request, OnUpdate.class);
+
+        assertThat(violations).isEmpty();
     }
 
     // Every property is null/empty/0/blank etc.
@@ -62,7 +86,7 @@ class DayEventUpdateRequestValidatorTest {
     }
 
     @Test
-    void shouldReturnFalseWhenFrequencyIsNotNullAndStartEndDateAreNull() {
+    void shouldReturnFalseWhenStartAndEndDateAreNull() {
         DayEventRequest request = DayEventRequest.builder()
                 .title("Event title")
                 .recurrenceFrequency(RecurrenceFrequency.DAILY)
@@ -75,7 +99,7 @@ class DayEventUpdateRequestValidatorTest {
     }
 
     @Test
-    void shouldReturnFalseWhenFrequencyIsNotNullAndStartDateIsNull() {
+    void shouldReturnFalseWhenStartDateIsNull() {
         DayEventRequest request = DayEventRequest.builder()
                 .title("Event title")
                 .endDate(LocalDate.now().plusDays(2))
@@ -89,7 +113,7 @@ class DayEventUpdateRequestValidatorTest {
     }
 
     @Test
-    void shouldReturnFalseWhenFrequencyIsNotNullAndEndDateIsNull() {
+    void shouldReturnFalseWhenEndDateIsNull() {
         DayEventRequest request = DayEventRequest.builder()
                 .title("Event title")
                 .startDate(LocalDate.now().plusDays(2))

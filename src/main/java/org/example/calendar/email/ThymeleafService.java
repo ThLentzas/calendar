@@ -16,12 +16,7 @@ import lombok.RequiredArgsConstructor;
 class ThymeleafService {
     private final TemplateEngine templateEngine;
 
-    String setInvitationEmailContext(LocalDate startDate,
-                                     String title,
-                                     String organizer,
-                                     String location,
-                                     String description,
-                                     String frequency) {
+    String setInvitationEmailContext(LocalDate startDate, String title, String organizer, String location, String description, String frequency) {
         Context context = new Context();
         context.setVariable("month", startDate.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH));
         context.setVariable("dayOfMonth", startDate.getDayOfMonth());
@@ -35,11 +30,7 @@ class ThymeleafService {
         return this.templateEngine.process("invitation_email", context);
     }
 
-    String setReminderEmailContext(String dateDescription,
-                                   String title,
-                                   String organizer,
-                                   Set<String> guestEmails,
-                                   String eventDetails) {
+    String setReminderEmailContext(String dateDescription, String title, String organizer, Set<String> guestEmails, String eventDetails) {
         Context context = new Context();
         context.setVariable("date", dateDescription);
         context.setVariable("title", title);

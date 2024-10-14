@@ -33,12 +33,12 @@ class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     @Transactional
-    void registerUser(RegisterRequest registerRequest,
-                      HttpServletResponse servletResponse) {
-        User user = new User();
-        user.setEmail(registerRequest.email());
-        user.setPassword(registerRequest.password());
-        user.setUsername(registerRequest.username());
+    void registerUser(RegisterRequest registerRequest, HttpServletResponse servletResponse) {
+        User user = User.builder()
+                .email(registerRequest.email())
+                .username(registerRequest.username())
+                .password(registerRequest.password())
+                .build();
 
         this.userService.registerUser(user);
         setSecurityContext(user);
@@ -58,7 +58,6 @@ class AuthService {
         }
 
         RefreshToken refreshToken = this.refreshTokenService.findByTokenValue(cookie.getValue());
-        // We don't just call getReferenceById(), because the user might have been deleted from the db.
         User user = this.userService.findById(refreshToken.getUserId());
         UserPrincipal userPrincipal = new UserPrincipal(user);
         String accessTokenValue = this.jwtService.generateToken(userPrincipal);

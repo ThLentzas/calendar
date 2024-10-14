@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import java.time.Year;
 import java.time.format.TextStyle;
 
-import org.example.calendar.event.AbstractEventInvitationRequest;
+import org.example.calendar.event.dto.AbstractEventInvitationRequest;
 import org.example.calendar.event.day.dto.DayEventInvitationRequest;
 import org.example.calendar.event.recurrence.MonthlyRecurrenceType;
 import org.example.calendar.event.recurrence.RecurrenceDuration;

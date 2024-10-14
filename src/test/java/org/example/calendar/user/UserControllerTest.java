@@ -14,7 +14,7 @@ import org.example.calendar.user.contact.request.ContactRequestStatus;
 import org.example.calendar.user.contact.dto.PendingContactRequest;
 import org.example.calendar.user.contact.dto.UpdateContactRequest;
 import org.example.calendar.user.dto.UserProfile;
-import org.example.calendar.AuthUtils;
+import org.example.calendar.AuthTestUtils;
 import org.junit.jupiter.api.Test;
 
 import static org.mockito.Mockito.doNothing;
@@ -126,7 +126,7 @@ class UserControllerTest {
                             Passing just a jwt like .with(jwt().jwt(jwt))); will not work because the Authorization happens based on the
                             Granted Authorities of the authentication not the jwt, but the JwtAuthenticationToken
                          */
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isOk());
 
         verify(this.userService, times(1)).sendContactRequest(contactRequest, 1L);
@@ -154,7 +154,7 @@ class UserControllerTest {
                             Passing just a jwt like .with(jwt().jwt(jwt))); will not work because the Authorization happens based on the
                             Granted Authorities of the authentication not the jwt, but the JwtAuthenticationToken
                          */
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isBadRequest(),
                         /*
@@ -217,7 +217,7 @@ class UserControllerTest {
                             Passing just a jwt like .with(jwt().jwt(jwt))); will not work because the Authorization happens based on the
                             Granted Authorities of the authentication not the jwt, but the JwtAuthenticationToken
                          */
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         /*
@@ -252,7 +252,7 @@ class UserControllerTest {
                             Passing just a jwt like .with(jwt().jwt(jwt))); will not work because the Authorization happens based on the
                             Granted Authorities of the authentication not the jwt, but the JwtAuthenticationToken
                          */
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                          /*
@@ -275,7 +275,7 @@ class UserControllerTest {
 
         this.mockMvc.perform(get(USER_PATH + "/contact-requests")
                         .accept(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isOk(),
                         content().json(this.objectMapper.writeValueAsString(List.of(request1, request2)))
@@ -318,7 +318,7 @@ class UserControllerTest {
         this.mockMvc.perform(put(USER_PATH + "/contact-requests").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
         verify(this.userService, times(1)).updateContactRequest(request, 1L);
@@ -340,7 +340,7 @@ class UserControllerTest {
         this.mockMvc.perform(put(USER_PATH + "/contact-requests").with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isBadRequest(),
                         /*
@@ -399,7 +399,7 @@ class UserControllerTest {
         this.mockMvc.perform(put(USER_PATH + "/contact-requests")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         /*
@@ -429,7 +429,7 @@ class UserControllerTest {
         this.mockMvc.perform(put(USER_PATH + "/contact-requests").with(csrf().useInvalidToken())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         /*
@@ -453,7 +453,7 @@ class UserControllerTest {
 
         this.mockMvc.perform(get(USER_PATH + "/contacts")
                         .accept(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isOk(),
                         /*

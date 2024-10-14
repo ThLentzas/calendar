@@ -34,17 +34,32 @@ class DayEventSlotRequestValidatorTest {
         if we just validator.validate(request);  it will fail because it uses the Default.class group and is not supported
         by our annotation.
 
-        It is very important to have 1 violation per test, because the set of constraints will have more than 1
-        error message and, we can not be sure that iterator.next() will return the constraint we test
-
-        IMPORTANT!!! The validator then calls EventUtils.hasValidDateProperties() which is already tested via
-        DayEventCreateRequestValidatorTest class.
+        Both the DayEventSlotRequestValidator and the TimeEventSlotRequestValidator make a call to the overloaded
+        method EventUtils.hasEmptyEventSlotUpdateRequestProperties(). For day event slots, the next calls are to
+        EventUtils.hasRequiredDateProperties(), and EventUtils.hasValidDateProperties(). For time event slots, the next
+        calls are to EventUtils.hasRequiredDateTimeProperties() and EventUtils.hasValidDateTimeProperties(). In this
+        class, we test only have to test EventUtils.hasEmptyEventSlotUpdateRequestProperties() because the remaining calls
+        are already tested for the DayEventUpdateRequestValidator.
      */
     @BeforeEach
     void setUp() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
+    }
+
+    @Test
+    void shouldReturnTrueWhenRequestIsValid() {
+        DayEventSlotRequest request = DayEventSlotRequest.builder()
+                .title("Title")
+                .description("Description")
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusDays(1))
+                .build();
+
+        Set<ConstraintViolation<DayEventSlotRequest>> violations = validator.validate(request);
+
+        assertThat(violations).isEmpty();
     }
 
     // Every property is null/empty/0/blank etc.
@@ -57,29 +72,5 @@ class DayEventSlotRequestValidatorTest {
         ConstraintViolation<DayEventSlotRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("At least one field must be provided for the update");
-    }
-
-    @Test
-    void shouldReturnFalseWhenOnlyTheStartDateIsProvided() {
-        DayEventSlotRequest request = DayEventSlotRequest.builder()
-                .startDate(LocalDate.now())
-                .build();
-
-        Set<ConstraintViolation<DayEventSlotRequest>> violations = validator.validate(request);
-        ConstraintViolation<DayEventSlotRequest> violation = violations.iterator().next();
-
-        assertThat(violation.getMessage()).isEqualTo("The end date of the event is required. Please provide one");
-    }
-
-    @Test
-    void shouldReturnFalseWhenOnlyTheEndDateIsProvided() {
-        DayEventSlotRequest request = DayEventSlotRequest.builder()
-                .endDate(LocalDate.now().plusDays(1))
-                .build();
-
-        Set<ConstraintViolation<DayEventSlotRequest>> violations = validator.validate(request);
-        ConstraintViolation<DayEventSlotRequest> violation = violations.iterator().next();
-
-        assertThat(violation.getMessage()).isEqualTo("The start date of the event is required. Please provide one");
     }
 }

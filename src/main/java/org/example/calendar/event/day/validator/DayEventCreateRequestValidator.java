@@ -17,13 +17,6 @@ public final class DayEventCreateRequestValidator implements ConstraintValidator
 
     @Override
     public boolean isValid(DayEventRequest eventRequest, ConstraintValidatorContext context) {
-        if (eventRequest.getRecurrenceFrequency() == null) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Provide a frequency. NEVER if event does not recur")
-                    .addConstraintViolation();
-            return false;
-        }
-
         return EventUtils.hasValidEventRequestProperties(eventRequest, context);
     }
 }

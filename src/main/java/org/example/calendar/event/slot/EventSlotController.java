@@ -1,13 +1,15 @@
 package org.example.calendar.event.slot;
 
+import jakarta.validation.Valid;
 import org.example.calendar.event.slot.day.DayEventSlotService;
-import org.example.calendar.event.slot.day.dto.DayEventSlotDTO;
+import org.example.calendar.event.slot.day.projection.DayEventSlotPublicProjection;
 import org.example.calendar.event.slot.day.dto.DayEventSlotRequest;
 import org.example.calendar.event.slot.time.TimeEventSlotService;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotDTO;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotPublicProjection;
 import org.example.calendar.event.slot.time.dto.TimeEventSlotRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,7 +39,7 @@ class EventSlotController {
     @PutMapping("/day-event-slots/{slotId}/invite")
     ResponseEntity<Void> inviteGuestsToDayEventSlot(@AuthenticationPrincipal Jwt jwt,
                                                     @PathVariable("slotId") UUID slotId,
-                                                    @RequestBody InviteGuestsRequest inviteGuestsRequest) {
+                                                    @Valid @RequestBody InviteGuestsRequest inviteGuestsRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
         this.dayEventSlotService.inviteGuests(userId, slotId, inviteGuestsRequest);
 
@@ -47,7 +49,7 @@ class EventSlotController {
     @PutMapping("/day-event-slots/{slotId}")
     ResponseEntity<Void> updateDayEventSlot(@AuthenticationPrincipal Jwt jwt,
                                             @PathVariable("slotId") UUID slotId,
-                                            @RequestBody DayEventSlotRequest eventSlotRequest) {
+                                            @Validated @RequestBody DayEventSlotRequest eventSlotRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
         this.dayEventSlotService.updateEventSlot(userId, slotId, eventSlotRequest);
 
@@ -55,10 +57,10 @@ class EventSlotController {
     }
 
     @GetMapping("/day-event-slots/{slotId}")
-    ResponseEntity<DayEventSlotDTO> findDayEventSlotById(@AuthenticationPrincipal Jwt jwt,
-                                                         @PathVariable("slotId") UUID slotId) {
+    ResponseEntity<DayEventSlotPublicProjection> findDayEventSlotById(@AuthenticationPrincipal Jwt jwt,
+                                                                      @PathVariable("slotId") UUID slotId) {
         Long userId = Long.valueOf(jwt.getSubject());
-        DayEventSlotDTO eventSlot = this.dayEventSlotService.findEventSlotById(userId, slotId);
+        DayEventSlotPublicProjection eventSlot = this.dayEventSlotService.findEventSlotById(userId, slotId);
 
         return new ResponseEntity<>(eventSlot, HttpStatus.OK);
     }
@@ -75,7 +77,7 @@ class EventSlotController {
     @PutMapping("/time-event-slots/{slotId}/invite")
     ResponseEntity<Void> inviteGuestsToTimeEventSlot(@AuthenticationPrincipal Jwt jwt,
                                                      @PathVariable("slotId") UUID slotId,
-                                                     @RequestBody InviteGuestsRequest inviteGuestsRequest) {
+                                                     @Valid @RequestBody InviteGuestsRequest inviteGuestsRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
         this.timeEventSlotService.inviteGuests(userId, slotId, inviteGuestsRequest);
 
@@ -85,7 +87,7 @@ class EventSlotController {
     @PutMapping("/time-event-slots/{slotId}")
     ResponseEntity<Void> updateTimeEventSlot(@AuthenticationPrincipal Jwt jwt,
                                              @PathVariable("slotId") UUID slotId,
-                                             @RequestBody TimeEventSlotRequest eventSlotRequest) {
+                                             @Validated @RequestBody TimeEventSlotRequest eventSlotRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
         this.timeEventSlotService.updateEventSlot(userId, slotId, eventSlotRequest);
 
@@ -93,10 +95,10 @@ class EventSlotController {
     }
 
     @GetMapping("/time-event-slots/{slotId}")
-    ResponseEntity<TimeEventSlotDTO> findTimeEventSlotById(@AuthenticationPrincipal Jwt jwt,
-                                                           @PathVariable("slotId") UUID slotId) {
+    ResponseEntity<TimeEventSlotPublicProjection> findTimeEventSlotById(@AuthenticationPrincipal Jwt jwt,
+                                                                        @PathVariable("slotId") UUID slotId) {
         Long userId = Long.valueOf(jwt.getSubject());
-        TimeEventSlotDTO eventSlot = this.timeEventSlotService.findEventSlotById(userId, slotId);
+        TimeEventSlotPublicProjection eventSlot = this.timeEventSlotService.findEventSlotById(userId, slotId);
 
         return new ResponseEntity<>(eventSlot, HttpStatus.OK);
     }

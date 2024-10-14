@@ -236,7 +236,7 @@ class UserIT extends AbstractIntegrationTest {
         cookies = response.getCookies();
 
         /*
-            The current logged in user(id = 3) has 2 contacts in contacts table (1, 3) and (2, 3) based on the sql script
+            The current logged in user(id = 3) has 1 contact in contacts table (2, 3) based on the sql script
             We could also assert in the response body because we know the exact values since our response is sorted by name
          */
         List<UserProfile> profiles = given()
@@ -251,11 +251,14 @@ class UserIT extends AbstractIntegrationTest {
 
         /*
             Each anyMatch() will check if there is a profile in profiles that match the values, if at least one is find
-            returns true else returns false and our assertion fails. Our list is sorted name
+            returns true else returns false and our assertion fails. Our list is sorted by name.
+            For more than 1 contact:
+                assertThat(profiles).hasSize(1)
+                    .anyMatch(userProfile -> userProfile.id().equals(2L) && userProfile.name().equals("clement.gulgowski"))
+                    .anyMatch(userProfile -> userProfile.id().equals(1L) && userProfile.name().equals("kris.hudson"))
+                    .isSortedAccordingTo(Comparator.comparing(UserProfile::name));
          */
-        assertThat(profiles).hasSize(2)
-                .anyMatch(userProfile -> userProfile.id().equals(2L) && userProfile.name().equals("clement.gulgowski"))
-                .anyMatch(userProfile -> userProfile.id().equals(1L) && userProfile.name().equals("kris.hudson"))
-                .isSortedAccordingTo(Comparator.comparing(UserProfile::name));
+        assertThat(profiles).hasSize(1)
+                .anyMatch(userProfile -> userProfile.id().equals(2L) && userProfile.name().equals("clement.gulgowski"));
     }
 }

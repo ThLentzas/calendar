@@ -1,138 +1,332 @@
 package org.example.calendar.event.slot.time;
 
-import org.example.calendar.exception.ResourceNotFoundException;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.example.calendar.entity.TimeEventSlot;
-import org.example.calendar.entity.User;
+import org.example.calendar.event.slot.projection.EventSlotWithGuestsProjection;
+import org.example.calendar.event.slot.projection.mapper.EventSlotWithGuestsProjectionRowMapper;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotPublicProjection;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotProjection;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotReminderProjection;
+import org.example.calendar.event.slot.time.projection.mapper.TimeEventSlotProjectionRowMapper;
+import org.example.calendar.event.slot.time.projection.mapper.TimeEventSlotPublicProjectionRowMapper;
+import org.example.calendar.event.slot.time.projection.mapper.TimeEventSlotReminderProjectionRowMapper;
+import org.example.calendar.utils.EventUtils;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.stereotype.Repository;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
-public interface TimeEventSlotRepository extends JpaRepository<TimeEventSlot, UUID> {
-    // LEFT JOIN on guestEmails because we might not have invited anyone when we initially created the event
-    @Query("""
-                SELECT tes
-                FROM TimeEventSlot tes
-                JOIN FETCH tes.timeEvent te
-                JOIN FETCH te.user
-                LEFT JOIN FETCH tes.guestEmails
-                WHERE tes.timeEvent.id = :eventId AND te.user.id = :userId
-                ORDER BY tes.startTime
-            """)
-    List<TimeEventSlot> findByEventAndUserId(@Param("eventId") UUID eventId, @Param("userId") Long userId);
+import lombok.RequiredArgsConstructor;
+
+@Repository
+@RequiredArgsConstructor
+public class TimeEventSlotRepository {
+    private final JdbcClient jdbcClient;
+
+    void create(TimeEventSlot eventSlot) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+
+        this.jdbcClient.sql("""
+                        INSERT INTO time_event_slots(event_id, title, location, description, start_time, start_time_zone_id, end_time, end_time_zone_id)
+                        VALUES (:eventId, :title, :location, :description, :startTime, :startTimeZoneId, :endTime, :endTimeZoneId)
+                        """)
+                .param("eventId", eventSlot.getEventId())
+                .param("title", eventSlot.getTitle())
+                .param("location", eventSlot.getLocation())
+                .param("description", eventSlot.getDescription())
+                .param("startTime", eventSlot.getStartTime())
+                .param("startTimeZoneId", eventSlot.getStartTimeZoneId().toString())
+                .param("endTime", eventSlot.getEndTime())
+                .param("endTimeZoneId", eventSlot.getEndTimeZoneId().toString())
+                .update(keyHolder, "id");
+
+        eventSlot.setId(keyHolder.getKeyAs(UUID.class));
+
+        for (String guestEmail : eventSlot.getGuestEmails()) {
+            this.jdbcClient.sql("""
+                            INSERT INTO time_event_slot_guest_emails(event_slot_id, email)
+                            VALUES (:eventSlotId, :email)
+                            """)
+                    .param("eventSlotId", eventSlot.getId())
+                    .param("email", guestEmail)
+                    .update();
+        }
+    }
+
+    void update(TimeEventSlot original, TimeEventSlot modified) {
+        StringBuilder sql = new StringBuilder("UPDATE time_event_slots SET ");
+        Map<String, Object> params = new HashMap<>();
+        EventUtils.updateDateTimeProperties(sql, original.getStartTime(), original.getStartTimeZoneId(), modified.getStartTime(), modified.getStartTimeZoneId(), original.getEndTime(), original.getEndTimeZoneId(), modified.getEndTime(), modified.getEndTimeZoneId(), params);
+        EventUtils.updateCommonEvenSlotProperties(sql, original, modified, params);
+        if (!Objects.equals(original.getGuestEmails(), modified.getGuestEmails())) {
+            updateGuests(original.getId(), modified.getGuestEmails());
+        }
+
+        // If any properties were updated, execute the update
+        if (!params.isEmpty()) {
+            // Remove the last ", "
+            sql.setLength(sql.length() - 2);
+            sql.append(" WHERE id = :slotId");
+            params.put("slotId", original.getId());
+            this.jdbcClient.sql(sql.toString())
+                    .params(params)
+                    .update();
+        }
+    }
+
+    void updateEventSlotForEvent(TimeEventSlot original, TimeEventSlot modified) {
+        StringBuilder sql = new StringBuilder("UPDATE time_event_slots SET ");
+        Map<String, Object> params = new HashMap<>();
+        EventUtils.updateCommonEvenSlotProperties(sql, original, modified, params);
+        if (!Objects.equals(original.getGuestEmails(), modified.getGuestEmails())) {
+            updateGuests(original.getId(), modified.getGuestEmails());
+        }
+
+        // If any properties were updated, execute the update
+        if (!params.isEmpty()) {
+            // Remove the last ", "
+            sql.setLength(sql.length() - 2);
+            sql.append(" WHERE id = :slotId");
+            params.put("slotId", original.getId());
+            this.jdbcClient.sql(sql.toString())
+                    .params(params)
+                    .update();
+        }
+    }
 
     /*
-        IN vs MEMBER OF
-        https://stackoverflow.com/questions/5915822/whats-the-difference-between-the-in-and-member-of-jpql-operators
-
-        For IN, we need a case where tes.someValue IN some collection parameter. Also, it does not work directly with
-        @ElementCollection
+        We can't pass directly a day event slot instance and iterate the guest emails, because the set will contain
+        all the guests for the current slot, the previous ones and the ones we just added. Instead, we pass the list of
+        the new guest emails to be added. In theory, we could and in our INSERT call DO NOTHING ON CONFLICT.
      */
-    @Query("""
-                SELECT tes
-                FROM TimeEventSlot tes
-                JOIN FETCH tes.timeEvent te
-                JOIN FETCH te.user
-                LEFT JOIN FETCH tes.guestEmails
-                WHERE (te.user = :user OR :email MEMBER OF tes.guestEmails) AND tes.startTime BETWEEN :startTime AND :endTime
-                ORDER BY tes.startTime
-            """)
-    List<TimeEventSlot> findByUserInDateRange(@Param("user") User user,
-                                              @Param("email") String email,
-                                              @Param("startTime") LocalDateTime startTime,
-                                              @Param("endTime") LocalDateTime endTime);
+    void inviteGuests(UUID slotId, Set<String> guestEmails) {
+        for (String guestEmail : guestEmails) {
+            this.jdbcClient.sql("""
+                            INSERT INTO time_event_slot_guest_emails(event_slot_id, email)
+                            VALUES (:eventSlotId, :email)
+                            """)
+                    .param("eventSlotId", slotId)
+                    .param("email", guestEmail)
+                    .update();
+        }
+    }
 
-    @Query("""
-                SELECT tes
-                FROM TimeEventSlot tes
-                JOIN FETCH tes.timeEvent te
-                JOIN FETCH te.user
-                LEFT JOIN FETCH tes.guestEmails
-                WHERE (te.user.id = :userId OR :email MEMBER OF tes.guestEmails) AND tes.id = :slotId
-            """)
-    Optional<TimeEventSlot> findByOrganizerOrGuestEmailAndSlotId(@Param("userId") Long userId,
-                                                                 @Param("email") String email,
-                                                                 @Param("slotId") UUID slotId);
+    // We return a list from our query, because if the event slot has more than 1 guest email, we will have 1 row with
+    // the same event slot but different email each time. We handle the case of conversion to a single event slot with
+    // a list of emails on the aggregateGuestEmails()
+    Optional<TimeEventSlotProjection> findBySlotAndUserId(UUID slotId, Long userId) {
+        List<TimeEventSlotProjection> results = this.jdbcClient.sql("""
+                        SELECT
+                            tes.id AS event_slot_id,
+                            tes.start_time,
+                            tes.start_time_zone_id,
+                            tes.end_time,
+                            tes.end_time_zone_id,
+                            tes.title,
+                            tes.description,
+                            tes.location,
+                            ge.email
+                        FROM time_event_slots tes
+                        JOIN time_events te ON tes.event_id = te.id
+                        LEFT JOIN time_event_slot_guest_emails ge ON tes.id = ge.event_slot_id
+                        WHERE tes.id = :slotId AND te.organizer_id = :userId
+                        """)
+                .param("slotId", slotId)
+                .param("userId", userId)
+                .query(new TimeEventSlotProjectionRowMapper())
+                .list();
 
-    @Query("""
-                SELECT tes
-                FROM TimeEventSlot tes
-                JOIN FETCH tes.timeEvent te
-                JOIN FETCH te.user
-                LEFT JOIN FETCH tes.guestEmails
-                WHERE tes.startTime = :startTime
-            """)
-    List<TimeEventSlot> findByStartTime(@Param("startTime") LocalDateTime startTime);
+        return EventUtils.aggregateGuestEmails(results);
+    }
 
-    @Query("""
-                SELECT tes
-                FROM TimeEventSlot tes
-                JOIN FETCH tes.timeEvent te
-                LEFT JOIN FETCH tes.guestEmails
-                WHERE tes.id = :slotId AND te.user.id = :userId
-            """)
-    Optional<TimeEventSlot> findBySlotAndUserId(@Param("slotId") UUID slotId, @Param("userId") Long userId);
+    // We return a list from our query, because if the event slot has more than 1 guest email, we will have 1 row with
+    // the same event slot but different email each time. We handle the case of conversion to a single event slot with
+    // a list of emails on the aggregateGuestEmails()
+    Optional<EventSlotWithGuestsProjection> findBySlotAndUserIdFetchingGuests(UUID slotId, Long userId) {
+        List<EventSlotWithGuestsProjection> results = this.jdbcClient.sql("""
+                        SELECT
+                            tes.id,
+                            ge.email
+                        FROM time_event_slots tes
+                        JOIN time_events te ON tes.event_id = te.id
+                        LEFT JOIN time_event_slot_guest_emails ge ON tes.id = ge.event_slot_id
+                        WHERE tes.id = :slotId AND te.organizer_id = :userId
+                        """)
+                .param("slotId", slotId)
+                .param("userId", userId)
+                .query(new EventSlotWithGuestsProjectionRowMapper())
+                .list();
+
+        return EventUtils.aggregateGuestEmails(results);
+    }
+
+    public List<TimeEventSlotPublicProjection> findByEventAndUserId(UUID eventId, Long userId) {
+        List<TimeEventSlotPublicProjection> results = this.jdbcClient.sql("""
+                        SELECT
+                            tes.id,
+                            tes.event_id,
+                            tes.start_time,
+                            tes.start_time_zone_id,
+                            tes.end_time,
+                            tes.end_time_zone_id,
+                            tes.title,
+                            tes.description,
+                            tes.location,
+                            ge.email,
+                            u.username
+                        FROM time_event_slots tes
+                        JOIN time_events te ON tes.event_id = te.id
+                        JOIN users u ON te.organizer_id = u.id
+                        LEFT JOIN time_event_slot_guest_emails ge ON tes.id = ge.event_slot_id
+                        WHERE tes.event_id = :eventId AND te.organizer_id = :userId
+                        ORDER BY tes.start_time
+                        """)
+                .param("eventId", eventId)
+                .param("userId", userId)
+                .query(new TimeEventSlotPublicProjectionRowMapper())
+                .list();
+
+        return EventUtils.aggregateListGuestEmails(results);
+    }
+
+    // We return a list from our query, because if the event slot has more than 1 guest email, we will have 1 row with
+    // the same event slot but different email each time. We handle the case of conversion to a single event slot with
+    // a list of emails on the aggregateGuestEmails()
+    Optional<TimeEventSlotPublicProjection> findByOrganizerOrGuestEmailAndSlotId(UUID slotId, Long userId, String email) {
+        List<TimeEventSlotPublicProjection> results = this.jdbcClient.sql("""
+                        SELECT
+                            tes.id,
+                            tes.event_id,
+                            tes.start_time,
+                            tes.start_time_zone_id,
+                            tes.end_time,
+                            tes.end_time_zone_id,
+                            tes.title,
+                            tes.description,
+                            tes.location,
+                            ge.email,
+                            u.username
+                        FROM time_event_slots tes
+                        JOIN time_events te ON tes.event_id = te.id
+                        JOIN users u ON te.organizer_id = u.id
+                        LEFT JOIN time_event_slot_guest_emails ge ON tes.id = ge.event_slot_id
+                        WHERE (te.organizer_id = :userId OR ge.email = :email) AND tes.id = :slotId
+                        """)
+                .param("slotId", slotId)
+                .param("userId", userId)
+                .param("email", email)
+                .query(new TimeEventSlotPublicProjectionRowMapper())
+                .list();
+
+        return EventUtils.aggregateGuestEmails(results);
+    }
+
+    List<TimeEventSlotPublicProjection> findByUserInDateRange(Long userId, String email, LocalDateTime startTime, LocalDateTime endTime) {
+        List<TimeEventSlotPublicProjection> results = this.jdbcClient.sql("""
+                        SELECT
+                            tes.id,
+                            tes.event_id,
+                            tes.start_time,
+                            tes.start_time_zone_id,
+                            tes.end_time,
+                            tes.end_time_zone_id,
+                            tes.title,
+                            tes.description,
+                            tes.location,
+                            ge.email,
+                            u.username
+                        FROM time_event_slots tes
+                        JOIN time_events te ON tes.event_id = te.id
+                        JOIN users u ON te.organizer_id = u.id
+                        LEFT JOIN time_event_slot_guest_emails ge ON tes.id = ge.event_slot_id
+                        WHERE (te.organizer_id = :userId OR ge.email = :email) AND tes.start_time BETWEEN :startTime AND :endTime
+                        ORDER BY tes.start_time
+                        """)
+                .param("userId", userId)
+                .param("email", email)
+                .param("startTime", Timestamp.valueOf(startTime))
+                .param("endTime", Timestamp.valueOf(endTime))
+                .query(new TimeEventSlotPublicProjectionRowMapper())
+                .list();
+
+        return EventUtils.aggregateListGuestEmails(results);
+    }
+
+    public List<TimeEventSlotReminderProjection> findByStartTime(LocalDateTime startTime) {
+        List<TimeEventSlotReminderProjection> results = this.jdbcClient.sql("""
+                        SELECT
+                            tes.id,
+                            tes.start_time,
+                            tes.end_time,
+                            tes.title,
+                            ge.email AS guest_email,
+                            u.username,
+                            u.email AS organizer_email
+                        FROM time_event_slots tes
+                        JOIN time_events te ON tes.event_id = te.id
+                        JOIN users u ON te.organizer_id = u.id
+                        LEFT JOIN time_event_slot_guest_emails ge ON tes.id = ge.event_slot_id
+                        WHERE tes.start_time = :startTime
+                        ORDER BY tes.start_time
+                        """)
+                .param("startTime", Timestamp.valueOf(startTime))
+                .query(new TimeEventSlotReminderProjectionRowMapper())
+                .list();
+
+        return EventUtils.aggregateListGuestEmails(results);
+    }
 
     /*
-        Two delete queries will be logged, first to delete all the guest emails and then the slot itself
-        WHERE des.id = :slotId AND tes.timeEvent.user.id = :userId would not work
-        Hibernate:
-            delete
-            from
-                time_event_slot_guest_emails to_delete_
-            where
-                to_delete_.time_event_slot_id in (select
-                    tes1_0.id
-                from
-                    time_event_slots tes1_0
-                where
-                    tes1_0.id=?
-                    and tes1_0.id in (select
-                        tes2_0.id
-                    from
-                        time_event_slots tes2_0
-                    join
-                        time_events te1_0
-                            on te1_0.id=tes2_0.time_event_id
-                    where
-                        te1_0.user_id=?))
-        Hibernate:
-            delete
-            from
-                time_event_slots tes1_0
-            where
-                tes1_0.id=?
-                and tes1_0.id in (select
-                    tes2_0.id
-                from
-                    time_event_slots tes2_0
-                join
-                    time_events te1_0
-                        on te1_0.id=tes2_0.time_event_id
-                where
-                    te1_0.user_id=?)
-
-        The subquery checks if the TimeEventSlot with the given slotId is owned by a specific user (userId). The subquery
-        returns all TimeEventSlot Ids where the timeEvent is associated with the given user.
-
-        Returns affected rows
+        We can not use JOIN with DELETE we need to use a sub-query
      */
-    @Modifying
-    @Query("""
-                DELETE FROM TimeEventSlot tes
-                    WHERE tes.id = :slotId
-                    AND tes.id IN (
-                        SELECT t.id FROM TimeEventSlot t
-                        WHERE t.timeEvent.user.id = :userId)
-            """)
-    int deleteBySlotAndUserId(@Param("slotId") UUID slotId, @Param("userId") Long userId);
+    int deleteBySlotAndUserId(UUID slotId, Long userId) {
+        return this.jdbcClient.sql("""
+                            DELETE FROM time_event_slots tes
+                            WHERE tes.id = :slotId AND tes.event_id IN (
+                                SELECT te.id
+                                FROM time_events te
+                                WHERE te.id = tes.event_id AND te.organizer_id = :userId);
+                        """)
+                .param("slotId", slotId)
+                .param("userId", userId)
+                .update();
+    }
 
-    default TimeEventSlot findByIdOrThrow(UUID slotId, Long userId) {
-        return findBySlotAndUserId(slotId, userId).orElseThrow(() -> new ResourceNotFoundException("Time event slot not found with id: " + slotId));
+    void deleteEventSlotsByEventId(UUID eventId) {
+        this.jdbcClient.sql("""
+                            DELETE FROM time_event_slots
+                            WHERE event_id = :eventId
+                        """)
+                .param("eventId", eventId)
+                .update();
+    }
+
+    private void updateGuests(UUID slotId, Set<String> guestEmails) {
+        this.jdbcClient.sql("""
+                        DELETE
+                        FROM time_event_slot_guest_emails
+                        WHERE event_slot_id = :slotId
+                        """)
+                .param("slotId", slotId)
+                .update();
+
+        for (String guestEmail : guestEmails) {
+            this.jdbcClient.sql("""
+                            INSERT INTO time_event_slot_guest_emails(event_slot_id, email)
+                            VALUES (:slotId, :email)
+                            """)
+                    .param("slotId", slotId)
+                    .param("email", guestEmail)
+                    .update();
+        }
     }
 }

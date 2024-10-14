@@ -26,18 +26,19 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
     @Mock
-    private UserRepository userRepository;
+    private UserRepository repository;
     @InjectMocks
     private UserService underTest;
     // Default is English locale
+    // When the project was created datafaker did not support creating strings of given length, so we use RandomStringUtils
     private static final Faker FAKER = new Faker();
 
     // registerUser()
     @Test
     void shouldThrowIllegalArgumentExceptionWhenUsernameExceedsMaxLength() {
-        User user = createUser();
-        user.setUsername(RandomStringUtils.randomAlphanumeric(21, FAKER.number().numberBetween(22, 120)));
-
+        User user = User.builder()
+                .username(RandomStringUtils.randomAlphanumeric(21, FAKER.number().numberBetween(22, 120)))
+                .build();
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("Invalid username. Username must not exceed 20 characters");
     }
 
@@ -45,8 +46,9 @@ class UserServiceTest {
     @ParameterizedTest
     @ValueSource(strings = {"john_doe", "john@doe", "john#doe", "john doe", "john/doe", "john doe"})
     void shouldThrowIllegalArgumentExceptionWhenUsernameIsInvalid(String username) {
-        User user = createUser();
-        user.setUsername(username);
+        User user = User.builder()
+                .username(username)
+                .build();
 
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("Invalid username. Username should contain only characters, numbers and .");
     }
@@ -54,8 +56,11 @@ class UserServiceTest {
     // registerUser()
     @Test
     void shouldThrowIllegalArgumentExceptionWhenEmailExceedsMaxLength() {
-        User user = createUser();
-        user.setEmail(RandomStringUtils.randomAlphanumeric(51, FAKER.number().numberBetween(52, 120)));
+        User user = User.builder()
+                // Faker may generate a username with length > 20
+                .username("username")
+                .email(RandomStringUtils.randomAlphanumeric(51, FAKER.number().numberBetween(52, 120)))
+                .build();
 
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("Invalid email. Email must not exceed 50 characters");
     }
@@ -63,8 +68,10 @@ class UserServiceTest {
     // registerUser()
     @Test
     void shouldThrowIllegalArgumentExceptionWhenEmailIsInvalid() {
-        User user = createUser();
-        user.setEmail("testexample.com");
+        User user = User.builder()
+                .username("username")
+                .email("testexample.com")
+                .build();
 
         assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("Invalid email format");
     }
@@ -72,9 +79,13 @@ class UserServiceTest {
     // registerUser()
     @Test
     void shouldThrowDuplicateResourceExceptionWhenRegisteringUserWithExistingEmail() {
-        User user = createUser();
+        User user = User.builder()
+                .username("username")
+                .email(FAKER.internet().emailAddress())
+                .password(FAKER.internet().password(12, 128, true, true, true))
+                .build();
 
-        when(this.userRepository.existsByEmailIgnoringCase(user.getEmail())).thenReturn(true);
+        when(this.repository.existsByEmail(user.getEmail())).thenReturn(true);
 
         assertThatExceptionOfType(DuplicateResourceException.class).isThrownBy(() -> this.underTest.registerUser(user)).withMessage("The provided email already exists");
     }
@@ -82,9 +93,9 @@ class UserServiceTest {
     // findUserByIdFetchingRoles()
     @Test
     void shouldThrowResourceNotFoundExceptionWhenUserIsNotFoundById() {
-        Long userId = FAKER.number().numberBetween(1L, 150L);
+        Long userId = 1L;
 
-        when(this.userRepository.findById(userId)).thenReturn(Optional.empty());
+        when(this.repository.findById(userId)).thenReturn(Optional.empty());
 
         assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.findById(userId)).withMessage("User not found with id: " + userId);
     }
@@ -92,24 +103,12 @@ class UserServiceTest {
     // addContact()
     @Test
     void shouldThrowResourceNotFoundExceptionWhenUserIsNotFoundToBeAddedAsContact() {
-        User sender = createUser();
-        Long receiverId = FAKER.number().numberBetween(1L, 150L);
+        Long senderId = 1L;
+        Long receiverId = 2L;
         CreateContactRequest contactRequest = new CreateContactRequest(receiverId);
 
-        when(this.userRepository.getReferenceById(sender.getId())).thenReturn(sender);
-        when(this.userRepository.findById(contactRequest.receiverId())).thenReturn(Optional.empty());
+        when(this.repository.findById(contactRequest.receiverId())).thenReturn(Optional.empty());
 
-        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.sendContactRequest(contactRequest, sender.getId())).withMessage("User not found with id: " + contactRequest.receiverId());
-    }
-
-    private User createUser() {
-        // When the project was created datafaker did not support creating strings of given length, so we use RandomStringUtils
-        return User.builder()
-                .id(FAKER.number().numberBetween(1L, 150L))
-                // Faker may generate a username with length > 20
-                .username("username")
-                .password(FAKER.internet().password(12, 128, true, true, true))
-                .email(FAKER.internet().emailAddress())
-                .build();
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.sendContactRequest(contactRequest, senderId)).withMessage("User not found with id: " + contactRequest.receiverId());
     }
 }

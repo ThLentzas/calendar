@@ -1,22 +1,23 @@
 package org.example.calendar.event.slot.day;
 
 import org.example.calendar.AbstractRepositoryTest;
+import org.example.calendar.entity.DayEventSlot;
 import org.example.calendar.event.day.DayEventRepository;
 import org.example.calendar.event.day.dto.DayEventRequest;
 import org.example.calendar.event.dto.InviteGuestsRequest;
 import org.example.calendar.event.recurrence.MonthlyRecurrenceType;
 import org.example.calendar.event.recurrence.RecurrenceDuration;
 import org.example.calendar.event.recurrence.RecurrenceFrequency;
-import org.example.calendar.event.slot.day.dto.DayEventSlotDTO;
+import org.example.calendar.event.slot.day.projection.DayEventSlotPublicProjection;
 import org.example.calendar.event.slot.day.dto.DayEventSlotRequest;
 import org.example.calendar.entity.DayEvent;
-import org.example.calendar.entity.DayEventSlot;
 import org.example.calendar.entity.User;
+import org.example.calendar.event.slot.projection.AbstractEventSlotPublicProjection;
 import org.example.calendar.exception.ConflictException;
 import org.example.calendar.exception.ResourceNotFoundException;
 import org.example.calendar.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,11 +25,8 @@ import org.junit.jupiter.api.Test;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -51,6 +49,7 @@ import net.datafaker.Faker;
     "forever" recurrence scenario. Tests for forever cases are covered by UNTIL_DATE
  */
 @Sql(scripts = {"/scripts/INIT_USERS.sql", "/scripts/INIT_EVENTS.sql"})
+@Import({DayEventSlotRepository.class, DayEventRepository.class, UserRepository.class})
 class DayEventSlotServiceTest extends AbstractRepositoryTest {
     @Autowired
     private DayEventSlotRepository dayEventSlotRepository;
@@ -58,8 +57,6 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
     private DayEventRepository dayEventRepository;
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private TestEntityManager testEntityManager;
     private DayEventSlotService underTest;
     private static final Faker FAKER = new Faker();
 
@@ -82,20 +79,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         DayEvent dayEvent = createDayEvent(request);
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         // Only 1 DayEventSlot was created for a non-repeating DayEvent
         assertThat(dayEventSlots).hasSize(1);
-        DayEventSlotAssert.assertThat(dayEventSlots.get(0))
+        DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(0))
                 .hasStartDate(request.getStartDate())
                 .hasEndDate(request.getEndDate())
                 .hasTitle(request.getTitle())
                 .hasLocation(request.getLocation())
                 .hasDescription(request.getDescription())
                 .hasGuests(request.getGuestEmails())
-                .hasDayEvent(dayEvent);
+                .hasEventId(dayEvent.getId());
     }
 
     @Test
@@ -117,20 +113,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2024-08-12", "2024-08-22", "2024-09-01", "2024-09-11"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         assertThat(dayEventSlots).hasSize(4);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
     }
 
@@ -152,20 +147,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-09-09", "2024-09-14"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         assertThat(dayEventSlots).hasSize(3);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
     }
 
@@ -196,20 +190,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2024-08-12", "2024-08-17", "2024-08-26"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         assertThat(dayEventSlots).hasSize(3);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
     }
 
@@ -240,20 +233,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-09-10", "2024-09-11", "2024-09-17"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         assertThat(dayEventSlots).hasSize(4);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
     }
 
@@ -292,21 +284,20 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2023-01-31", "2023-02-28", "2023-03-31", "2023-04-30", "2023-05-31", "2023-06-30"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         // Size is 6, the original event + 5 times that is to be repeated
         assertThat(dayEventSlots).hasSize(6);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
     }
 
@@ -336,21 +327,20 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2023-01-29", "2023-02-28", "2023-03-29"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         // Size is 4, the original event + 3 times that is to be repeated
         assertThat(dayEventSlots).hasSize(3);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
     }
 
@@ -378,20 +368,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2024-09-30", "2024-10-28", "2024-11-25", "2024-12-30"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         assertThat(dayEventSlots).hasSize(4);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
     }
 
@@ -420,20 +409,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2024-09-04", "2024-11-06"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         assertThat(dayEventSlots).hasSize(2);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
     }
 
@@ -455,20 +443,19 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2024-02-29", "2025-02-28", "2026-02-28", "2027-02-28", "2028-02-29"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         assertThat(dayEventSlots).hasSize(5);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
     }
 
@@ -491,21 +478,53 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         List<LocalDate> dates = createDates(List.of("2024-05-18", "2025-05-18", "2026-05-18"));
 
         this.underTest.create(request, dayEvent);
-        this.testEntityManager.flush();
 
-        List<DayEventSlot> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventSlotRepository.findByEventAndUserId(dayEvent.getId(), 1L);
 
         assertThat(dayEventSlots).hasSize(3);
         for (int i = 0; i < dayEventSlots.size(); i++) {
-            DayEventSlotAssert.assertThat(dayEventSlots.get(i))
+            DayEventSlotPublicProjectionAssert.assertThat(dayEventSlots.get(i))
                     .hasStartDate(dates.get(i))
                     .hasEndDate(dayEventSlots.get(i).getStartDate().plusDays(getEventDuration(dayEvent.getStartDate(), dayEvent.getEndDate())))
                     .hasTitle(request.getTitle())
                     .hasLocation(request.getLocation())
                     .hasDescription(request.getDescription())
                     .hasGuests(request.getGuestEmails())
-                    .hasDayEvent(dayEvent);
+                    .hasEventId(dayEvent.getId());
         }
+    }
+
+    @Test
+    void shouldUpdateEventSlotsForEvent() {
+        String guestEmail = FAKER.internet().emailAddress();
+        DayEventRequest eventRequest = DayEventRequest.builder()
+                .title("New title")
+                .location("New location")
+                .description("New description")
+                .guestEmails(Set.of(guestEmail))
+                .build();
+        List<DayEventSlotPublicProjection> slotPublicProjections = this.underTest.findEventSlotsByEventAndUserId(UUID.fromString("4472d36c-2051-40e3-a2cf-00c6497807b5"), 2L);
+        List<DayEventSlot> eventSlots = slotPublicProjections.stream()
+                .map(slotProjection -> DayEventSlot.builder()
+                        .id(slotProjection.getId())
+                        .title(slotProjection.getTitle())
+                        .location(slotProjection.getLocation())
+                        .description(slotProjection.getDescription())
+                        .guestEmails(slotProjection.getGuestEmails())
+                        .build())
+                .collect(Collectors.toList());
+
+        this.underTest.updateEventSlotsForEvent(eventRequest, eventSlots);
+        List<DayEventSlotPublicProjection> actual = this.underTest.findEventSlotsByEventAndUserId(UUID.fromString("4472d36c-2051-40e3-a2cf-00c6497807b5"), 2L);
+
+        assertThat(actual).hasSize(4)
+                .extracting(AbstractEventSlotPublicProjection::getTitle, AbstractEventSlotPublicProjection::getLocation, AbstractEventSlotPublicProjection::getDescription, AbstractEventSlotPublicProjection::getGuestEmails)
+                .containsExactlyInAnyOrder(
+                        tuple("New title", "New location", "New description", Set.of(guestEmail)),
+                        tuple("New title", "New location", "New description", Set.of(guestEmail)),
+                        tuple("New title", "New location", "New description", Set.of(guestEmail)),
+                        tuple("New title", "New location", "New description", Set.of(guestEmail))
+                );
     }
 
     @Test
@@ -521,15 +540,16 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                 .build();
 
         this.underTest.updateEventSlot(3L, slotId, eventSlotRequest);
-        this.testEntityManager.flush();
 
-        DayEventSlot actual = this.dayEventSlotRepository.findByIdOrThrow(slotId, 3L);
-        DayEventSlotAssert.assertThat(actual)
-                .hasTitle("Title")
-                .hasLocation("New location")
-                .hasStartDate(LocalDate.now())
-                .hasEndDate(LocalDate.now().plusDays(2))
-                .hasGuests(Set.of(guestEmail));
+        this.dayEventSlotRepository.findBySlotAndUserId(slotId, 3L)
+                .ifPresent(projection -> {
+                            assertThat(projection.getTitle()).isEqualTo("Title");
+                            assertThat(projection.getLocation()).isEqualTo("New location");
+                            assertThat(projection.getStartDate()).isEqualTo(LocalDate.now());
+                            assertThat(projection.getEndDate()).isEqualTo(LocalDate.now().plusDays(2));
+                            assertThat(projection.getGuestEmails()).containsExactly(guestEmail);
+                        }
+                );
     }
 
     /*
@@ -572,12 +592,9 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
         InviteGuestsRequest inviteGuestsRequest = new InviteGuestsRequest(Set.of(guestEmail));
 
         this.underTest.inviteGuests(3L, slotId, inviteGuestsRequest);
-        // flush() the changes to the db so the findById() does not fetch from the cache(1st level)
-        this.testEntityManager.flush();
 
-        DayEventSlot actual = this.dayEventSlotRepository.findByIdOrThrow(slotId, 3L);
-        DayEventSlotAssert.assertThat(actual)
-                .hasGuests(Set.of("ericka.ankunding@hotmail.com", guestEmail));
+        this.dayEventSlotRepository.findBySlotAndUserIdFetchingGuests(slotId, 3L)
+                .ifPresent(eventSlot -> assertThat(eventSlot.getGuestEmails()).containsExactlyInAnyOrder("ericka.ankunding@hotmail.com", guestEmail));
     }
 
     /*
@@ -605,11 +622,11 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
     // The method returns the events slots in ASC order and for the given eventId we expect 4 event slots.
     @Test
     void shouldFindEventSlotsByEventId() {
-        List<DayEventSlotDTO> eventSlots = this.underTest.findEventSlotsByEventId(UUID.fromString("4472d36c-2051-40e3-a2cf-00c6497807b5"), 2L);
+        List<DayEventSlotPublicProjection> eventSlots = this.underTest.findEventSlotsByEventAndUserId(UUID.fromString("4472d36c-2051-40e3-a2cf-00c6497807b5"), 2L);
 
         assertThat(eventSlots).hasSize(4)
-                .isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate))
-                .extracting(DayEventSlotDTO::getId)
+                .isSortedAccordingTo(Comparator.comparing(DayEventSlotPublicProjection::getStartDate))
+                .extracting(DayEventSlotPublicProjection::getId)
                 .containsExactly(UUID.fromString("5ff9cedf-ee36-4ec2-aa2e-5b6a16708ab0"), UUID.fromString("009d1441-ab86-411a-baeb-77a1d976868f"), UUID.fromString("35bdbe9f-9c5b-4907-8ae9-a983dacbda43"), UUID.fromString("e2985eda-5c5a-40a0-851e-6dc088081afa"));
     }
 
@@ -617,7 +634,7 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
     @Test
     void shouldFindEventSlotByIdWhereUserIsEitherOrganizerOrInvitedGuest() {
         UUID slotId = UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa");
-        DayEventSlotDTO expected = DayEventSlotDTO.builder()
+        DayEventSlotPublicProjection expected = DayEventSlotPublicProjection.builder()
                 .id(slotId)
                 .title("Event title")
                 .startDate(LocalDate.parse("2024-10-29"))
@@ -625,10 +642,10 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                 .location("Location")
                 .organizer("ellyn.roberts")
                 .guestEmails(Set.of("ericka.ankunding@hotmail.com"))
-                .dayEventId(UUID.fromString("6b9b32f2-3c2a-4420-9d52-781c09f320ce"))
+                .eventId(UUID.fromString("6b9b32f2-3c2a-4420-9d52-781c09f320ce"))
                 .build();
 
-        DayEventSlotDTO actual = this.underTest.findEventSlotById(3L, slotId);
+        DayEventSlotPublicProjection actual = this.underTest.findEventSlotById(3L, slotId);
 
         assertThat(actual).usingRecursiveComparison().isEqualTo(expected);
     }
@@ -645,11 +662,8 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
 
     @Test
     void shouldFindDayEventSlotsInDateRangeWhereUserIsOrganizerOrInvitedAsGuest() {
-        // We need both the id and the email, we can not call getReferenceById(). The proxy will not have the email,
-        // and when we call user.getEmail() it will initialize the proxy by querying the db.
         User user = this.userRepository.findAuthUserByIdOrThrow(2L);
-
-        List<DayEventSlotDTO> eventSlots = this.underTest.findEventSlotsByUserInDateRange(user, LocalDate.parse("2024-10-10"), LocalDate.parse("2024-10-30"));
+        List<DayEventSlotPublicProjection> eventSlots = this.underTest.findEventSlotsByUserInDateRange(user, LocalDate.parse("2024-10-10"), LocalDate.parse("2024-10-30"));
 
         /*
             According to the sql script, the user has username = "clement.gulgowski" and email = "ericka.ankunding@hotmail.com"
@@ -658,17 +672,16 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
             We could also assertThat(eventSlots).isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate))
          */
         assertThat(eventSlots).hasSize(2)
-                .extracting(DayEventSlotDTO::getId, DayEventSlotDTO::getStartDate, DayEventSlotDTO::getGuestEmails, DayEventSlotDTO::getOrganizer)
+                .extracting(DayEventSlotPublicProjection::getId, DayEventSlotPublicProjection::getStartDate, DayEventSlotPublicProjection::getGuestEmails, DayEventSlotPublicProjection::getOrganizer)
                 .containsExactly(tuple(UUID.fromString("e2985eda-5c5a-40a0-851e-6dc088081afa"), LocalDate.parse("2024-10-12"), Set.of(), "clement.gulgowski"), tuple(UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa"), LocalDate.parse("2024-10-29"), Set.of("ericka.ankunding@hotmail.com"), "ellyn.roberts"));
     }
 
-    // Two delete queries will be logged, first to delete all the guest emails and then the slot itself
     @Test
     void shouldDeleteEventSlotById() {
         UUID slotId = UUID.fromString("e2985eda-5c5a-40a0-851e-6dc088081afa");
         this.underTest.deleteEventSlotById(slotId, 2L);
 
-        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.dayEventSlotRepository.findByIdOrThrow(slotId, 2L)).withMessage("Day event slot not found with id: " + slotId);
+        assertThatExceptionOfType(ResourceNotFoundException.class).isThrownBy(() -> this.underTest.deleteEventSlotById(slotId, 2L)).withMessage("Day event slot not found with id: " + slotId);
     }
 
     @Test
@@ -679,8 +692,6 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
     }
 
     private DayEvent createDayEvent(DayEventRequest dayEventRequest) {
-        // We know the id from the sql script
-        User user = this.userRepository.getReferenceById(1L);
         DayEvent dayEvent = DayEvent.builder()
                 .startDate(dayEventRequest.getStartDate())
                 .endDate(dayEventRequest.getEndDate())
@@ -691,11 +702,10 @@ class DayEventSlotServiceTest extends AbstractRepositoryTest {
                 .recurrenceDuration(dayEventRequest.getRecurrenceDuration())
                 .recurrenceEndDate(dayEventRequest.getRecurrenceEndDate())
                 .numberOfOccurrences(dayEventRequest.getNumberOfOccurrences())
-                .user(user)
+                .organizerId(1L)
                 .build();
 
-        this.dayEventRepository.save(dayEvent);
-        this.testEntityManager.flush();
+        this.dayEventRepository.create(dayEvent);
 
         return dayEvent;
     }

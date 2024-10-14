@@ -1,14 +1,13 @@
 package org.example.calendar.event.slot;
 
 
-import org.example.calendar.AuthUtils;
+import org.example.calendar.AuthTestUtils;
 import org.example.calendar.event.dto.InviteGuestsRequest;
-import org.example.calendar.event.slot.EventSlotController;
 import org.example.calendar.event.slot.day.DayEventSlotService;
-import org.example.calendar.event.slot.day.dto.DayEventSlotDTO;
+import org.example.calendar.event.slot.day.projection.DayEventSlotPublicProjection;
 import org.example.calendar.event.slot.day.dto.DayEventSlotRequest;
 import org.example.calendar.event.slot.time.TimeEventSlotService;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotDTO;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotPublicProjection;
 import org.example.calendar.event.slot.time.dto.TimeEventSlotRequest;
 import org.example.calendar.config.SecurityConfig;
 import org.example.calendar.exception.ConflictException;
@@ -74,7 +73,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(DAY_EVENT_SLOT_PATH + "/{slotId}/invite", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
         verify(this.dayEventSlotService, times(1)).inviteGuests(1L, slotId, request);
@@ -100,7 +99,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(DAY_EVENT_SLOT_PATH + "/{slotId}/invite", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -129,7 +128,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(DAY_EVENT_SLOT_PATH + "/{slotId}/invite", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody, false)
@@ -182,7 +181,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(DAY_EVENT_SLOT_PATH + "/{slotId}/invite", slotId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -209,7 +208,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(DAY_EVENT_SLOT_PATH + "/{slotId}/invite", slotId).with(csrf().useInvalidToken().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -229,7 +228,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(DAY_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventSlotRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
         verify(this.dayEventSlotService, times(1)).updateEventSlot(1L, slotId, eventSlotRequest);
@@ -254,7 +253,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(DAY_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventSlotRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -282,7 +281,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(DAY_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventSlotRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody, false)
@@ -373,7 +372,7 @@ class EventSlotControllerTest {
     @Test
     void should200WithDayEventSlotDTOForFindDayEventSlotById() throws Exception {
         UUID slotId = UUID.fromString("eede21d1-c2f1-4dc8-9913-a173c491f07d");
-        DayEventSlotDTO eventSlot = DayEventSlotDTO.builder()
+        DayEventSlotPublicProjection eventSlot = DayEventSlotPublicProjection.builder()
                 .id(slotId)
                 .title("Title")
                 .startDate(LocalDate.parse("2024-09-29"))
@@ -382,14 +381,14 @@ class EventSlotControllerTest {
                 .description("Description")
                 .organizer("ellyn.roberts")
                 .guestEmails(Set.of())
-                .dayEventId(UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa"))
+                .eventId(UUID.fromString("9c6f34b8-4128-42ec-beb1-99c35af8d7fa"))
                 .build();
 
         when(this.dayEventSlotService.findEventSlotById(1L, slotId)).thenReturn(eventSlot);
 
         this.mockMvc.perform(get(DAY_EVENT_SLOT_PATH + "/{slotId}", slotId)
                         .accept(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isOk(),
                         content().json(this.objectMapper.writeValueAsString(eventSlot))
@@ -413,7 +412,7 @@ class EventSlotControllerTest {
 
         this.mockMvc.perform(get(DAY_EVENT_SLOT_PATH + "/{slotId}", slotId)
                         .accept(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -451,7 +450,7 @@ class EventSlotControllerTest {
         doNothing().when(this.dayEventSlotService).deleteEventSlotById(slotId, 1L);
 
         this.mockMvc.perform(delete(DAY_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(
                         status().isNoContent()
                 );
@@ -475,7 +474,7 @@ class EventSlotControllerTest {
         doThrow(new ResourceNotFoundException("Day event slot not found with id: " + slotId)).when(this.dayEventSlotService).deleteEventSlotById(slotId, 1L);
 
         this.mockMvc.perform(delete(DAY_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -522,7 +521,7 @@ class EventSlotControllerTest {
 
         this.mockMvc.perform(delete(DAY_EVENT_SLOT_PATH + "/{slotId}", slotId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -546,7 +545,7 @@ class EventSlotControllerTest {
 
         this.mockMvc.perform(delete(DAY_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().useInvalidToken().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -566,7 +565,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_SLOT_PATH + "/{slotId}/invite", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
         verify(this.timeEventSlotService, times(1)).inviteGuests(1L, slotId, request);
@@ -591,7 +590,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_SLOT_PATH + "/{slotId}/invite", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -619,7 +618,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_SLOT_PATH + "/{slotId}/invite", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody, false)
@@ -670,7 +669,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_SLOT_PATH + "/{slotId}/invite", slotId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -696,7 +695,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_SLOT_PATH + "/{slotId}/invite", slotId).with(csrf().useInvalidToken().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(request))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -716,7 +715,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventSlotRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
         verify(this.timeEventSlotService, times(1)).updateEventSlot(1L, slotId, eventSlotRequest);
@@ -741,7 +740,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventSlotRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -769,7 +768,7 @@ class EventSlotControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventSlotRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isConflict(),
                         content().json(responseBody, false)
@@ -857,7 +856,7 @@ class EventSlotControllerTest {
     @Test
     void should200WithTimeEventSlotDTOForFindTimeEventSlotById() throws Exception {
         UUID slotId = UUID.fromString("e431687e-7251-4ac6-b797-c107064af135");
-        TimeEventSlotDTO eventSlot = TimeEventSlotDTO.builder()
+        TimeEventSlotPublicProjection eventSlot = TimeEventSlotPublicProjection.builder()
                 .id(slotId)
                 .title("Event title")
                 .location("Location")
@@ -868,14 +867,14 @@ class EventSlotControllerTest {
                 .endTime(LocalDateTime.parse("2024-10-15T15:00:00"))
                 .startTimeZoneId(ZoneId.of("Europe/London"))
                 .endTimeZoneId(ZoneId.of("Europe/London"))
-                .timeEventId(UUID.fromString("6b9b32f2-3c2a-4420-9d52-781c09f320ce"))
+                .eventId(UUID.fromString("6b9b32f2-3c2a-4420-9d52-781c09f320ce"))
                 .build();
 
         when(this.timeEventSlotService.findEventSlotById(1L, slotId)).thenReturn(eventSlot);
 
         this.mockMvc.perform(get(TIME_EVENT_SLOT_PATH + "/{slotId}", slotId)
                         .accept(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isOk(),
                         content().json(this.objectMapper.writeValueAsString(eventSlot))
@@ -899,7 +898,7 @@ class EventSlotControllerTest {
 
         this.mockMvc.perform(get(TIME_EVENT_SLOT_PATH + "/{slotId}", slotId)
                         .accept(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -937,7 +936,7 @@ class EventSlotControllerTest {
         doNothing().when(this.timeEventSlotService).deleteEventSlotById(slotId, 1L);
 
         this.mockMvc.perform(delete(TIME_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
         verify(this.timeEventSlotService, times(1)).deleteEventSlotById(slotId, 1L);
@@ -959,7 +958,7 @@ class EventSlotControllerTest {
         doThrow(new ResourceNotFoundException("Time event slot not found with id: " + slotId)).when(this.timeEventSlotService).deleteEventSlotById(slotId, 1L);
 
         this.mockMvc.perform(delete(TIME_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -1006,7 +1005,7 @@ class EventSlotControllerTest {
 
         this.mockMvc.perform(delete(TIME_EVENT_SLOT_PATH + "/{slotId}", slotId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -1030,7 +1029,7 @@ class EventSlotControllerTest {
 
         this.mockMvc.perform(delete(TIME_EVENT_SLOT_PATH + "/{slotId}", slotId).with(csrf().useInvalidToken().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -1041,6 +1040,8 @@ class EventSlotControllerTest {
 
     private DayEventSlotRequest createDayEventSlotRequest() {
         return DayEventSlotRequest.builder()
+                .startDate(LocalDate.now())
+                .endDate(LocalDate.now().plusDays(1))
                 .title("Title")
                 .location("New location")
                 .guestEmails(Set.of("waltraud.roberts@gmail.com"))
@@ -1049,6 +1050,12 @@ class EventSlotControllerTest {
 
     private TimeEventSlotRequest createTimeEventSlotRequest() {
         return TimeEventSlotRequest.builder()
+                // We can't just say LocalDateTime.now(ZoneId.of("Europe/London")). Some time passes before creating
+                // and validating and our date time now is in the past
+                .startTime(LocalDateTime.now(ZoneId.of("Europe/London")).plusMinutes(1))
+                .startTimeZoneId(ZoneId.of("Europe/London"))
+                .endTime(LocalDateTime.now(ZoneId.of("Europe/London")).plusMinutes(30))
+                .endTimeZoneId(ZoneId.of("Europe/London"))
                 .title("Title")
                 .location("New location")
                 .guestEmails(Set.of("waltraud.roberts@gmail.com"))

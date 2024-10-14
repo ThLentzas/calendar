@@ -2,7 +2,6 @@ package org.example.calendar.user.contact.request;
 
 import org.example.calendar.entity.ContactRequest;
 import org.example.calendar.entity.User;
-import org.example.calendar.entity.key.ContactRequestId;
 import org.example.calendar.exception.ConflictException;
 import org.example.calendar.exception.ResourceNotFoundException;
 import org.example.calendar.user.contact.ContactService;
@@ -16,7 +15,7 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ContactRequestService {
-    private final ContactRequestRepository contactRequestRepository;
+    private final ContactRequestRepository repository;
     private final ContactService contactService;
 
     /*
@@ -31,9 +30,8 @@ public class ContactRequestService {
         Case 1: Contact request is found and is on PENDING state, either User A has already sent a request to User B, or
         User B is trying to send a request to User A while the initial request is still pending. We don't allow it.
         Case 2: Contact request is found and is on REJECTED state
-            a: If User A is trying to send another request to User B,
-        who previously rejected it, we don't allow the request, as User A is trying to resend a request that was rejected
-        by User B.
+            a: If User A is trying to send another request to User B, who previously rejected it, we don't allow the
+            request, as User A is trying to resend a request that was rejected by User B.
             b: If User B, who previously rejected a request from User A, is now trying to send a request to User A, we
             allow the request, as User B is now initiating the contact after previously rejecting User A
         Case 3: Contact request is found and is on ACCEPTED state, it means that either User A or User B is trying to
@@ -46,13 +44,13 @@ public class ContactRequestService {
             senderId: B.id, receiverId: A.id, status: PENDING
         which means that our findContactRequestBetweenUsers() will fetch them both.
      */
-    public void sendContactRequest(User sender, User receiver) {
-        List<ContactRequest> contactRequests = this.contactRequestRepository.findContactRequestBetweenUsers(sender.getId(), receiver.getId());
+    public void sendContactRequest(Long senderId, Long receiverId) {
+        List<ContactRequest> contactRequests = this.repository.findContactRequestBetweenUsers(senderId, receiverId);
         for (ContactRequest contactRequest : contactRequests) {
             switch (contactRequest.getStatus()) {
                 case PENDING -> throw new ConflictException("Contact request already pending");
                 case REJECTED -> {
-                    if (contactRequest.getSender().equals(sender)) {
+                    if (contactRequest.getSenderId().equals(senderId)) {
                         throw new ConflictException("Contact request already rejected");
                     }
                 }
@@ -60,17 +58,20 @@ public class ContactRequestService {
             }
         }
 
-        ContactRequest contactRequest = new ContactRequest();
-        contactRequest.setId(new ContactRequestId(sender.getId(), receiver.getId()));
-        contactRequest.setSender(sender);
-        contactRequest.setReceiver(receiver);
-        contactRequest.setStatus(ContactRequestStatus.PENDING);
-        contactRequestRepository.save(contactRequest);
+        /*
+            Both users are found in the db at this point, so if no record was found by the findBetweenUsers() or
+            is the 2b case, we create a new contact request
+         */
+        ContactRequest contactRequest = ContactRequest.builder()
+                .senderId(senderId)
+                .receiverId(receiverId)
+                .build();
+        this.repository.create(contactRequest);
     }
 
     @Transactional
-    public void updateContactRequest(Long senderId, Long receiverId, ContactRequestAction action) {
-        ContactRequest contactRequest = this.contactRequestRepository.findPendingContactRequestBySenderAndReceiverId(senderId, receiverId, ContactRequestStatus.PENDING).orElseThrow(() -> new ResourceNotFoundException("Contact request was not found for sender id: " + senderId + " and receiver id: " + receiverId));
+    public void updatePendingContactRequest(Long senderId, Long receiverId, ContactRequestAction action) {
+        ContactRequest contactRequest = this.repository.findPendingContactRequestBySenderAndReceiverId(senderId, receiverId).orElseThrow(() -> new ResourceNotFoundException("Contact request was not found for sender id: " + senderId + " and receiver id: " + receiverId));
         // Switch requires at least 3 cases
         if (action.equals(ContactRequestAction.ACCEPT)) {
             contactRequest.setStatus(ContactRequestStatus.ACCEPTED);
@@ -78,10 +79,10 @@ public class ContactRequestService {
         } else {
             contactRequest.setStatus(ContactRequestStatus.REJECTED);
         }
-        this.contactRequestRepository.save(contactRequest);
+        this.repository.update(contactRequest);
     }
 
-    public List<ContactRequest> findPendingContacts(Long receiverId) {
-        return this.contactRequestRepository.findPendingContactRequestsByReceiverId(receiverId);
+    public List<User> findPendingContacts(Long receiverId) {
+        return this.repository.findPendingContactRequestsByReceiverId(receiverId);
     }
 }

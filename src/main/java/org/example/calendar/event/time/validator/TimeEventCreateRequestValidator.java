@@ -14,13 +14,6 @@ public final class TimeEventCreateRequestValidator implements ConstraintValidato
 
     @Override
     public boolean isValid(TimeEventRequest eventRequest, ConstraintValidatorContext context) {
-        if (eventRequest.getRecurrenceFrequency() == null) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Provide a frequency. NEVER if it does not recur")
-                    .addConstraintViolation();
-            return false;
-        }
-
         return EventUtils.hasValidEventRequestProperties(eventRequest, context);
     }
 }

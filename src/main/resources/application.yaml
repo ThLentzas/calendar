@@ -1,8 +1,8 @@
 spring:
   application:
-    name: google_calendar_clone
+    name: calendar
   datasource:
-    url: jdbc:postgresql://localhost:5432/google_calendar_clone
+    url: jdbc:postgresql://localhost:5432/calendar
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
@@ -27,8 +27,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
+    username: springbootsandbox@gmail.com
+    password: jyfcxcmhcxetdxkz
     properties:
       mail:
         smtp:
@@ -45,6 +45,7 @@ spring:
   docker:
     compose:
       lifecycle-management: start_only
+      file: classpath:/docker-compose.yaml
 rsa:
   private_key: classpath:certs/private.pem
   public_key: classpath:certs/public.pem

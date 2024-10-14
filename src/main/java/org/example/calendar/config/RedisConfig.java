@@ -14,7 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 class RedisConfig {
 
     /*
-        RedisConfig is not a SpringBean but RedisTemplate is so Spring will try to satisfy the Bean dependencies and
+        RedisConfig is not a SpringBean but RedisTemplate is, so Spring will try to satisfy the Bean dependencies and
         inject the autoconfigured ObjectMapper.
 
         The following won't work.

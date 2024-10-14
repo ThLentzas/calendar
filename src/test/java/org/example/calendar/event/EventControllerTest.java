@@ -5,13 +5,13 @@ import org.example.calendar.event.day.dto.DayEventRequest;
 import org.example.calendar.event.recurrence.MonthlyRecurrenceType;
 import org.example.calendar.event.recurrence.RecurrenceDuration;
 import org.example.calendar.event.recurrence.RecurrenceFrequency;
-import org.example.calendar.event.slot.day.dto.DayEventSlotDTO;
+import org.example.calendar.event.slot.day.projection.DayEventSlotPublicProjection;
 import org.example.calendar.event.time.TimeEventService;
 import org.example.calendar.event.time.dto.TimeEventRequest;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotDTO;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotPublicProjection;
 import org.example.calendar.config.SecurityConfig;
 import org.example.calendar.exception.ResourceNotFoundException;
-import org.example.calendar.AuthUtils;
+import org.example.calendar.AuthTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -73,12 +73,12 @@ class EventControllerTest {
         DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         UUID eventId = UUID.randomUUID();
 
-        when(this.dayEventService.create(1L, eventRequest)).thenReturn(eventId);
+        when(this.dayEventService.createEvent(1L, eventRequest)).thenReturn(eventId);
 
         this.mockMvc.perform(post(DAY_EVENT_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(this.objectMapper.writeValueAsString(eventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isCreated(),
                         header().string("Location", containsString(DAY_EVENT_PATH + "/" + eventId))
@@ -101,7 +101,7 @@ class EventControllerTest {
         this.mockMvc.perform(post(DAY_EVENT_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(this.objectMapper.writeValueAsString(eventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isBadRequest(),
                         content().json(responseBody, false)
@@ -152,7 +152,7 @@ class EventControllerTest {
         this.mockMvc.perform(post(DAY_EVENT_PATH)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(this.objectMapper.writeValueAsString(eventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -177,7 +177,7 @@ class EventControllerTest {
         this.mockMvc.perform(post(DAY_EVENT_PATH).with(csrf().useInvalidToken().asHeader())
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(this.objectMapper.writeValueAsString(eventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -191,15 +191,15 @@ class EventControllerTest {
         DayEventRequest eventRequest = createDayEventRequest(LocalDate.now().plusDays(1), LocalDate.now().plusDays(3));
         UUID eventId = UUID.randomUUID();
 
-        doNothing().when(this.dayEventService).update(1L, eventId, eventRequest);
+        doNothing().when(this.dayEventService).updateEvent(1L, eventId, eventRequest);
 
         this.mockMvc.perform(put(DAY_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
-        verify(this.dayEventService, times(1)).update(1L, eventId, eventRequest);
+        verify(this.dayEventService, times(1)).updateEvent(1L, eventId, eventRequest);
     }
 
     // updateDayEvent()
@@ -278,16 +278,16 @@ class EventControllerTest {
     @Test
     void should200WithListOfDayEventSlotDTO() throws Exception {
         UUID eventId = UUID.randomUUID();
-        DayEventSlotDTO dayEventSlotDTO = createDayEventSlotDTO(eventId);
+        DayEventSlotPublicProjection dayEventSlotPublicProjection = createDayEventSlotPublicProjection(eventId);
 
-        when(this.dayEventService.findEventSlotsByEventId(eventId, 1L)).thenReturn(List.of(dayEventSlotDTO));
+        when(this.dayEventService.findEventSlotsByEventId(eventId, 1L)).thenReturn(List.of(dayEventSlotPublicProjection));
 
         this.mockMvc.perform(get(DAY_EVENT_PATH + "/{eventId}", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isOk(),
-                        content().json(this.objectMapper.writeValueAsString(List.of(dayEventSlotDTO)))
+                        content().json(this.objectMapper.writeValueAsString(List.of(dayEventSlotPublicProjection)))
                 );
     }
 
@@ -308,7 +308,7 @@ class EventControllerTest {
 
         this.mockMvc.perform(get(DAY_EVENT_PATH + "/{eventId}", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -332,7 +332,7 @@ class EventControllerTest {
 
         this.mockMvc.perform(get(DAY_EVENT_PATH + "/{eventId}", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -369,7 +369,7 @@ class EventControllerTest {
         doNothing().when(this.dayEventService).deleteEventById(eventId, 1L);
 
         this.mockMvc.perform(delete(DAY_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
         verify(this.dayEventService, times(1)).deleteEventById(eventId, 1L);
@@ -391,7 +391,7 @@ class EventControllerTest {
         doThrow(new ResourceNotFoundException("Day event not found with id: " + eventId)).when(this.dayEventService).deleteEventById(eventId, 1L);
 
         this.mockMvc.perform(delete(DAY_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -414,7 +414,7 @@ class EventControllerTest {
         doThrow(new ResourceNotFoundException("Day event not found with id: " + eventId)).when(this.dayEventService).deleteEventById(eventId, 1L);
 
         this.mockMvc.perform(delete(DAY_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -459,7 +459,7 @@ class EventControllerTest {
 
 
         this.mockMvc.perform(delete(DAY_EVENT_PATH + "/{eventId}", eventId)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -483,7 +483,7 @@ class EventControllerTest {
 
 
         this.mockMvc.perform(delete(DAY_EVENT_PATH + "/{eventId}", eventId).with(csrf().useInvalidToken().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -500,12 +500,12 @@ class EventControllerTest {
         );
         UUID eventId = UUID.randomUUID();
 
-        when(this.timeEventService.create(1L, timeEventRequest)).thenReturn(eventId);
+        when(this.timeEventService.createEvent(1L, timeEventRequest)).thenReturn(eventId);
 
         this.mockMvc.perform(post(TIME_EVENT_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(this.objectMapper.writeValueAsString(timeEventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isCreated(),
                         header().string("Location", containsString(TIME_EVENT_PATH + "/" + eventId))
@@ -529,7 +529,7 @@ class EventControllerTest {
         this.mockMvc.perform(post(TIME_EVENT_PATH).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(this.objectMapper.writeValueAsString(timeEventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isBadRequest(),
                         content().json(responseBody, false)
@@ -580,7 +580,7 @@ class EventControllerTest {
         this.mockMvc.perform(post(TIME_EVENT_PATH)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(this.objectMapper.writeValueAsString(timeEventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -606,7 +606,7 @@ class EventControllerTest {
         this.mockMvc.perform(post(TIME_EVENT_PATH).with(csrf().useInvalidToken().asHeader())
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(this.objectMapper.writeValueAsString(timeEventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -624,15 +624,15 @@ class EventControllerTest {
         );
         UUID eventId = UUID.randomUUID();
 
-        doNothing().when(this.timeEventService).update(1L, eventId, eventRequest);
+        doNothing().when(this.timeEventService).updateEvent(1L, eventId, eventRequest);
 
         this.mockMvc.perform(put(TIME_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
-        verify(this.timeEventService, times(1)).update(1L, eventId, eventRequest);
+        verify(this.timeEventService, times(1)).updateEvent(1L, eventId, eventRequest);
     }
 
     // updateTimeEvent()
@@ -681,7 +681,7 @@ class EventControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_PATH + "/{eventId}", eventId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -708,7 +708,7 @@ class EventControllerTest {
         this.mockMvc.perform(put(TIME_EVENT_PATH + "/{eventId}", eventId).with(csrf().useInvalidToken().asHeader())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(this.objectMapper.writeValueAsString(eventRequest))
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -721,13 +721,13 @@ class EventControllerTest {
     @Test
     void should200WithListOfTimeEventSlotDTO() throws Exception {
         UUID eventId = UUID.randomUUID();
-        TimeEventSlotDTO timeEventSlotDTO = createTimeEventSlotDTO(eventId);
+        TimeEventSlotPublicProjection timeEventSlotDTO = createTimeEventSlotPublicProjection(eventId);
 
         when(this.timeEventService.findEventSlotsByEventId(eventId, 1L)).thenReturn(List.of(timeEventSlotDTO));
 
         this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isOk(),
                         content().json(this.objectMapper.writeValueAsString(List.of(timeEventSlotDTO)))
@@ -751,7 +751,7 @@ class EventControllerTest {
 
         this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -775,7 +775,7 @@ class EventControllerTest {
 
         this.mockMvc.perform(get(TIME_EVENT_PATH + "/{eventId}", eventId)
                         .accept(MediaType.APPLICATION_JSON_VALUE)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -811,7 +811,7 @@ class EventControllerTest {
         doNothing().when(this.timeEventService).deleteEventById(eventId, 1L);
 
         this.mockMvc.perform(delete(TIME_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpect(status().isNoContent());
 
         verify(this.timeEventService, times(1)).deleteEventById(eventId, 1L);
@@ -833,7 +833,7 @@ class EventControllerTest {
         doThrow(new ResourceNotFoundException("Time event not found with id: " + eventId)).when(this.timeEventService).deleteEventById(eventId, 1L);
 
         this.mockMvc.perform(delete(TIME_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -856,7 +856,7 @@ class EventControllerTest {
         doThrow(new ResourceNotFoundException("Time event not found with id: " + eventId)).when(this.timeEventService).deleteEventById(eventId, 1L);
 
         this.mockMvc.perform(delete(TIME_EVENT_PATH + "/{eventId}", eventId).with(csrf().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isNotFound(),
                         content().json(responseBody, false)
@@ -900,7 +900,7 @@ class EventControllerTest {
 
 
         this.mockMvc.perform(delete(TIME_EVENT_PATH + "/{eventId}", eventId)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -923,7 +923,7 @@ class EventControllerTest {
 
 
         this.mockMvc.perform(delete(TIME_EVENT_PATH + "/{eventId}", eventId).with(csrf().useInvalidToken().asHeader())
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isForbidden(),
                         content().json(responseBody, false)
@@ -933,24 +933,23 @@ class EventControllerTest {
 
     // findEventsByUserInDateRange()
     @Test
-    void should200WithListOfEventSlotDTO() throws Exception {
-        DayEventSlotDTO dayEventSlotDTO = createDayEventSlotDTO(UUID.randomUUID());
-        TimeEventSlotDTO timeEventSlotDTO = createTimeEventSlotDTO(UUID.randomUUID());
+    void should200WithListOfEventSlotPublicProjection() throws Exception {
+        DayEventSlotPublicProjection dayEventSlotPublicProjection = createDayEventSlotPublicProjection(UUID.randomUUID());
+        TimeEventSlotPublicProjection timeEventSlotPublicProjection = createTimeEventSlotPublicProjection(UUID.randomUUID());
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = LocalDate.now().plusDays(4);
 
-        when(this.dayEventService.findEventSlotsByUserInDateRange(1L, startDate, endDate)).thenReturn(List.of(dayEventSlotDTO));
-        when(this.timeEventService.findEventSlotsByUserInDateRange(1L, startDate.atStartOfDay(), endDate.atStartOfDay())).thenReturn(List.of(timeEventSlotDTO));
+        when(this.dayEventService.findEventSlotsByUserInDateRange(1L, startDate, endDate)).thenReturn(List.of(dayEventSlotPublicProjection));
+        when(this.timeEventService.findEventSlotsByUserInDateRange(1L, startDate.atStartOfDay(), ZoneId.of("Australia/Sydney"), endDate.atStartOfDay(), ZoneId.of("Australia/Sydney"))).thenReturn(List.of(timeEventSlotPublicProjection));
 
-        this.mockMvc.perform(get("/api/v1/events?start={start}&end={end}", LocalDate.now(), LocalDate.now().plusDays(4))
+        this.mockMvc.perform(get("/api/v1/events?start={start}&end={end}&startTimeZoneId={startTimeZoneId}&endTimeZoneId={endTimeZoneId}", LocalDate.now(), LocalDate.now().plusDays(4), "Australia/Sydney", "Australia/Sydney")
                         .accept(MediaType.APPLICATION_JSON)
-                        .with(authentication(AuthUtils.getAuthentication())))
+                        .with(authentication(AuthTestUtils.getAuthentication())))
                 .andExpectAll(
                         status().isOk(),
-                        content().json(this.objectMapper.writeValueAsString(List.of(dayEventSlotDTO, timeEventSlotDTO)))
+                        content().json(this.objectMapper.writeValueAsString(List.of(dayEventSlotPublicProjection, timeEventSlotPublicProjection)))
                 );
     }
-
     @Test
     void should401WhenFindEventSlotsByUserInDateRangeIsCalledByUnauthenticatedUser() throws Exception {
         String responseBody = """
@@ -988,8 +987,8 @@ class EventControllerTest {
                 .build();
     }
 
-    private DayEventSlotDTO createDayEventSlotDTO(UUID eventId) {
-        return DayEventSlotDTO.builder()
+    private DayEventSlotPublicProjection createDayEventSlotPublicProjection(UUID eventId) {
+        return DayEventSlotPublicProjection.builder()
                 .id(UUID.fromString("367be25c-fd30-4961-8d03-81b80a765c3e"))
                 .title("Event title")
                 .startDate(LocalDate.now().plusDays(2))
@@ -998,7 +997,7 @@ class EventControllerTest {
                 .description("Description")
                 .organizer("Organizer")
                 .guestEmails(Set.of())
-                .dayEventId(eventId)
+                .eventId(eventId)
                 .build();
     }
 
@@ -1020,19 +1019,19 @@ class EventControllerTest {
                 .build();
     }
 
-    private TimeEventSlotDTO createTimeEventSlotDTO(UUID eventId) {
-        return TimeEventSlotDTO.builder()
+    private TimeEventSlotPublicProjection createTimeEventSlotPublicProjection(UUID eventId) {
+        return TimeEventSlotPublicProjection.builder()
                 .id(UUID.fromString("367be25c-fd30-4961-8d03-81b80a765c3e"))
                 .title("Event name")
-                .startTime(LocalDateTime.now().plusDays(1))
-                .endTime(LocalDateTime.now().plusDays(3))
+                .startTime(LocalDateTime.now(ZoneId.of("Australia/Sydney")).plusDays(1))
+                .endTime(LocalDateTime.now(ZoneId.of("Australia/Sydney")).plusDays(3))
                 .startTimeZoneId(ZoneId.of("Australia/Sydney"))
                 .endTimeZoneId(ZoneId.of("Australia/Sydney"))
                 .location("Location")
                 .description("Description")
                 .organizer("Organizer")
                 .guestEmails(Set.of())
-                .timeEventId(eventId)
+                .eventId(eventId)
                 .build();
     }
 }

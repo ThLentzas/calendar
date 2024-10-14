@@ -1,8 +1,6 @@
 package org.example.calendar.user.contact.request;
 
 import org.example.calendar.entity.ContactRequest;
-import org.example.calendar.entity.User;
-import org.example.calendar.entity.key.ContactRequestId;
 import org.assertj.core.api.AbstractAssert;
 
 import java.time.Instant;
@@ -19,28 +17,19 @@ class ContactRequestAssert extends AbstractAssert<ContactRequestAssert, ContactR
         return new ContactRequestAssert(actual);
     }
 
-    // All the methods work with the actual object. isNotNull(); is called on the actual object
-    ContactRequestAssert hasContactRequestId(ContactRequestId id) {
+    ContactRequestAssert hasSender(Long senderId) {
         isNotNull();
-        if (!actual.getId().equals(id)) {
-            failWithMessage("Expected ContactRequest to have id <%s> but was <%s>", id, actual.getId());
-        }
-        return this; // Returning this allows us to continue chaining
-    }
-
-    ContactRequestAssert hasSender(User sender) {
-        isNotNull();
-        if (!actual.getSender().equals(sender)) {
-            failWithMessage("Expected ContactRequest to have sender <%s> but was <%s>", sender, actual.getSender());
+        if (!actual.getSenderId().equals(senderId)) {
+            failWithMessage("Expected ContactRequest to have sender with id <%s> but was <%s>", senderId, actual.getSenderId());
         }
 
         return this;
     }
 
-    ContactRequestAssert hasReceiver(User receiver) {
+    ContactRequestAssert hasReceiver(Long receiverId) {
         isNotNull();
-        if (!actual.getReceiver().equals(receiver)) {
-            failWithMessage("Expected ContactRequest to have receiver <%s> but was <%s>", receiver, actual.getReceiver());
+        if (!actual.getReceiverId().equals(receiverId)) {
+            failWithMessage("Expected ContactRequest to have receiver with id <%s> but was <%s>", receiverId, actual.getReceiverId());
         }
 
         return this;

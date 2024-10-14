@@ -1,8 +1,8 @@
 package org.example.calendar.email;
 
-import org.example.calendar.event.slot.day.dto.DayEventSlotReminderRequest;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotReminderRequest;
+import org.example.calendar.event.slot.day.projection.DayEventSlotReminderProjection;
 import org.example.calendar.event.day.dto.DayEventInvitationRequest;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotReminderProjection;
 import org.example.calendar.event.time.dto.TimeEventInvitationRequest;
 import org.example.calendar.exception.ServerErrorException;
 import org.example.calendar.utils.EmailUtils;
@@ -61,34 +61,26 @@ public class EmailService {
     }
 
     @Async
-    public void sendReminderEmail(DayEventSlotReminderRequest reminderRequest) {
-        String dateDescription = EmailUtils.buildDateDescription(reminderRequest.getStartDate());
-        String eventSlotDetails = String.format("http://localhost:8080/api/v1/events/day-event-slots/%s", reminderRequest.getId());
-        // We use a TreeSet so that the guest's list is displayed sorted
-        Set<String> guestEmails = new TreeSet<>(reminderRequest.getGuestEmails());
-        String context = this.thymeleafService.setReminderEmailContext(dateDescription, reminderRequest.getTitle(), reminderRequest.getOrganizer().getPassword(), guestEmails, eventSlotDetails);
+    public void sendReminderEmail(DayEventSlotReminderProjection projection) {
+        String dateDescription = EmailUtils.buildDateDescription(projection.getStartDate());
+        String eventSlotDetails = String.format("http://localhost:8080/api/v1/events/day-event-slots/%s", projection.getId());
+        String context = this.thymeleafService.setReminderEmailContext(dateDescription, projection.getTitle(), projection.getOrganizerUsername(), projection.getGuestEmails(), eventSlotDetails);
 
-        sendEmail(reminderRequest.getOrganizer().getEmail(), NOTIFICATION, context);
-        for (String guest : reminderRequest.getGuestEmails()) {
+        sendEmail(projection.getOrganizerEmail(), NOTIFICATION, context);
+        for (String guest : projection.getGuestEmails()) {
             sendEmail(guest, NOTIFICATION, context);
         }
     }
 
     @Async
-    public void sendReminderEmail(TimeEventSlotReminderRequest reminderRequest) {
-        String dateDescription = EmailUtils.buildDateTimeDescription(reminderRequest.getStartTime(), reminderRequest.getEndTime());
-        String eventSlotDetails = String.format("http://localhost:8080/api/v1/events/time-event-slots/%s", reminderRequest.getId());
-        Set<String> guestEmails = new TreeSet<>(reminderRequest.getGuestEmails());
-        String context = this.thymeleafService.setReminderEmailContext(
-                dateDescription,
-                reminderRequest.getTitle(),
-                reminderRequest.getOrganizer().getUsername(),
-                guestEmails,
-                eventSlotDetails
-        );
+    public void sendReminderEmail(TimeEventSlotReminderProjection projection) {
+        String dateDescription = EmailUtils.buildDateTimeDescription(projection.getStartTime(), projection.getEndTime());
+        String eventSlotDetails = String.format("http://localhost:8080/api/v1/events/time-event-slots/%s", projection.getId());
+        Set<String> guestEmails = new TreeSet<>(projection.getGuestEmails());
+        String context = this.thymeleafService.setReminderEmailContext(dateDescription, projection.getTitle(), projection.getOrganizerUsername(), guestEmails, eventSlotDetails);
 
-        sendEmail(reminderRequest.getOrganizer().getEmail(), NOTIFICATION, context);
-        for (String guest : reminderRequest.getGuestEmails()) {
+        sendEmail(projection.getOrganizerEmail(), NOTIFICATION, context);
+        for (String guest : projection.getGuestEmails()) {
             sendEmail(guest, NOTIFICATION, context);
         }
     }

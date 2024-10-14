@@ -7,27 +7,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.example.calendar.event.day.DayEventService;
 import org.example.calendar.event.day.dto.DayEventRequest;
 import org.example.calendar.event.time.dto.TimeEventRequest;
 import org.example.calendar.event.time.TimeEventService;
 import org.example.calendar.event.slot.EventSlotComparator;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotDTO;
-import org.example.calendar.event.slot.AbstractEventSlotDTO;
-import org.example.calendar.event.slot.day.dto.DayEventSlotDTO;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotPublicProjection;
+import org.example.calendar.event.slot.projection.AbstractEventSlotPublicProjection;
+import org.example.calendar.event.slot.day.projection.DayEventSlotPublicProjection;
 import org.example.calendar.event.groups.OnCreate;
 import org.example.calendar.event.groups.OnUpdate;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -158,7 +151,7 @@ class EventController {
     ResponseEntity<Void> createDayEvent(@AuthenticationPrincipal Jwt jwt,
                                         @Validated(OnCreate.class) @RequestBody DayEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
-        UUID eventId = this.dayEventService.create(userId, eventRequest);
+        UUID eventId = this.dayEventService.createEvent(userId, eventRequest);
         /*
             https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-uri-building.html
             https://docs.spring.io/spring-framework/docs/4.1.2.RELEASE_to_4.1.3.RELEASE/Spring%20Framework%204.1.3.RELEASE/org/springframework/http/ResponseEntity.html
@@ -181,16 +174,16 @@ class EventController {
                                         @AuthenticationPrincipal Jwt jwt,
                                         @Validated(OnUpdate.class) @RequestBody DayEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
-        this.dayEventService.update(userId, eventId, eventRequest);
+        this.dayEventService.updateEvent(userId, eventId, eventRequest);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/day-events/{eventId}")
-    ResponseEntity<List<DayEventSlotDTO>> findDayEventSlotsByEventId(@AuthenticationPrincipal Jwt jwt,
-                                                                     @PathVariable("eventId") UUID eventId) {
+    ResponseEntity<List<DayEventSlotPublicProjection>> findDayEventSlotsByEventId(@AuthenticationPrincipal Jwt jwt,
+                                                                                  @PathVariable("eventId") UUID eventId) {
         Long userId = Long.valueOf(jwt.getSubject());
-        List<DayEventSlotDTO> dayEventSlots = this.dayEventService.findEventSlotsByEventId(eventId, userId);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventService.findEventSlotsByEventId(eventId, userId);
 
         return new ResponseEntity<>(dayEventSlots, HttpStatus.OK);
     }
@@ -209,7 +202,7 @@ class EventController {
     ResponseEntity<Void> createTimeEvent(@AuthenticationPrincipal Jwt jwt,
                                          @Validated(OnCreate.class) @RequestBody TimeEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
-        UUID eventId = this.timeEventService.create(userId, eventRequest);
+        UUID eventId = this.timeEventService.createEvent(userId, eventRequest);
         URI location = UriComponentsBuilder.fromUriString("/api/v1/events/time-events/{eventId}").build(eventId);
         HttpHeaders responseHeaders = new HttpHeaders();
         responseHeaders.setLocation(location);
@@ -228,16 +221,16 @@ class EventController {
                                          @AuthenticationPrincipal Jwt jwt,
                                          @Validated(OnUpdate.class) @RequestBody TimeEventRequest eventRequest) {
         Long userId = Long.valueOf(jwt.getSubject());
-        this.timeEventService.update(userId, eventId, eventRequest);
+        this.timeEventService.updateEvent(userId, eventId, eventRequest);
 
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/time-events/{eventId}")
-    ResponseEntity<List<TimeEventSlotDTO>> findTimeEventSlotsByEventId(@AuthenticationPrincipal Jwt jwt,
-                                                                       @PathVariable("eventId") UUID eventId) {
+    ResponseEntity<List<TimeEventSlotPublicProjection>> findTimeEventSlotsByEventId(@AuthenticationPrincipal Jwt jwt,
+                                                                                    @PathVariable("eventId") UUID eventId) {
         Long userId = Long.valueOf(jwt.getSubject());
-        List<TimeEventSlotDTO> timeEventSlots = this.timeEventService.findEventSlotsByEventId(eventId, userId);
+        List<TimeEventSlotPublicProjection> timeEventSlots = this.timeEventService.findEventSlotsByEventId(eventId, userId);
 
         return new ResponseEntity<>(timeEventSlots, HttpStatus.OK);
     }
@@ -259,18 +252,18 @@ class EventController {
         If startDate > endDate we return an empty list
      */
     @GetMapping
-    ResponseEntity<List<AbstractEventSlotDTO>> findEventsByUserInDateRange(@RequestParam(value = "start")
-                                                                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-                                                                           LocalDate startDate,
-                                                                           @RequestParam(value = "end")
-                                                                           @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-                                                                           LocalDate endDate,
-                                                                           @AuthenticationPrincipal Jwt jwt) {
+    ResponseEntity<List<AbstractEventSlotPublicProjection>> findEventsByUserInDateRange(@RequestParam(value = "start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+                                                                                        @RequestParam(value = "end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+                                                                                        @RequestParam(value = "startTimeZoneId", defaultValue = "", required = false) String startTimeZoneId,
+                                                                                        @RequestParam(value = "endTimeZoneId", defaultValue = "", required = false) String endTimezoneId,
+                                                                                        @AuthenticationPrincipal Jwt jwt) {
         Long userId = Long.valueOf(jwt.getSubject());
-        List<DayEventSlotDTO> dayEventSlots = this.dayEventService.findEventSlotsByUserInDateRange(userId, startDate, endDate);
-        List<AbstractEventSlotDTO> eventSlots = new ArrayList<>(dayEventSlots);
+        ZoneId eventStartTimeZoneId = startTimeZoneId.isEmpty() ? ZoneId.of("UTC") : ZoneId.of(startTimeZoneId);
+        ZoneId eventEndTimeZoneId = endTimezoneId.isEmpty() ? ZoneId.of("UTC") : ZoneId.of(endTimezoneId);
+        List<DayEventSlotPublicProjection> dayEventSlots = this.dayEventService.findEventSlotsByUserInDateRange(userId, startDate, endDate);
+        List<AbstractEventSlotPublicProjection> eventSlots = new ArrayList<>(dayEventSlots);
         // converts a LocalDate into a LocalDateTime adding time of the midnight as 00:00:00
-        eventSlots.addAll(this.timeEventService.findEventSlotsByUserInDateRange(userId, startDate.atStartOfDay(), endDate.atStartOfDay()));
+        eventSlots.addAll(this.timeEventService.findEventSlotsByUserInDateRange(userId, startDate.atStartOfDay(), eventStartTimeZoneId, endDate.atStartOfDay(), eventEndTimeZoneId));
         /*
             Both the DayEventSlots and TimeEventSlots are sorted but when we add them in 1 list, we need to make sure
             that they are also sorted based on their starting date. We need a comparator so that we can compare the

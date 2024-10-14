@@ -8,8 +8,9 @@ CREATE TYPE contact_request_status AS ENUM (
     java Instant to psql is TIMESTAMP WITH TIME ZONE
  */
 CREATE TABLE IF NOT EXISTS contact_requests (
-    sender_id INTEGER NOT NULL,
-    receiver_id INTEGER NOT NULL,
+    -- https://www.postgresql.org/docs/current/datatype-numeric.html
+    sender_id BIGINT NOT NULL,
+    receiver_id BIGINT NOT NULL,
     status contact_request_status NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL,

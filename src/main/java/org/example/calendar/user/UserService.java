@@ -1,6 +1,5 @@
 package org.example.calendar.user;
 
-import org.example.calendar.entity.ContactRequest;
 import org.example.calendar.entity.User;
 import org.example.calendar.exception.DuplicateResourceException;
 import org.example.calendar.exception.ResourceNotFoundException;
@@ -9,6 +8,7 @@ import org.example.calendar.user.contact.request.ContactRequestService;
 import org.example.calendar.user.contact.dto.CreateContactRequest;
 import org.example.calendar.user.contact.dto.PendingContactRequest;
 import org.example.calendar.user.contact.dto.UpdateContactRequest;
+import org.example.calendar.user.contact.request.ContactRequestStatus;
 import org.example.calendar.user.dto.UserProfile;
 import org.example.calendar.user.dto.UserProfileConverter;
 import org.example.calendar.utils.PasswordUtils;
@@ -25,7 +25,7 @@ import java.util.List;
 public class UserService {
     private final ContactRequestService contactRequestService;
     private final ContactService contactService;
-    private final UserRepository userRepository;
+    private final UserRepository repository;
     private static final UserProfileConverter CONVERTER = new UserProfileConverter();
     private final PasswordEncoder passwordEncoder;
 
@@ -34,11 +34,11 @@ public class UserService {
         validateEmail(user.getEmail());
         validatePassword(user.getPassword());
 
-        if (this.userRepository.existsByEmailIgnoringCase(user.getEmail())) {
+        if (this.repository.existsByEmail(user.getEmail())) {
             throw new DuplicateResourceException("The provided email already exists");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-        this.userRepository.save(user);
+        this.repository.create(user);
     }
 
     /*
@@ -46,38 +46,32 @@ public class UserService {
      */
     @Transactional
     void sendContactRequest(CreateContactRequest contactRequest, Long senderId) {
-        User sender = this.userRepository.getReferenceById(senderId);
-        User receiver = this.userRepository.findById(contactRequest.receiverId()).orElseThrow(() ->
-                new ResourceNotFoundException("User not found with id: " + contactRequest.receiverId()));
-
-        this.contactRequestService.sendContactRequest(sender, receiver);
+        User receiver = this.repository.findById(contactRequest.receiverId()).orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + contactRequest.receiverId()));
+        this.contactRequestService.sendContactRequest(senderId, receiver.getId());
     }
 
     /*
         The current user(receiver) received a contact request and either accepts or rejects the request
      */
     void updateContactRequest(UpdateContactRequest contactRequest, Long receiverId) {
-        Long senderId = contactRequest.senderId();
-        this.contactRequestService.updateContactRequest(senderId, receiverId, contactRequest.action());
+        this.contactRequestService.updatePendingContactRequest(contactRequest.senderId(), receiverId, contactRequest.action());
     }
 
     public User findById(Long userId) {
-        return this.userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+        return this.repository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
     }
 
     List<PendingContactRequest> findPendingContactRequests(Long receiverId) {
-        List<ContactRequest> contactRequests = this.contactRequestService.findPendingContacts(receiverId);
-        return contactRequests.stream()
-                .map(contactRequest -> new PendingContactRequest(
-                        this.CONVERTER.convert(contactRequest.getSender()), contactRequest.getStatus()))
+        List<User> users = this.contactRequestService.findPendingContacts(receiverId);
+        return users.stream()
+                .map(user -> new PendingContactRequest(CONVERTER.convert(user), ContactRequestStatus.PENDING))
                 .toList();
     }
 
     List<UserProfile> findContacts(Long userId) {
         List<User> users = this.contactService.findContacts(userId);
-
         return users.stream()
-                .map(this.CONVERTER::convert)
+                .map(CONVERTER::convert)
                 .toList();
     }
 

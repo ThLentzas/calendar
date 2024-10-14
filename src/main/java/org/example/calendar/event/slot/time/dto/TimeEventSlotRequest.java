@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-import org.example.calendar.event.slot.AbstractEventSlotRequest;
+import org.example.calendar.event.slot.dto.AbstractEventSlotRequest;
 import org.example.calendar.event.slot.time.validator.ValidTimeEventSlotRequest;
 
 import java.time.LocalDateTime;

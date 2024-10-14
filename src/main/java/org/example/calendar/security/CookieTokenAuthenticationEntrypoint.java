@@ -4,7 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.example.calendar.exception.ErrorMessage;
+import org.example.calendar.event.dto.ErrorMessage;
 import org.example.calendar.utils.CookieUtils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;

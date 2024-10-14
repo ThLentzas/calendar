@@ -23,8 +23,8 @@ public class AuthEvent {
         When the user is authenticated via the form login we have to set the refresh and jwt tokens
         https://docs.spring.io/spring-security/reference/servlet/authentication/events.html
 
-        It triggers on every successful authentication, which means for subsequent requests as well when submitting the
-        jwt. In that case if we didn't have that if check, the principal would be of type Jwt as the authentication
+        It triggers on every successful authentication, which means for subsequent requests when we submit the jwt. In
+        that case if we didn't have that if check, the principal would be of type Jwt as the authentication
         is of type JwtAuthenticationToken. We only want to add the auth cookies with the form login.
 
         UserPrincipal userPrincipal = (UserPrincipal) success.getAuthentication().getPrincipal() => Class cast exception

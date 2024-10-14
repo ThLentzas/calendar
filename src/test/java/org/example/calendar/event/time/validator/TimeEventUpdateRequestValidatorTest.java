@@ -38,16 +38,35 @@ class TimeEventUpdateRequestValidatorTest {
         We need to have 1 violation per test, because the set of constraints will have more than 1
         error message and, we can not be sure that iterator.next() will return the constraint we test
 
-        In this class we test every case on the TimeEventCreateRequestValidator which covers all the cases for the
-        EventUtils.hasValidEventRequestProperties(eventRequest, context), including the call to the
-        hasValidDateTimeProperties(). For that reason, we don't need to repeat the tests for frequency/date times in
-        the TimeEventUpdateRequestValidatorTest and date times in TimeEventSlotRequestValidatorTest
+        Both the DayEventUpdateRequestValidator and the TimeEventUpdateRequestValidator make a call to the overloaded
+        method EventUtils.hasEmptyEventUpdateRequestProperties(). For day events, the next call is it to
+        EventUtils.hasRequiredDateProperties() and then to EventUtils.hasValidEventRequestProperties() which then calls
+        hasValidFrequencyProperties() and hasValidDateProperties(). For time events, the next method call is to
+        EventUtils.hasRequiredDateTimeProperties() and then calls EventUtils.hasValidEventRequestProperties(), which then calls
+        hasValidFrequencyProperties() and hasValidDateTimeProperties(). In this class, we test the EventUtils.hasEmptyEventUpdateRequestProperties()
+        and the EventUtils.hasRequiredDateTimeProperties() cases because everything else is already tested in the
+        DayEventCreateRequestValidatorTest/TimeEventCreateRequestValidatorTest class.
      */
     @BeforeEach
     public void setUp() {
         try (ValidatorFactory factory = Validation.buildDefaultValidatorFactory()) {
             validator = factory.getValidator();
         }
+    }
+
+    @Test
+    void shouldReturnTrueWhenTimeEventRequestIsValid() {
+        TimeEventRequest request = TimeEventRequest.builder()
+                .title("Event title")
+                .startTime(LocalDateTime.now(ZoneId.of("Asia/Dubai")).plusDays(1))
+                .endTime(LocalDateTime.now(ZoneId.of("Asia/Dubai")).plusDays(1).plusMinutes(30))
+                .startTimeZoneId(ZoneId.of("Asia/Dubai"))
+                .endTimeZoneId(ZoneId.of("Asia/Dubai"))
+                .recurrenceFrequency(RecurrenceFrequency.NEVER)
+                .build();
+
+        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        assertThat(violations).isEmpty();
     }
 
     @Test
@@ -62,72 +81,51 @@ class TimeEventUpdateRequestValidatorTest {
     }
 
     @Test
-    void shouldReturnFalseWhenFrequencyIsNotNullAndStartEndTimeAreNull() {
+    void shouldReturnFalseWhenStartTimeIsNull() {
         TimeEventRequest request = TimeEventRequest.builder()
-                .title("Event title")
-                .recurrenceFrequency(RecurrenceFrequency.DAILY)
-                .build();
-
-        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnUpdate.class);
-        ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
-
-        assertThat(violation.getMessage()).isEqualTo("The start time and the end time of the event are required");
-    }
-
-    @Test
-    void shouldReturnFalseWhenFrequencyIsNotNullAndStartTimeIsNull() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .title("Event title")
                 .endTime(LocalDateTime.now().plusMinutes(30))
-                .recurrenceFrequency(RecurrenceFrequency.DAILY)
                 .build();
 
-        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        Set<ConstraintViolation<TimeEventRequest>> violations = this.validator.validate(request, OnUpdate.class);
         ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("The start time of the event is required. Please provide one");
     }
 
     @Test
-    void shouldReturnFalseWhenFrequencyIsNotNullAndEndTimeIsNull() {
+    void shouldReturnFalseWhenEndTimeIsNull() {
         TimeEventRequest request = TimeEventRequest.builder()
-                .title("Event title")
                 .startTime(LocalDateTime.now().plusMinutes(30))
-                .recurrenceFrequency(RecurrenceFrequency.DAILY)
                 .build();
 
-        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        Set<ConstraintViolation<TimeEventRequest>> violations = this.validator.validate(request, OnUpdate.class);
         ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("The end time of the event is required. Please provide one");
     }
 
     @Test
-    void shouldReturnFalseWhenFrequencyIsNotNullAndStartTimeZoneIdIsNull() {
+    void shouldReturnFalseWhenStartTimeZoneIdIsNull() {
         TimeEventRequest request = TimeEventRequest.builder()
-                .title("Event title")
                 .startTime(LocalDateTime.now().plusMinutes(30))
-                .endTime(LocalDateTime.now().plusMinutes(50))
-                .recurrenceFrequency(RecurrenceFrequency.DAILY)
+                .endTime(LocalDateTime.now().plusHours(1))
                 .build();
 
-        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        Set<ConstraintViolation<TimeEventRequest>> violations = this.validator.validate(request, OnUpdate.class);
         ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Provide a time zone for your start time");
     }
 
     @Test
-    void shouldReturnFalseWhenFrequencyIsNotNullAndEndTimeZoneIdIsNull() {
+    void shouldReturnFalseWhenEndTimeZoneIdIsNull() {
         TimeEventRequest request = TimeEventRequest.builder()
-                .title("Event title")
                 .startTime(LocalDateTime.now().plusMinutes(30))
-                .endTime(LocalDateTime.now().plusMinutes(50))
+                .endTime(LocalDateTime.now().plusHours(1))
                 .startTimeZoneId(ZoneId.of("Europe/London"))
-                .recurrenceFrequency(RecurrenceFrequency.DAILY)
                 .build();
 
-        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnUpdate.class);
+        Set<ConstraintViolation<TimeEventRequest>> violations = this.validator.validate(request, OnUpdate.class);
         ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Provide a time zone for your end time");

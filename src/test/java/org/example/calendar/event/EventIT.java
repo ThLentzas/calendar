@@ -19,8 +19,8 @@ import static org.hamcrest.Matchers.hasSize;
 import static io.restassured.RestAssured.given;
 
 import org.example.calendar.AbstractIntegrationTest;
-import org.example.calendar.event.slot.day.dto.DayEventSlotDTO;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotDTO;
+import org.example.calendar.event.slot.day.projection.DayEventSlotPublicProjection;
+import org.example.calendar.event.slot.time.projection.TimeEventSlotPublicProjection;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 import org.junit.jupiter.api.Test;
@@ -132,7 +132,7 @@ class EventIT extends AbstractIntegrationTest {
         String locationHeader = response.getHeader("Location");
         UUID dayEventId = UUID.fromString(locationHeader.substring(locationHeader.lastIndexOf('/') + 1));
 
-        List<DayEventSlotDTO> dayEventSlots = given()
+        List<DayEventSlotPublicProjection> dayEventSlots = given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
                 .accept(ContentType.JSON)
                 .when()
@@ -154,8 +154,8 @@ class EventIT extends AbstractIntegrationTest {
                         && slot.getDescription().equals("Description")
                         && slot.getOrganizer().equals("ellyn.roberts")
                         && slot.getGuestEmails().equals(Set.of(guestEmail))
-                        && slot.getDayEventId().equals(dayEventId))
-                .isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate));
+                        && slot.getEventId().equals(dayEventId))
+                .isSortedAccordingTo(Comparator.comparing(DayEventSlotPublicProjection::getStartDate));
 
         /*
             Asserting on the invitation email(recipient, subject)
@@ -226,7 +226,7 @@ class EventIT extends AbstractIntegrationTest {
                 .then()
                 .statusCode(204);
 
-        List<DayEventSlotDTO> dayEventSlots = given()
+        List<DayEventSlotPublicProjection> dayEventSlots = given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
                 .accept(ContentType.JSON)
                 .when()
@@ -249,7 +249,7 @@ class EventIT extends AbstractIntegrationTest {
                         && slot.getLocation().equals("Updated location")
                         && slot.getDescription().equals("Updated description")
                         && slot.getOrganizer().equals("ellyn.roberts"))
-                .isSortedAccordingTo(Comparator.comparing(DayEventSlotDTO::getStartDate));
+                .isSortedAccordingTo(Comparator.comparing(DayEventSlotPublicProjection::getStartDate));
     }
 
     @Test
@@ -382,14 +382,14 @@ class EventIT extends AbstractIntegrationTest {
                 .response();
 
         String locationHeader = response.getHeader("Location");
-        UUID timeEventId = UUID.fromString(locationHeader.substring(locationHeader.lastIndexOf('/') + 1));
+        UUID eventId = UUID.fromString(locationHeader.substring(locationHeader.lastIndexOf('/') + 1));
 
         // Retrieve the TimeEventSlots for the created TimeEvent
-        List<TimeEventSlotDTO> timeEventSlots = given()
+        List<TimeEventSlotPublicProjection> timeEventSlots = given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
                 .accept(ContentType.JSON)
                 .when()
-                .get(TIME_EVENT_PATH + "/{eventId}", timeEventId)
+                .get(TIME_EVENT_PATH + "/{eventId}", eventId)
                 .then()
                 .statusCode(200)
                 .extract()
@@ -410,8 +410,8 @@ class EventIT extends AbstractIntegrationTest {
                         && slot.getGuestEmails().equals(Set.of(guestEmail))
                         && slot.getStartTimeZoneId().equals(ZoneId.of("Europe/London"))
                         && slot.getEndTimeZoneId().equals(ZoneId.of("Europe/London"))
-                        && slot.getTimeEventId().equals(timeEventId))
-                .isSortedAccordingTo(Comparator.comparing(TimeEventSlotDTO::getStartTime));
+                        && slot.getEventId().equals(eventId))
+                .isSortedAccordingTo(Comparator.comparing(TimeEventSlotPublicProjection::getStartTime));
         /*
             Asserting on the invitation email(recipient, subject)
             Sending the email is done Async so, we have to wait before we assert
@@ -455,13 +455,22 @@ class EventIT extends AbstractIntegrationTest {
         // The response will contain the new XSRF-TOKEN from the CsrfAuthenticationStrategy
         cookies = response.getCookies();
 
-        String requestBody = """
+        String requestBody = String.format("""
                 {
+                     "startTime": "%s",
+                     "startTimeZoneId": "Europe/London",
+                     "endTime": "%s",
+                     "endTimeZoneId": "Europe/London",
                      "title": "Updated title",
                      "location": "Updated location",
-                     "description": "Updated description"
+                     "description": "Updated description",
+                     "recurrenceFrequency": "WEEKLY",
+                     "recurrenceStep": 2,
+                     "weeklyRecurrenceDays": ["FRIDAY"],
+                     "recurrenceDuration": "N_OCCURRENCES",
+                     "numberOfOccurrences": 3
                 }
-                """;
+                """, LocalDateTime.now().with(DayOfWeek.FRIDAY).plusWeeks(1), LocalDateTime.now().with(DayOfWeek.FRIDAY).plusWeeks(1).plusMinutes(30));
         UUID eventId = UUID.fromString("0c9d6398-a6de-47f0-8328-04a2f3c0511c");
         given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
@@ -474,7 +483,7 @@ class EventIT extends AbstractIntegrationTest {
                 .then()
                 .statusCode(204);
 
-        List<TimeEventSlotDTO> eventSlots = given()
+        List<TimeEventSlotPublicProjection> eventSlots = given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
                 .accept(ContentType.JSON)
                 .when()
@@ -492,12 +501,12 @@ class EventIT extends AbstractIntegrationTest {
 
             With the frequency details that we passed in the update request we assert on the new values.
          */
-        assertThat(eventSlots).hasSize(4)
+        assertThat(eventSlots).hasSize(3)
                 .allMatch(slot -> slot.getTitle().equals("Updated title")
                         && slot.getLocation().equals("Updated location")
                         && slot.getDescription().equals("Updated description")
                         && slot.getOrganizer().equals("kris.hudson"))
-                .isSortedAccordingTo(Comparator.comparing(TimeEventSlotDTO::getStartTime));
+                .isSortedAccordingTo(Comparator.comparing(TimeEventSlotPublicProjection::getStartTime));
     }
 
     @Test
@@ -585,25 +594,20 @@ class EventIT extends AbstractIntegrationTest {
         given()
                 .cookie("ACCESS_TOKEN", cookies.get("ACCESS_TOKEN"))
                 .accept(ContentType.JSON)
+                // The timezones are defaulted to "" which results in UTC
                 .queryParam("start", "2024-10-10")
                 .queryParam("end", "2024-10-28")
                 .when()
                 .get(EVENT_PATH)
                 .then()
                 .statusCode(200)
-                .body("", hasSize(3))
+                .body("", hasSize(2))
+                .body("[0].startDate", equalTo("2024-10-12"))
+                .body("[0].organizer", equalTo("clement.gulgowski"))
                 // In the script the time is: '2024-10-11T09:00:00' (UTC) but since DST is active at that time for the
                 // startTimeZoneId we adjust it when we return to the user
-                .body("[0].startTime", equalTo("2024-10-11T10:00:00"))
-                .body("[0].organizer", equalTo("kris.hudson"))
-                // Guest
-                .body("[0].guestEmails[0]", equalTo("ericka.ankunding@hotmail.com"))
-                // Organizer
-                .body("[1].startDate", equalTo("2024-10-12"))
-                .body("[1].organizer", equalTo("clement.gulgowski"))
-                .body("[2].startTime", equalTo("2024-10-25T10:00:00"))
-                .body("[2].organizer", equalTo("kris.hudson"))
-                // Guest
-                .body("[2].guestEmails[0]", equalTo("ericka.ankunding@hotmail.com"));
+                .body("[1].startTime", equalTo("2024-10-15T10:00:00"))
+                .body("[1].organizer", equalTo("kris.hudson"))
+                .body("[1].guestEmails[0]", equalTo("ericka.ankunding@hotmail.com"));
     }
 }

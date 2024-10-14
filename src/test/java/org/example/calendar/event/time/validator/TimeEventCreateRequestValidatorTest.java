@@ -7,16 +7,10 @@ import org.example.calendar.event.time.dto.TimeEventRequest;
 import org.example.calendar.event.groups.OnCreate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
-
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.EnumSet;
 import java.util.Set;
 
 import jakarta.validation.ConstraintViolation;
@@ -54,10 +48,11 @@ class TimeEventCreateRequestValidatorTest {
         LocalDateTime.now() to generate those values. It will generate values with the default time zone. We need to pass
         the time zone the provided: LocalDateTime.now(ZoneId.of("Asia/Tokyo") and startTimeZoneId(ZoneId.of("Asia/Tokyo")
 
-        In this class we test every case on the TimeEventCreateRequestValidator which covers all the cases for the
-        EventUtils.hasValidEventRequestProperties(eventRequest, context), including the call to the
-        hasValidDateTimeProperties(). For that reason, we don't need to repeat the tests for frequency/date times in
-        the TimeEventUpdateRequestValidatorTest and date times in TimeEventSlotRequestValidatorTest
+        Both the DayEventCreateRequestValidator and the TimeEventCreateRequestValidator make a call to the overloaded
+        method EventUtils.hasValidEventRequestProperties(). For day events, the method calls hasValidDateProperties() and
+        then calls hasValidFrequencyProperties(). For time events, method calls hasValidDateTimeProperties() and then
+        calls hasValidFrequencyProperties(). In this class, we test every case for the hasValidDateTimeProperties().
+        Frequency related cases are tested in the DayEventCreateRequestValidator and we don't have to repeat them.
      */
     @BeforeEach
     void setUp() {
@@ -67,19 +62,18 @@ class TimeEventCreateRequestValidatorTest {
     }
 
     @Test
-    void shouldReturnFalseWhenTimeEventRequestFrequencyIsNull() {
+    void shouldReturnTrueWhenTimeEventRequestIsValid() {
         TimeEventRequest request = TimeEventRequest.builder()
                 .title("Event title")
                 .startTime(LocalDateTime.now(ZoneId.of("Asia/Dubai")).plusDays(1))
-                .endTime(LocalDateTime.now(ZoneId.of("Asia/Dubai")).plusDays(2))
+                .endTime(LocalDateTime.now(ZoneId.of("Asia/Dubai")).plusDays(1).plusMinutes(30))
                 .startTimeZoneId(ZoneId.of("Asia/Dubai"))
                 .endTimeZoneId(ZoneId.of("Asia/Dubai"))
+                .recurrenceFrequency(RecurrenceFrequency.NEVER)
                 .build();
 
         Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnCreate.class);
-        ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
-
-        assertThat(violation.getMessage()).isEqualTo("Provide a frequency. NEVER if it does not recur");
+        assertThat(violations).isEmpty();
     }
 
     @Test
@@ -183,73 +177,5 @@ class TimeEventCreateRequestValidatorTest {
         ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
 
         assertThat(violation.getMessage()).isEqualTo("Time events can not span for more than 24 hours. Consider creating a Day event instead");
-    }
-
-    @Test
-    void shouldReturnFalseWhenStartDateIsNotIncludedInWeeklyRecurrenceDays() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .title("Event title")
-                /*
-                    Adjusts now() to the closest upcoming Thursday. If now() is already a Thursday, it remains unchanged.
-                    For example, if now() is 2024-09-10 (a Tuesday), with(DayOfWeek.THURSDAY) will return 2024-09-12.
-                 */
-                .startTime(LocalDateTime.now().with(DayOfWeek.THURSDAY).plusWeeks(1))
-                .endTime(LocalDateTime.now().with(DayOfWeek.THURSDAY).plusWeeks(1))
-                .startTimeZoneId(ZoneId.of("Asia/Dubai"))
-                .endTimeZoneId(ZoneId.of("Asia/Dubai"))
-                .recurrenceFrequency(RecurrenceFrequency.WEEKLY)
-                .weeklyRecurrenceDays(EnumSet.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY))
-                .recurrenceStep(2)
-                .recurrenceDuration(RecurrenceDuration.UNTIL_DATE)
-                .recurrenceEndDate(LocalDate.now().plusYears(1))
-                .build();
-
-        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnCreate.class);
-        ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
-
-        assertThat(violation.getMessage()).isEqualTo("The start date " + request.getStartTime() + " is a " + request.getStartTime().getDayOfWeek() + ", but this day is not included in the weekly recurrence days: " + request.getWeeklyRecurrenceDays());
-    }
-
-    @Test
-    void shouldReturnFalseWhenRepetitionEndDateIsBeforeTheEndDate() {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .title("Event title")
-                .startTime(LocalDateTime.now(ZoneId.of("Asia/Tokyo")).plusDays(1))
-                .endTime(LocalDateTime.now(ZoneId.of("Asia/Tokyo")).plusDays(1).plusMinutes(30))
-                .startTimeZoneId(ZoneId.of("Asia/Tokyo"))
-                .endTimeZoneId(ZoneId.of("Asia/Tokyo"))
-                .recurrenceFrequency(RecurrenceFrequency.MONTHLY)
-                .monthlyRecurrenceType(MonthlyRecurrenceType.SAME_DAY)
-                .recurrenceDuration(RecurrenceDuration.UNTIL_DATE)
-                .recurrenceEndDate(LocalDate.now(ZoneId.of("Asia/Tokyo")))
-                .build();
-
-        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnCreate.class);
-        ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
-
-        assertThat(violation.getMessage()).isEqualTo("Recurrence end date must be after end date");
-    }
-
-    @ParameterizedTest
-    @NullSource
-    @ValueSource(ints = {0})
-    void shouldReturnFalseWhenRepetitionStepIsNullOrZeroAndFrequencyIsNotNever(Integer step) {
-        TimeEventRequest request = TimeEventRequest.builder()
-                .title("Event title")
-                .startTime(LocalDateTime.now(ZoneId.of("Asia/Tokyo")).plusDays(1))
-                .endTime(LocalDateTime.now(ZoneId.of("Asia/Tokyo")).plusDays(1).plusMinutes(30))
-                .startTimeZoneId(ZoneId.of("Asia/Tokyo"))
-                .endTimeZoneId(ZoneId.of("Asia/Tokyo"))
-                .recurrenceFrequency(RecurrenceFrequency.MONTHLY)
-                .monthlyRecurrenceType(MonthlyRecurrenceType.SAME_DAY)
-                .recurrenceStep(step)
-                .recurrenceDuration(RecurrenceDuration.UNTIL_DATE)
-                .recurrenceEndDate(LocalDate.now().plusMonths(4))
-                .build();
-
-        Set<ConstraintViolation<TimeEventRequest>> violations = validator.validate(request, OnCreate.class);
-        ConstraintViolation<TimeEventRequest> violation = violations.iterator().next();
-
-        assertThat(violation.getMessage()).isEqualTo("Specify how often you want the event to be recurring");
     }
 }

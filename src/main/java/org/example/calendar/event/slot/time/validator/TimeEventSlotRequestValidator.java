@@ -6,66 +6,34 @@ import jakarta.validation.ConstraintValidatorContext;
 import org.example.calendar.event.slot.time.dto.TimeEventSlotRequest;
 import org.example.calendar.utils.EventUtils;
 
+/*
+    Update validation logic: When the user wants to update an event slot, they see the current properties of the event
+    slot, modify some/all and then the client must send all the properties not only the ones that changed. It is a way
+    to handle null values. If the user provide null as a value to a property we can't know if they want to set the new
+    value to null(assuming null is valid for that property), or they don't want to update the property. By forcing the
+    client to send all the properties that a user can update, we know that if we have null values it means the user
+    wants to set the value of that property to null, otherwise the client should send the current value of the property.
+    Then we keep track of 2 states(original, modified) and we perform dynamic update as long as the properties are
+    different. The process in general is a pain because of null as a value. During deserialization a missing property
+    will be null, but null can also be a value provided by the user for that property. There are two alternatives:
+        1. Json Patch https://www.baeldung.com/spring-rest-json-patch
+        2. Make all fields optional. If the value is provided as null it will to an empty optional, otherwise if the value
+        is not present during deserialization it would be null(Jackson's behaviour)
+
+        https://www.youtube.com/watch?v=CNlLWCvazcQ Everything is explained 42:25
+ */
 public final class TimeEventSlotRequestValidator implements ConstraintValidator<ValidTimeEventSlotRequest, TimeEventSlotRequest> {
 
     @Override
     public boolean isValid(TimeEventSlotRequest eventSlotRequest, ConstraintValidatorContext context) {
-        if (EventUtils.emptyEventSlotUpdateRequestProperties(eventSlotRequest)) {
+        if (EventUtils.hasEmptyEventSlotUpdateRequestProperties(eventSlotRequest)) {
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate("At least one field must be provided for the update")
                     .addConstraintViolation();
             return false;
         }
 
-        if (eventSlotRequest.getStartTime() == null && eventSlotRequest.getEndTime() != null) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("The start time of the event is required. Please provide one")
-                    .addConstraintViolation();
-
-            return false;
-        }
-
-        if (eventSlotRequest.getStartTime() != null && eventSlotRequest.getEndTime() == null) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("The end time of the event is required. Please provide one")
-                    .addConstraintViolation();
-            return false;
-        }
-
-        // At this point either both times are null or both have values
-        if (eventSlotRequest.getStartTime() != null && eventSlotRequest.getStartTimeZoneId() == null) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Provide a time zone for your start time")
-                    .addConstraintViolation();
-            return false;
-        }
-
-        if (eventSlotRequest.getEndTime() != null && eventSlotRequest.getEndTimeZoneId() == null) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Provide a time zone for your end time")
-                    .addConstraintViolation();
-            return false;
-        }
-
-        if (eventSlotRequest.getStartTimeZoneId() != null && eventSlotRequest.getStartTime() == null) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Provide a start time for your time zone")
-                    .addConstraintViolation();
-            return false;
-        }
-
-        if (eventSlotRequest.getEndTimeZoneId() != null && eventSlotRequest.getEndTime() == null) {
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate("Provide an end time for your time zone")
-                    .addConstraintViolation();
-            return false;
-        }
-
-        boolean isValid = false;
-        // endTime can't be null. The 1st if condition would have been true by this point.
-        if (eventSlotRequest.getStartTime() != null) {
-            isValid = EventUtils.hasValidDateTimeProperties(eventSlotRequest.getStartTime(), eventSlotRequest.getEndTime(), eventSlotRequest.getStartTimeZoneId(), eventSlotRequest.getEndTimeZoneId(), context);
-        }
-        return isValid;
+        return EventUtils.hasRequiredDateTimeProperties(eventSlotRequest.getStartTime(), eventSlotRequest.getEndTime(), eventSlotRequest.getStartTimeZoneId(), eventSlotRequest.getEndTimeZoneId(), context)
+                && EventUtils.hasValidDateTimeProperties(eventSlotRequest.getStartTime(), eventSlotRequest.getEndTime(), eventSlotRequest.getStartTimeZoneId(), eventSlotRequest.getEndTimeZoneId(), context);
     }
 }

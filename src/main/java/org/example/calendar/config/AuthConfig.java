@@ -9,8 +9,8 @@ import org.springframework.security.authentication.AuthenticationEventPublisher;
 import org.springframework.security.authentication.DefaultAuthenticationEventPublisher;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.example.calendar.user.UserPrincipal;
 import org.example.calendar.user.UserRepository;
+import org.example.calendar.user.UserPrincipal;
 
 @Configuration
 class AuthConfig {
@@ -21,8 +21,8 @@ class AuthConfig {
     }
 
     @Bean
-    UserDetailsService userDetailsService(UserRepository userRepository) {
-        return email -> userRepository.findByEmail(email)
+    UserDetailsService userDetailsService(UserRepository repository) {
+        return email -> repository.findByEmail(email)
                 .map(UserPrincipal::new)
                 .orElseThrow(() -> new UsernameNotFoundException("Username or password is incorrect"));
     }

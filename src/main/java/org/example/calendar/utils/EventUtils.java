@@ -7,24 +7,30 @@ import org.example.calendar.event.dto.InviteGuestsRequest;
 import org.example.calendar.event.recurrence.RecurrenceDuration;
 import org.example.calendar.event.recurrence.RecurrenceFrequency;
 import org.example.calendar.event.slot.AbstractEventSlot;
-import org.example.calendar.event.slot.AbstractEventSlotRequest;
-import org.example.calendar.event.slot.day.dto.DayEventSlotReminderRequest;
+import org.example.calendar.event.slot.dto.AbstractEventSlotRequest;
 import org.example.calendar.event.slot.day.dto.DayEventSlotRequest;
+import org.example.calendar.event.slot.projection.GuestProjection;
 import org.example.calendar.event.slot.time.dto.TimeEventSlotRequest;
 import org.example.calendar.event.time.dto.TimeEventRequest;
-import org.example.calendar.event.slot.time.dto.TimeEventSlotReminderRequest;
-import org.example.calendar.entity.DayEventSlot;
-import org.example.calendar.entity.TimeEventSlot;
 import org.example.calendar.entity.User;
 import org.example.calendar.exception.ConflictException;
 
+import java.sql.Date;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import jakarta.validation.ConstraintValidatorContext;
@@ -37,8 +43,7 @@ public final class EventUtils {
     }
 
     // It checks if the DayEventRequest is valid, including date and frequency properties
-    public static boolean hasValidEventRequestProperties(DayEventRequest eventRequest,
-                                                         ConstraintValidatorContext context) {
+    public static boolean hasValidEventRequestProperties(DayEventRequest eventRequest, ConstraintValidatorContext context) {
         if (!hasValidDateProperties(eventRequest.getStartDate(), eventRequest.getEndDate(), context)) {
             return false;
         }
@@ -82,8 +87,7 @@ public final class EventUtils {
     }
 
     // It checks if the TimeEventRequest is valid, including date and frequency properties
-    public static boolean hasValidEventRequestProperties(TimeEventRequest eventRequest,
-                                                         ConstraintValidatorContext context) {
+    public static boolean hasValidEventRequestProperties(TimeEventRequest eventRequest, ConstraintValidatorContext context) {
         if (!hasValidDateTimeProperties(eventRequest.getStartTime(), eventRequest.getEndTime(), eventRequest.getStartTimeZoneId(), eventRequest.getEndTimeZoneId(), context)) {
             return false;
         }
@@ -132,8 +136,73 @@ public final class EventUtils {
         return true;
     }
 
-    public static boolean hasValidDateProperties(LocalDate startDate, LocalDate endDate,
-                                                 ConstraintValidatorContext context) {
+    public static boolean hasRequiredDateTimeProperties(LocalDateTime startTime, LocalDateTime endTime, ZoneId startTimeZoneId, ZoneId endTimeZoneId, ConstraintValidatorContext context) {
+        if (startTime == null && endTime == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("The start time and the end time of the event are required")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if (startTime == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("The start time of the event is required. Please provide one")
+                    .addConstraintViolation();
+
+            return false;
+        }
+
+        if (endTime == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("The end time of the event is required. Please provide one")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        // At this point either both times are null or both have values
+        if (startTimeZoneId == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Provide a time zone for your start time")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if (endTimeZoneId == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Provide a time zone for your end time")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        return true;
+    }
+
+    public static boolean hasRequiredDateProperties(LocalDate startDate, LocalDate endDate, ConstraintValidatorContext context) {
+        if (startDate == null && endDate == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("The start date and the end date of the event are required")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if (startDate == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("The start date of the event is required. Please provide one")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        if (endDate == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("The end date of the event is required. Please provide one")
+                    .addConstraintViolation();
+            return false;
+        }
+
+        return true;
+    }
+
+    public static boolean hasValidDateProperties(LocalDate startDate, LocalDate endDate, ConstraintValidatorContext context) {
         /*
             Starting date is before Ending date
 
@@ -151,11 +220,7 @@ public final class EventUtils {
         return true;
     }
 
-    public static boolean hasValidDateTimeProperties(LocalDateTime startTime,
-                                                     LocalDateTime endTime,
-                                                     ZoneId startTimeZoneId,
-                                                     ZoneId endTimeZoneId,
-                                                     ConstraintValidatorContext context) {
+    public static boolean hasValidDateTimeProperties(LocalDateTime startTime, LocalDateTime endTime, ZoneId startTimeZoneId, ZoneId endTimeZoneId, ConstraintValidatorContext context) {
         // The times must be in the present or future relative to their timezone
         if (DateUtils.futureOrPresent(startTime, startTimeZoneId)) {
             context.disableDefaultConstraintViolation();
@@ -212,6 +277,13 @@ public final class EventUtils {
     }
 
     private static boolean hasValidFrequencyProperties(AbstractEventRequest eventRequest, ConstraintValidatorContext context) {
+        if (eventRequest.getRecurrenceFrequency() == null) {
+            context.disableDefaultConstraintViolation();
+            context.buildConstraintViolationWithTemplate("Provide a frequency. NEVER if event does not recur")
+                    .addConstraintViolation();
+            return false;
+        }
+
         /*
             When the frequency is NEVER, we can ignore the values of the remaining fields(set them to null) and process
             the request. We also reduce the total checks.
@@ -302,7 +374,7 @@ public final class EventUtils {
         return true;
     }
 
-    public static void updateCommonEventProperties(AbstractEventRequest eventRequest, AbstractEvent event) {
+    public static void setFrequencyProperties(AbstractEventRequest eventRequest, AbstractEvent event) {
         event.setRecurrenceFrequency(eventRequest.getRecurrenceFrequency());
         event.setRecurrenceStep(eventRequest.getRecurrenceStep());
         event.setWeeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays());
@@ -312,10 +384,10 @@ public final class EventUtils {
         event.setNumberOfOccurrences(eventRequest.getNumberOfOccurrences());
     }
 
-    public static void updateCommonEventSlotProperties(AbstractEventSlotRequest eventSlotRequest, AbstractEventSlot eventSlot) {
-        eventSlot.setTitle(eventSlotRequest.getTitle() != null && !eventSlotRequest.getTitle().isBlank() ? eventSlotRequest.getTitle() : eventSlot.getTitle());
-        eventSlot.setLocation(eventSlotRequest.getLocation() != null && !eventSlotRequest.getLocation().isBlank() ? eventSlotRequest.getLocation() : eventSlot.getLocation());
-        eventSlot.setDescription(eventSlotRequest.getDescription() != null && !eventSlotRequest.getDescription().isBlank() ? eventSlotRequest.getDescription() : eventSlot.getDescription());
+    public static void setCommonEventSlotProperties(AbstractEventSlotRequest eventSlotRequest, AbstractEventSlot eventSlot) {
+        eventSlot.setTitle(eventSlotRequest.getTitle());
+        eventSlot.setLocation(eventSlotRequest.getLocation());
+        eventSlot.setDescription(eventSlotRequest.getDescription());
     }
 
     public static Set<String> processGuestEmails(User user, InviteGuestsRequest guestsRequest, Set<String> guestEmails) {
@@ -345,67 +417,207 @@ public final class EventUtils {
                 .collect(Collectors.toSet());
     }
 
-    public static DayEventSlotReminderRequest mapToReminderRequest(DayEventSlot eventSlot) {
-        return DayEventSlotReminderRequest.builder()
-                .id(eventSlot.getId())
-                .title(eventSlot.getTitle())
-                .startDate(eventSlot.getStartDate())
-                .organizer(eventSlot.getDayEvent().getUser())
-                .guestEmails(eventSlot.getGuestEmails())
-                .build();
+    public static boolean hasSameFrequencyProperties(AbstractEvent original, AbstractEvent modified) {
+        return Objects.equals(original.getRecurrenceFrequency(), modified.getRecurrenceFrequency())
+                && Objects.equals(original.getRecurrenceStep(), modified.getRecurrenceStep())
+                && Objects.equals(original.getWeeklyRecurrenceDays(), modified.getWeeklyRecurrenceDays())
+                && Objects.equals(original.getMonthlyRecurrenceType(), modified.getMonthlyRecurrenceType())
+                && Objects.equals(original.getRecurrenceDuration(), modified.getRecurrenceDuration())
+                && Objects.equals(original.getRecurrenceEndDate(), modified.getRecurrenceEndDate())
+                && Objects.equals(original.getNumberOfOccurrences(), modified.getNumberOfOccurrences());
     }
 
-    public static TimeEventSlotReminderRequest mapToReminderRequest(TimeEventSlot eventSlot) {
-        return TimeEventSlotReminderRequest.builder()
-                .id(eventSlot.getId())
-                .title(eventSlot.getTitle())
-                .startTime(eventSlot.getStartTime())
-                .endTime(eventSlot.getEndTime())
-                .organizer(eventSlot.getTimeEvent().getUser())
-                .guestEmails(eventSlot.getGuestEmails())
-                .build();
+    public static void updateDateProperties(StringBuilder sql, LocalDate originalStartDate, LocalDate modifiedStartDate, LocalDate originalEndDate, LocalDate modifiedEndDate, Map<String, Object> params) {
+        if (!originalStartDate.isEqual(modifiedStartDate)) {
+            sql.append("start_date = :startDate, ");
+            params.put("startDate", modifiedStartDate);
+        }
+
+        if (!originalEndDate.isEqual(modifiedEndDate)) {
+            sql.append("end_date = :endDate, ");
+            params.put("endDate", modifiedEndDate);
+        }
     }
 
-    public static boolean hasSameFrequencyProperties(AbstractEventRequest eventRequest, AbstractEvent event) {
-        return Objects.equals(eventRequest.getRecurrenceFrequency(), event.getRecurrenceFrequency())
-                && Objects.equals(eventRequest.getRecurrenceStep(), event.getRecurrenceStep())
-                && Objects.equals(eventRequest.getWeeklyRecurrenceDays(), event.getWeeklyRecurrenceDays())
-                && Objects.equals(eventRequest.getMonthlyRecurrenceType(), event.getMonthlyRecurrenceType())
-                && Objects.equals(eventRequest.getRecurrenceDuration(), event.getRecurrenceDuration())
-                && Objects.equals(eventRequest.getRecurrenceEndDate(), event.getRecurrenceEndDate())
-                && Objects.equals(eventRequest.getNumberOfOccurrences(), event.getNumberOfOccurrences());
+    public static void updateDateTimeProperties(StringBuilder sql, LocalDateTime originalStartTime, ZoneId originalStartTimeZoneId, LocalDateTime modifiedStartTime, ZoneId modifiedStartTimeZoneId, LocalDateTime orginalEndTime, ZoneId originalEndTimeZoneId, LocalDateTime modifiedEndTime, ZoneId modifiedEndTimeZoneId, Map<String, Object> params) {
+        if (!Objects.equals(originalStartTime, modifiedStartTime)) {
+            sql.append("start_time = :startTime, ");
+            params.put("startTime", modifiedStartTime);
+        }
+
+        if (!Objects.equals(originalStartTimeZoneId, modifiedStartTimeZoneId)) {
+            sql.append("start_time_zone_id = :startTimeZoneId, ");
+            params.put("startTimeZoneId", modifiedEndTimeZoneId.toString());
+        }
+
+        if (!Objects.equals(orginalEndTime, modifiedEndTime)) {
+            sql.append("end_time = :endTime, ");
+            params.put("endTime", modifiedEndTime);
+        }
+
+        if (!Objects.equals(originalEndTimeZoneId, modifiedEndTimeZoneId)) {
+            sql.append("end_time_zone_id = :endTimeZoneId, ");
+            params.put("endTimeZoneId", modifiedEndTimeZoneId.toString());
+        }
     }
 
-    public static boolean emptyEventUpdateRequestProperties(TimeEventRequest eventRequest) {
+    public static void updateEventFrequencyProperties(StringBuilder sql, AbstractEvent original, AbstractEvent modified, Map<String, Object> params) {
+        if (!Objects.equals(original.getRecurrenceFrequency(), modified.getRecurrenceFrequency())) {
+            sql.append("recurrence_frequency = :recurrenceFrequency::recurrence_frequency, ");
+            params.put("recurrenceFrequency", modified.getRecurrenceFrequency().name());
+        }
+
+        if (!Objects.equals(original.getRecurrenceStep(), modified.getRecurrenceStep())) {
+            sql.append("recurrence_step = :recurrenceStep, ");
+            params.put("recurrenceStep", modified.getRecurrenceStep());
+        }
+
+        if (!Objects.equals(original.getWeeklyRecurrenceDays(), modified.getWeeklyRecurrenceDays())) {
+            sql.append("weekly_recurrence_days = :weeklyRecurrenceDays, ");
+            params.put("weeklyRecurrenceDays", EventUtils.convertToCsv(modified.getWeeklyRecurrenceDays()));
+        }
+
+        if (!Objects.equals(original.getMonthlyRecurrenceType(), modified.getMonthlyRecurrenceType())) {
+            sql.append("monthly_recurrence_type = :monthlyRecurrenceType::monthly_recurrence_type, ");
+            params.put("monthlyRecurrenceType", modified.getMonthlyRecurrenceType() == null ? null : modified.getMonthlyRecurrenceType().name());
+        }
+
+        if (!Objects.equals(original.getRecurrenceDuration(), modified.getRecurrenceDuration())) {
+            sql.append("recurrence_duration = :recurrenceDuration::recurrence_duration, ");
+            params.put("recurrenceDuration", modified.getRecurrenceDuration() == null ? null : modified.getRecurrenceDuration().name());
+        }
+
+        if (!Objects.equals(original.getRecurrenceEndDate(), modified.getRecurrenceEndDate())) {
+            sql.append("recurrence_end_date = :recurrenceEndDate, ");
+            params.put("recurrenceEndDate", modified.getRecurrenceEndDate() == null ? null : Date.valueOf(modified.getRecurrenceEndDate()));
+        }
+
+        if (!Objects.equals(original.getNumberOfOccurrences(), modified.getNumberOfOccurrences())) {
+            sql.append("number_of_occurrences = :numberOfOccurrences, ");
+            params.put("numberOfOccurrences", modified.getNumberOfOccurrences());
+        }
+    }
+
+    public static void updateCommonEvenSlotProperties(StringBuilder sql, AbstractEventSlot original, AbstractEventSlot modified, Map<String, Object> params) {
+        if (!Objects.equals(original.getTitle(), modified.getTitle())) {
+            sql.append("title = :title, ");
+            params.put("title", modified.getTitle());
+        }
+
+        if (!Objects.equals(original.getLocation(), modified.getLocation())) {
+            sql.append("location = :location, ");
+            params.put("location", modified.getLocation());
+        }
+
+        if (!Objects.equals(original.getDescription(), modified.getDescription())) {
+            sql.append("description = :description, ");
+            params.put("description", modified.getDescription());
+        }
+    }
+
+    public static boolean hasEmptyEventUpdateRequestProperties(TimeEventRequest eventRequest) {
         return eventRequest.getStartTime() == null
                 && eventRequest.getEndTime() == null
                 && eventRequest.getStartTimeZoneId() == null
                 && eventRequest.getEndTimeZoneId() == null
-                && emptyEventRequestProperties(eventRequest);
+                && hasEmptyEventRequestProperties(eventRequest);
     }
 
-    public static boolean emptyEventUpdateRequestProperties(DayEventRequest eventRequest) {
+    public static boolean hasEmptyEventUpdateRequestProperties(DayEventRequest eventRequest) {
         return eventRequest.getStartDate() == null
                 && eventRequest.getEndDate() == null
-                && emptyEventRequestProperties(eventRequest);
+                && hasEmptyEventRequestProperties(eventRequest);
     }
 
-    public static boolean emptyEventSlotUpdateRequestProperties(DayEventSlotRequest eventSlotRequest) {
+    public static boolean hasEmptyEventSlotUpdateRequestProperties(DayEventSlotRequest eventSlotRequest) {
         return eventSlotRequest.getStartDate() == null
                 && eventSlotRequest.getEndDate() == null
-                && emptyEventSlotRequestProperties(eventSlotRequest);
+                && hasEmptyEventSlotRequestProperties(eventSlotRequest);
     }
 
-    public static boolean emptyEventSlotUpdateRequestProperties(TimeEventSlotRequest eventSlotRequest) {
+    public static boolean hasEmptyEventSlotUpdateRequestProperties(TimeEventSlotRequest eventSlotRequest) {
         return eventSlotRequest.getStartTime() == null
                 && eventSlotRequest.getEndTime() == null
                 && eventSlotRequest.getStartTimeZoneId() == null
                 && eventSlotRequest.getEndTimeZoneId() == null
-                && emptyEventSlotRequestProperties(eventSlotRequest);
+                && hasEmptyEventSlotRequestProperties(eventSlotRequest);
+    }
+
+    public static String convertToCsv(Set<DayOfWeek> daysOfWeek) {
+        final String SEPARATOR = ",";
+
+        // It can not be empty from the validation process
+        if (daysOfWeek == null) {
+            return null;
+        }
+
+        return daysOfWeek.stream()
+                .map(Enum::name)
+                .collect(Collectors.joining(SEPARATOR));
+    }
+
+    public static Set<DayOfWeek> convertFromCsv(String daysOfWeek) {
+        final String SEPARATOR = ",";
+
+        if (daysOfWeek == null) {
+            return EnumSet.noneOf(DayOfWeek.class);
+        }
+
+        Set<DayOfWeek> days = Arrays.stream(daysOfWeek.split(SEPARATOR))
+                .map(DayOfWeek::valueOf)
+                .collect(Collectors.toSet());
+
+        return EnumSet.copyOf(days);
+    }
+
+    /*
+        For every projection that requires the list of guest emails, we share a common interface to be able to do the
+        mapping for every implementation.
+        In the case of a day event slot that has 4 guests, the result will have 4 rows. (same event slot, different email)
+        The mapper for each projection will map the row to the projection, and then we need to aggregate the result by
+        returning a single day event slot with the list of the guests emails combined.
+     */
+    public static <T extends GuestProjection> Optional<T> aggregateGuestEmails(List<T> resultSet) {
+        if (resultSet.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Map<UUID, T> slotMap = new LinkedHashMap<>();
+        for (T slotProjection : resultSet) {
+            T existingSlot = slotMap.get(slotProjection.getId());
+
+            if (existingSlot == null) {
+                slotMap.put(slotProjection.getId(), slotProjection);
+            } else {
+                existingSlot.getGuestEmails().add(slotProjection.getGuestEmails().iterator().next());
+            }
+        }
+        return slotMap.values().stream()
+                .findFirst();
+    }
+
+    public static <T extends GuestProjection> List<T> aggregateListGuestEmails(List<T> resultSet) {
+        if (resultSet.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // We need to maintain the order of the result set because it was sorted by start_date
+        Map<UUID, T> slotMap = new LinkedHashMap<>();
+        for (T eventSlotDTO : resultSet) {
+            T existingSlot = slotMap.get(eventSlotDTO.getId());
+
+            if (existingSlot == null) {
+                slotMap.put(eventSlotDTO.getId(), eventSlotDTO);
+            } else {
+                existingSlot.getGuestEmails().add(eventSlotDTO.getGuestEmails().iterator().next());
+            }
+        }
+        return slotMap.values().stream()
+                .toList();
     }
 
     // Checks the common fields
-    private static boolean emptyEventRequestProperties(AbstractEventRequest eventRequest) {
+    private static boolean hasEmptyEventRequestProperties(AbstractEventRequest eventRequest) {
         return ((eventRequest.getTitle() == null || eventRequest.getTitle().isBlank())
                 && (eventRequest.getLocation() == null || eventRequest.getLocation().isBlank())
                 && (eventRequest.getDescription() == null || eventRequest.getDescription().isBlank())
@@ -420,7 +632,7 @@ public final class EventUtils {
     }
 
     // Checks the common fields
-    private static boolean emptyEventSlotRequestProperties(AbstractEventSlotRequest eventSlotRequest) {
+    private static boolean hasEmptyEventSlotRequestProperties(AbstractEventSlotRequest eventSlotRequest) {
         return ((eventSlotRequest.getTitle() == null || eventSlotRequest.getTitle().isBlank())
                 && (eventSlotRequest.getLocation() == null || eventSlotRequest.getLocation().isBlank())
                 && (eventSlotRequest.getDescription() == null || eventSlotRequest.getDescription().isBlank())

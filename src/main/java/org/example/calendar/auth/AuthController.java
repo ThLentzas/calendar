@@ -54,9 +54,7 @@ class AuthController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
-    /*
-        This endpoint will set the CSRF token as a Cookie in the response so, we could use it in subsequent requests.
-     */
+    // This endpoint will set the CSRF token as a Cookie in the response so, we could use it in subsequent requests.
     @GetMapping("/token/csrf")
     ResponseEntity<Void> csrf() {
         return new ResponseEntity<>(HttpStatus.OK);

@@ -1,22 +1,26 @@
 package org.example.calendar.event.day;
 
+import org.example.calendar.entity.DayEventSlot;
 import org.example.calendar.event.day.dto.DayEventInvitationRequest;
 import org.example.calendar.event.day.dto.DayEventRequest;
+import org.example.calendar.event.day.projection.DayEventProjection;
 import org.example.calendar.event.recurrence.RecurrenceDuration;
 import org.example.calendar.event.recurrence.RecurrenceFrequency;
 import org.example.calendar.event.slot.day.DayEventSlotService;
-import org.example.calendar.event.slot.day.dto.DayEventSlotDTO;
+import org.example.calendar.event.slot.day.projection.DayEventSlotPublicProjection;
 import org.example.calendar.email.EmailService;
 import org.example.calendar.entity.DayEvent;
 import org.example.calendar.entity.User;
 import org.example.calendar.exception.ResourceNotFoundException;
 import org.example.calendar.user.UserRepository;
+import org.example.calendar.utils.EventUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,11 +34,7 @@ public class DayEventService {
     private static final String EVENT_NOT_FOUND_MSG = "Day event not found with id: ";
 
     @Transactional
-    public UUID create(Long userId, DayEventRequest eventRequest) {
-        /*
-            The current authenticated user is the organizer of the event. We can't call getReferenceById(), we need the
-            username of the user to set it as the organizer in the invitation email template
-         */
+    public UUID createEvent(Long userId, DayEventRequest eventRequest) {
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
         DayEvent event = DayEvent.builder()
                 .startDate(eventRequest.getStartDate())
@@ -46,7 +46,7 @@ public class DayEventService {
                 .recurrenceDuration(eventRequest.getRecurrenceDuration())
                 .recurrenceEndDate(eventRequest.getRecurrenceEndDate())
                 .numberOfOccurrences(eventRequest.getNumberOfOccurrences())
-                .user(user)
+                .organizerId(user.getId())
                 .build();
 
         /*
@@ -59,7 +59,9 @@ public class DayEventService {
             event.setRecurrenceEndDate(eventRequest.getStartDate().plusYears(100));
         }
 
-        this.dayEventRepository.save(event);
+        this.dayEventRepository.create(event);
+        eventRequest.setGuestEmails(EventUtils.processGuestEmails(user, eventRequest.getGuestEmails()));
+
         this.dayEventSlotService.create(eventRequest, event);
         DayEventInvitationRequest emailRequest = DayEventInvitationRequest.builder()
                 .eventName(eventRequest.getTitle())
@@ -67,27 +69,67 @@ public class DayEventService {
                 .location(eventRequest.getLocation())
                 .description(eventRequest.getDescription())
                 .guestEmails(eventRequest.getGuestEmails())
-                .recurrenceFrequency(event.getRecurrenceFrequency())
-                .recurrenceStep(event.getRecurrenceStep())
-                .weeklyRecurrenceDays(event.getWeeklyRecurrenceDays())
-                .monthlyRecurrenceType(event.getMonthlyRecurrenceType())
-                .recurrenceDuration(event.getRecurrenceDuration())
-                .recurrenceEndDate(event.getRecurrenceEndDate())
-                .numbersOfOccurrences(event.getNumberOfOccurrences())
-                .startDate(event.getStartDate())
+                .recurrenceFrequency(eventRequest.getRecurrenceFrequency())
+                .recurrenceStep(eventRequest.getRecurrenceStep())
+                .weeklyRecurrenceDays(eventRequest.getWeeklyRecurrenceDays())
+                .monthlyRecurrenceType(eventRequest.getMonthlyRecurrenceType())
+                .recurrenceDuration(eventRequest.getRecurrenceDuration())
+                .recurrenceEndDate(eventRequest.getRecurrenceEndDate())
+                .numbersOfOccurrences(eventRequest.getNumberOfOccurrences())
+                .startDate(eventRequest.getStartDate())
                 .build();
         this.emailService.sendInvitationEmail(emailRequest);
 
         return event.getId();
     }
 
-    // Either the event does not exist, or the user that made the request is not organizer of the event. Both lead to 404.
     @Transactional
-    public void update(Long userId, UUID eventId, DayEventRequest eventRequest) {
-        DayEvent event = this.dayEventRepository.findByEventAndUserId(eventId, userId).orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + eventId));
+    public void updateEvent(Long userId, UUID eventId, DayEventRequest eventRequest) {
+        DayEventProjection projection = this.dayEventRepository.findByEventAndUserId(eventId, userId).orElseThrow(() -> new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + eventId));
+        User user = this.userRepository.findAuthUserByIdOrThrow(userId);
+        DayEvent original = DayEvent.builder()
+                .id(projection.getId())
+                .startDate(projection.getStartDate())
+                .endDate(projection.getEndDate())
+                .recurrenceFrequency(projection.getRecurrenceFrequency())
+                .recurrenceStep(projection.getRecurrenceStep())
+                .weeklyRecurrenceDays(projection.getWeeklyRecurrenceDays())
+                .monthlyRecurrenceType(projection.getMonthlyRecurrenceType())
+                .recurrenceDuration(projection.getRecurrenceDuration())
+                .recurrenceEndDate(projection.getRecurrenceEndDate())
+                .numberOfOccurrences(projection.getNumberOfOccurrences())
+                .build();
 
-        this.dayEventSlotService.updateEventSlotsForEvent(eventRequest, event);
-        this.dayEventRepository.save(event);
+        /*
+            DayEvent modified = original; Shallow copy it would also change the original
+            Copy constructor where we also consider the cases for shallow copies
+
+            Case 1: different frequency properties, delete all the slots and compute the new ones
+            Case 2: same frequency properties, but different start or end date, delete all the slots and compute the new ones
+         */
+        DayEvent modified = new DayEvent(original);
+        eventRequest.setGuestEmails(EventUtils.processGuestEmails(user, eventRequest.getGuestEmails()));
+        EventUtils.setFrequencyProperties(eventRequest, modified);
+        modified.setStartDate(eventRequest.getStartDate());
+        modified.setEndDate(eventRequest.getEndDate());
+        if (!EventUtils.hasSameFrequencyProperties(original, modified)
+                || !original.getStartDate().isEqual(modified.getStartDate())
+                || !original.getEndDate().isEqual(modified.getEndDate())) {
+            this.dayEventSlotService.deleteEventSlotsByEventId(original.getId());
+            this.dayEventSlotService.create(eventRequest, modified);
+            this.dayEventRepository.update(original, modified);
+        } else {
+            List<DayEventSlot> eventSlots = projection.getEventSlots().stream()
+                    .map(slotProjection -> DayEventSlot.builder()
+                            .id(slotProjection.getId())
+                            .title(slotProjection.getTitle())
+                            .location(slotProjection.getLocation())
+                            .description(slotProjection.getDescription())
+                            .guestEmails(slotProjection.getGuestEmails())
+                            .build())
+                    .collect(Collectors.toList());
+            this.dayEventSlotService.updateEventSlotsForEvent(eventRequest, eventSlots);
+        }
     }
 
     /*
@@ -110,15 +152,15 @@ public class DayEventService {
 
         If the event is not found or the user is not organizer of the event an empty list will be returned.
      */
-    public List<DayEventSlotDTO> findEventSlotsByEventId(UUID eventId, Long userId) {
-        return this.dayEventSlotService.findEventSlotsByEventId(eventId, userId);
+    public List<DayEventSlotPublicProjection> findEventSlotsByEventId(UUID eventId, Long userId) {
+        return this.dayEventSlotService.findEventSlotsByEventAndUserId(eventId, userId);
     }
 
     /*
-        Calling getReferenceById() will not work like it did before because we need all the day events that the user
-        is either the Organizer(id) but also those that they are invited as guest via their email. We need both.
+       We need all the day events that the user is either the Organizer(id) but also those that they are invited as
+       guest via their email.
      */
-    public List<DayEventSlotDTO> findEventSlotsByUserInDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
+    public List<DayEventSlotPublicProjection> findEventSlotsByUserInDateRange(Long userId, LocalDate startDate, LocalDate endDate) {
         User user = this.userRepository.findAuthUserByIdOrThrow(userId);
         return this.dayEventSlotService.findEventSlotsByUserInDateRange(user, startDate, endDate);
     }
@@ -143,8 +185,8 @@ public class DayEventService {
      */
     @Transactional
     public void deleteEventById(UUID eventId, Long userId) {
-        int deleted = this.dayEventRepository.deleteByEventAndUserId(eventId, userId);
-        if (deleted != 1) {
+        int rowsAffected = this.dayEventRepository.deleteByEventAndUserId(eventId, userId);
+        if (rowsAffected != 1) {
             throw new ResourceNotFoundException(EVENT_NOT_FOUND_MSG + eventId);
         }
     }
