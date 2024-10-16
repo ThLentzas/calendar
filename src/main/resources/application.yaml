@@ -18,12 +18,6 @@ spring:
     baseline-description: "init"
     baseline-version: 0
     locations: classpath:db/migration
-  jpa:
-    open-in-view: false
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
   mail:
     host: smtp.gmail.com
     port: 587
@@ -57,6 +51,3 @@ logging:
         web: DEBUG
         security: TRACE
         transaction: TRACE
-        orm:
-          jpa:
-            JpaTransactionManager: TRACE
